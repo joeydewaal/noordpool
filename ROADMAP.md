@@ -160,6 +160,7 @@ user_roles (user_id, role) -- role: admin | moderator | player
 players (id, user_id?, name, shirt_number, position, active)
 matches (id, opponent, location, date_time, home_away, status, home_score, away_score)
 match_events (id, match_id, player_id, event_type, minute)
+push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  -- Phase 6
 ```
 
 ## Suggested Implementation Order
@@ -169,3 +170,4 @@ match_events (id, match_id, player_id, event_type, minute)
 3. Phase 3 — Matches
 4. Phase 4 — Match Events & Stats
 5. Phase 5 — Polish & PWA enhancements
+6. Phase 6 — Live match updates & push notifications (nice-to-have)
