@@ -15,7 +15,7 @@
 		error = '';
 
 		if (password !== confirmPassword) {
-			error = 'Passwords do not match.';
+			error = 'Wachtwoorden komen niet overeen.';
 			return;
 		}
 
@@ -24,13 +24,13 @@
 			auth.setUser(res.user);
 			goto('/');
 		} catch (err) {
-			error = 'Registration failed. Please try again.';
+			error = 'Registratie mislukt. Probeer het opnieuw.';
 		}
 	}
 </script>
 
 <div class="max-w-md mx-auto mt-8">
-	<h1 class="text-2xl font-bold text-gray-900 mb-6">Register</h1>
+	<h1 class="text-2xl font-bold text-gray-900 mb-6">Registreren</h1>
 
 	{#if error}
 		<div class="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>
@@ -38,7 +38,7 @@
 
 	<form onsubmit={handleSubmit} class="space-y-4">
 		<div>
-			<label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+			<label for="name" class="block text-sm font-medium text-gray-700 mb-1">Naam</label>
 			<input
 				id="name"
 				type="text"
@@ -48,7 +48,7 @@
 			/>
 		</div>
 		<div>
-			<label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+			<label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
 			<input
 				id="email"
 				type="email"
@@ -58,7 +58,7 @@
 			/>
 		</div>
 		<div>
-			<label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+			<label for="password" class="block text-sm font-medium text-gray-700 mb-1">Wachtwoord</label>
 			<input
 				id="password"
 				type="password"
@@ -68,7 +68,7 @@
 			/>
 		</div>
 		<div>
-			<label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+			<label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Bevestig wachtwoord</label>
 			<input
 				id="confirmPassword"
 				type="password"
@@ -81,19 +81,19 @@
 			type="submit"
 			class="w-full bg-primary hover:bg-primary-light text-white font-medium py-2.5 rounded transition-colors"
 		>
-			Register
+			Registreren
 		</button>
 	</form>
 
 	<div class="my-6 flex items-center gap-4">
 		<hr class="flex-1 border-gray-300" />
-		<span class="text-sm text-gray-500">or</span>
+		<span class="text-sm text-gray-500">of</span>
 		<hr class="flex-1 border-gray-300" />
 	</div>
 
 	<GoogleOAuthButton />
 
 	<p class="mt-6 text-center text-sm text-gray-600">
-		Already have an account? <a href="/auth/login" class="text-primary font-medium hover:underline">Login</a>
+		Al een account? <a href="/auth/login" class="text-primary font-medium hover:underline">Inloggen</a>
 	</p>
 </div>

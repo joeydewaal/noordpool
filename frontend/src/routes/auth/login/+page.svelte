@@ -16,13 +16,13 @@
 			auth.setUser(res.user);
 			goto('/');
 		} catch (err) {
-			error = 'Login failed. Please try again.';
+			error = 'Inloggen mislukt. Probeer het opnieuw.';
 		}
 	}
 </script>
 
 <div class="max-w-md mx-auto mt-8">
-	<h1 class="text-2xl font-bold text-gray-900 mb-6">Login</h1>
+	<h1 class="text-2xl font-bold text-gray-900 mb-6">Inloggen</h1>
 
 	{#if error}
 		<div class="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>
@@ -30,7 +30,7 @@
 
 	<form onsubmit={handleSubmit} class="space-y-4">
 		<div>
-			<label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+			<label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
 			<input
 				id="email"
 				type="email"
@@ -40,7 +40,7 @@
 			/>
 		</div>
 		<div>
-			<label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+			<label for="password" class="block text-sm font-medium text-gray-700 mb-1">Wachtwoord</label>
 			<input
 				id="password"
 				type="password"
@@ -53,19 +53,19 @@
 			type="submit"
 			class="w-full bg-primary hover:bg-primary-light text-white font-medium py-2.5 rounded transition-colors"
 		>
-			Login
+			Inloggen
 		</button>
 	</form>
 
 	<div class="my-6 flex items-center gap-4">
 		<hr class="flex-1 border-gray-300" />
-		<span class="text-sm text-gray-500">or</span>
+		<span class="text-sm text-gray-500">of</span>
 		<hr class="flex-1 border-gray-300" />
 	</div>
 
 	<GoogleOAuthButton />
 
 	<p class="mt-6 text-center text-sm text-gray-600">
-		Don't have an account? <a href="/auth/register" class="text-primary font-medium hover:underline">Register</a>
+		Nog geen account? <a href="/auth/register" class="text-primary font-medium hover:underline">Registreren</a>
 	</p>
 </div>

@@ -19,8 +19,8 @@
 		<!-- Desktop nav -->
 		<nav class="hidden md:flex items-center gap-6">
 			<a href="/" class="hover:text-accent-light transition-colors">Home</a>
-			<a href="/matches" class="hover:text-accent-light transition-colors">Matches</a>
-			<a href="/players" class="hover:text-accent-light transition-colors">Players</a>
+			<a href="/matches" class="hover:text-accent-light transition-colors">Wedstrijden</a>
+			<a href="/players" class="hover:text-accent-light transition-colors">Spelers</a>
 		</nav>
 
 		<div class="hidden md:flex items-center gap-4">
@@ -30,14 +30,14 @@
 					onclick={handleLogout}
 					class="text-sm bg-primary-light hover:bg-white/20 px-3 py-1.5 rounded transition-colors"
 				>
-					Logout
+					Uitloggen
 				</button>
 			{:else}
 				<a
 					href="/auth/login"
 					class="text-sm bg-accent hover:bg-accent-light text-primary font-medium px-4 py-1.5 rounded transition-colors"
 				>
-					Login
+					Inloggen
 				</a>
 			{/if}
 		</div>
@@ -46,7 +46,7 @@
 		<button
 			class="md:hidden p-2"
 			onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-			aria-label="Toggle menu"
+			aria-label="Menu openen"
 		>
 			<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				{#if mobileMenuOpen}
@@ -62,14 +62,14 @@
 	{#if mobileMenuOpen}
 		<nav class="md:hidden border-t border-white/20 px-4 py-4 flex flex-col gap-3">
 			<a href="/" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Home</a>
-			<a href="/matches" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Matches</a>
-			<a href="/players" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Players</a>
+			<a href="/matches" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Wedstrijden</a>
+			<a href="/players" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Spelers</a>
 			<hr class="border-white/20" />
 			{#if auth.isAuthenticated}
 				<span class="text-sm">{auth.user?.name}</span>
-				<button onclick={handleLogout} class="text-left text-sm hover:text-accent-light">Logout</button>
+				<button onclick={handleLogout} class="text-left text-sm hover:text-accent-light">Uitloggen</button>
 			{:else}
-				<a href="/auth/login" onclick={() => (mobileMenuOpen = false)} class="text-accent font-medium">Login</a>
+				<a href="/auth/login" onclick={() => (mobileMenuOpen = false)} class="text-accent font-medium">Inloggen</a>
 			{/if}
 		</nav>
 	{/if}

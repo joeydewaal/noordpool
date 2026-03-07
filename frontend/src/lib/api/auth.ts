@@ -5,7 +5,7 @@ const MOCK_USER: User = {
 	email: 'player@noordpool.nl',
 	name: 'Test Speler',
 	avatarUrl: null,
-	roles: ['player']
+	roles: ['admin', 'player']
 };
 
 const TOKEN_KEY = 'noordpool_token';
