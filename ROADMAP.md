@@ -2,7 +2,7 @@
 
 ## Context
 
-A PWA for a single football team where players can view upcoming matches, match results (with goal scorers, assists, timestamps), and personal stats. Guest users can view everything read-only. Authenticated users have roles: **Admin** (full control including user/role management), **Moderator** (manage matches & player stats), **Player** (view only). Users can have multiple roles.
+A PWA for a single football team where players can view upcoming matches, match results (with goal scorers, assists, cards, timestamps), and personal stats. Guest users can view everything read-only. Authenticated users have roles: **Admin** (full control including user/role management), **Moderator** (manage matches & player stats), **Player** (view only). Users can have multiple roles.
 
 ## Tech Stack
 
@@ -100,15 +100,14 @@ A PWA for a single football team where players can view upcoming matches, match 
   - `DELETE /api/matches/:id/events/:event_id` (admin/moderator)
   - `GET /api/players/:id/stats` (aggregated stats — public)
   - `GET /api/stats/leaderboard` (top scorers, top assists — public)
-
 ### Frontend
 - Match detail: show timeline of events (goals, cards with minute)
-- Player profile: show aggregated stats (appearances, goals, assists, cards)
-- Leaderboard/stats overview page
+- Player profile: show aggregated stats (appearances, goals, assists, yellow cards, red cards)
+- Leaderboard/stats overview page (include a "most carded" section)
 
 ### Verification
-- Add goals/assists to a completed match
-- Player stats page shows correct aggregated numbers
+- Add goals/assists/cards to a completed match
+- Player stats page shows correct aggregated numbers including card counts
 - Leaderboard ranks players correctly
 
 ---
