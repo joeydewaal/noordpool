@@ -120,9 +120,9 @@ async fn leaderboard_empty() {
     assert_eq!(status, 200);
     assert_json_snapshot!(body, @r#"
     {
-      "topScorers": [],
+      "mostCarded": [],
       "topAssisters": [],
-      "mostCarded": []
+      "topScorers": []
     }
     "#);
 }

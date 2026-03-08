@@ -1,0 +1,12 @@
+---
+source: tests/players.rs
+expression: body
+---
+{
+  "active": true,
+  "id": "[uuid]",
+  "name": "Jan de Boer",
+  "position": "forward",
+  "shirtNumber": 7,
+  "userId": null
+}

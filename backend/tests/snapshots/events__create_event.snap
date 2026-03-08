@@ -1,6 +1,5 @@
 ---
 source: tests/events.rs
-assertion_line: 96
 expression: body
 ---
 {

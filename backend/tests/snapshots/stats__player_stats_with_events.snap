@@ -1,0 +1,12 @@
+---
+source: tests/stats.rs
+expression: body
+---
+{
+  "appearances": 1,
+  "assists": 1,
+  "goals": 2,
+  "playerId": "[uuid]",
+  "redCards": 0,
+  "yellowCards": 1
+}
