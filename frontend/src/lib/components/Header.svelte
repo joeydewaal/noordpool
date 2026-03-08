@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { auth } from '$lib/state/auth.svelte.js';
+	import { pwa } from '$lib/state/pwa.svelte.js';
 	import { logout } from '$lib/api/auth.js';
 	import { goto } from '$app/navigation';
 
@@ -25,6 +26,17 @@
 		</nav>
 
 		<div class="hidden md:flex items-center gap-4">
+			{#if pwa.installable}
+				<button
+					onclick={() => pwa.install()}
+					class="text-sm bg-primary-light hover:bg-white/20 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+					</svg>
+					Installeer
+				</button>
+			{/if}
 			{#if auth.isAuthenticated}
 				<span class="text-sm">{auth.user?.name}</span>
 				<button
@@ -66,6 +78,17 @@
 			<a href="/matches" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Wedstrijden</a>
 			<a href="/players" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Spelers</a>
 			<a href="/stats" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Statistieken</a>
+			{#if pwa.installable}
+				<button
+					onclick={() => { pwa.install(); mobileMenuOpen = false; }}
+					class="text-left text-sm hover:text-accent-light flex items-center gap-1.5"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+					</svg>
+					Installeer
+				</button>
+			{/if}
 			<hr class="border-white/20" />
 			{#if auth.isAuthenticated}
 				<span class="text-sm">{auth.user?.name}</span>
