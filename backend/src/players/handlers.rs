@@ -1,7 +1,11 @@
 use std::collections::HashSet;
 
-use axum::{Json, extract::{Path, State}};
+use axum::{
+    Json,
+    extract::{Path, State},
+};
 use axum_security::jwt::Jwt;
+use toasty::Executor;
 use uuid::Uuid;
 
 use crate::{
@@ -9,93 +13,91 @@ use crate::{
     auth::claims::Claims,
     error::AppError,
     json::{CreatePlayerRequest, PlayerStatsResponse, UpdatePlayerRequest},
-    models::{EventType, Game, MatchEvent, MatchStatus, Player},
+    models::{EventType, MatchEvent, MatchStatus, Player},
 };
 
-pub async fn list(
-    State(state): State<AppState>,
-) -> Result<Json<Vec<Player>>, AppError> {
-    let mut db = state.db.clone();
-    let players: Vec<Player> = Player::all().collect(&mut db).await?;
+pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Player>>, AppError> {
+    let players: Vec<Player> = Player::all().collect(&mut state.db).await?;
     Ok(Json(players))
 }
 
 pub async fn get_one(
-    State(state): State<AppState>,
+    State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Player>, AppError> {
-    let mut db = state.db.clone();
-    let player = Player::get_by_id(&mut db, &id).await?;
+    let player = Player::get_by_id(&mut state.db, &id).await?;
     Ok(Json(player))
 }
 
 pub async fn create(
     _claims: Jwt<Claims>,
-    State(state): State<AppState>,
+    State(mut state): State<AppState>,
     Json(body): Json<CreatePlayerRequest>,
 ) -> Result<Json<Player>, AppError> {
-    let mut db = state.db.clone();
     let player = toasty::create!(Player, {
         name: body.name,
         shirt_number: body.shirt_number,
         position: body.position,
     })
-    .exec(&mut db)
+    .exec(&mut state.db)
     .await?;
     Ok(Json(player))
 }
 
 pub async fn update(
     _claims: Jwt<Claims>,
-    State(state): State<AppState>,
+    State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdatePlayerRequest>,
 ) -> Result<Json<Player>, AppError> {
-    let mut db = state.db.clone();
-    let mut player = Player::get_by_id(&mut db, &id).await?;
+    let db = &mut state.db;
+    let mut update = Player::update_by_id(id);
 
-    let mut update = player.update();
     if let Some(name) = body.name {
-        update = update.name(name);
+        update.set_name(name);
     }
     if let Some(shirt_number) = body.shirt_number {
-        update = update.shirt_number(shirt_number);
+        update.set_shirt_number(shirt_number);
     }
     if let Some(position) = body.position {
-        update = update.position(position);
+        update.set_position(position);
     }
     if let Some(active) = body.active {
-        update = update.active(active);
+        update.set_active(active);
     }
-    update.exec(&mut db).await?;
 
-    let player = Player::get_by_id(&mut db, &id).await?;
+    let mut tx = db.transaction().await?;
+
+    update.exec(&mut tx).await?;
+    let player = Player::get_by_id(&mut tx, &id).await?;
+
+    tx.commit().await?;
     Ok(Json(player))
 }
 
 pub async fn stats(
-    State(state): State<AppState>,
+    State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<PlayerStatsResponse>, AppError> {
-    let mut db = state.db.clone();
+    let db = &mut state.db;
 
     // Verify player exists
-    Player::get_by_id(&mut db, &id).await?;
+    Player::get_by_id(db, &id).await?;
 
     // Get all events for this player
-    let events: Vec<MatchEvent> = MatchEvent::filter_by_player_id(&id)
-        .collect(&mut db)
+    let events: Vec<MatchEvent> = MatchEvent::filter_by_player_id(id)
+        .include(MatchEvent::fields().game())
+        .collect(db)
         .await?;
 
     // Get completed game IDs for appearances
-    let game_ids: Vec<Uuid> = events.iter().map(|e| e.game_id).collect::<HashSet<_>>().into_iter().collect();
-    let mut appearances = 0i32;
-    for game_id in &game_ids {
-        let game = Game::get_by_id(&mut db, game_id).await?;
-        if game.status == MatchStatus::Completed {
-            appearances += 1;
-        }
-    }
+    let game_ids: Vec<Uuid> = events
+        .iter()
+        .filter(|e| e.game.get().status == MatchStatus::Completed)
+        .map(|e| e.game_id)
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
 
     let mut goals = 0i32;
     let mut assists = 0i32;
@@ -112,7 +114,7 @@ pub async fn stats(
 
     Ok(Json(PlayerStatsResponse {
         player_id: id.to_string(),
-        appearances,
+        appearances: game_ids.len(),
         goals,
         assists,
         yellow_cards,

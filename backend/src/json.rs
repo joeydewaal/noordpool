@@ -1,4 +1,6 @@
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::models::{EventType, HomeAway, MatchStatus, Position, Role, User};
 
@@ -58,7 +60,7 @@ pub struct UpdatePlayerRequest {
 pub struct CreateMatchRequest {
     pub opponent: String,
     pub location: String,
-    pub date_time: String,
+    pub date_time: Timestamp,
     pub home_away: HomeAway,
 }
 
@@ -67,7 +69,7 @@ pub struct CreateMatchRequest {
 pub struct UpdateMatchRequest {
     pub opponent: Option<String>,
     pub location: Option<String>,
-    pub date_time: Option<String>,
+    pub date_time: Option<Timestamp>,
     pub home_away: Option<HomeAway>,
     pub status: Option<MatchStatus>,
     pub home_score: Option<i32>,
@@ -79,7 +81,7 @@ pub struct UpdateMatchRequest {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateMatchEventRequest {
-    pub player_id: String,
+    pub player_id: Uuid,
     pub event_type: EventType,
     pub minute: i32,
 }
@@ -90,7 +92,7 @@ pub struct CreateMatchEventRequest {
 #[serde(rename_all = "camelCase")]
 pub struct PlayerStatsResponse {
     pub player_id: String,
-    pub appearances: i32,
+    pub appearances: usize,
     pub goals: i32,
     pub assists: i32,
     pub yellow_cards: i32,

@@ -6,7 +6,7 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{LeaderboardEntryResponse, LeaderboardResponse},
-    models::{EventType, Game, MatchEvent, MatchStatus, Player},
+    models::{EventType, MatchEvent, MatchStatus, Player},
 };
 
 #[derive(Default)]
@@ -19,27 +19,24 @@ struct PlayerStats {
 }
 
 pub async fn leaderboard(
-    State(state): State<AppState>,
+    State(mut state): State<AppState>,
 ) -> Result<Json<LeaderboardResponse>, AppError> {
-    let mut db = state.db.clone();
-
-    // Get completed game IDs
-    let games: Vec<Game> = Game::all().collect(&mut db).await?;
-    let completed_game_ids: HashSet<uuid::Uuid> = games
-        .iter()
-        .filter(|g| g.status == MatchStatus::Completed)
-        .map(|g| g.id)
-        .collect();
+    let db = &mut state.db;
 
     // Get all events
-    let events: Vec<MatchEvent> = MatchEvent::all().collect(&mut db).await?;
+    let events: Vec<MatchEvent> = MatchEvent::all()
+        .include(MatchEvent::fields().game())
+        .collect(db)
+        .await?;
 
     // Aggregate stats per player (only for events in completed games)
     let mut stats_map: HashMap<uuid::Uuid, PlayerStats> = HashMap::new();
+
     for event in &events {
-        if !completed_game_ids.contains(&event.game_id) {
+        if event.game.get().status != MatchStatus::Completed {
             continue;
         }
+
         let entry = stats_map.entry(event.player_id).or_default();
         entry.game_ids.insert(event.game_id);
         match event.event_type {
@@ -51,7 +48,7 @@ pub async fn leaderboard(
     }
 
     // Get active players
-    let players: Vec<Player> = Player::all().collect(&mut db).await?;
+    let players: Vec<Player> = Player::all_active().collect(db).await?;
     let player_map: HashMap<uuid::Uuid, &Player> = players.iter().map(|p| (p.id, p)).collect();
 
     // Build entries
@@ -59,9 +56,6 @@ pub async fn leaderboard(
         .iter()
         .filter_map(|(player_id, ps)| {
             let player = player_map.get(player_id)?;
-            if !player.active {
-                return None;
-            }
             Some(LeaderboardEntryResponse {
                 player_id: player_id.to_string(),
                 name: player.name.clone(),

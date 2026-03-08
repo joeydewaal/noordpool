@@ -2,7 +2,7 @@ mod common;
 
 use axum::body::Body;
 use common::{auth_json_request, call, get_token, request, setup};
-use insta::{assert_json_snapshot, Settings};
+use insta::{Settings, assert_json_snapshot};
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
@@ -12,9 +12,12 @@ fn redact_settings() -> Settings {
         ".topAssisters[].playerId",
         ".mostCarded[].playerId",
     ] {
-        settings.add_redaction(*path, insta::dynamic_redaction(|val, _| {
-            val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
-        }));
+        settings.add_redaction(
+            *path,
+            insta::dynamic_redaction(|val, _| {
+                val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
+            }),
+        );
     }
     settings
 }

@@ -1,6 +1,9 @@
 pub mod handlers;
 
-use axum::{Router, routing::{delete, get}};
+use axum::{
+    Router,
+    routing::{delete, get},
+};
 
 use crate::app_state::AppState;
 

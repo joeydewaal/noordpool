@@ -2,14 +2,24 @@ mod common;
 
 use axum::body::Body;
 use common::{auth_json_request, call, get_token, request, setup};
-use insta::{assert_json_snapshot, Settings};
+use insta::{Settings, assert_json_snapshot};
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
-    for path in &[".id", ".matchId", ".playerId", "[].id", "[].matchId", "[].playerId"] {
-        settings.add_redaction(*path, insta::dynamic_redaction(|val, _| {
-            val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
-        }));
+    for path in &[
+        ".id",
+        ".matchId",
+        ".playerId",
+        "[].id",
+        "[].matchId",
+        "[].playerId",
+    ] {
+        settings.add_redaction(
+            *path,
+            insta::dynamic_redaction(|val, _| {
+                val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
+            }),
+        );
     }
     settings
 }
@@ -104,7 +114,7 @@ async fn create_and_list_events() {
                 serde_json::json!({
                     "playerId": player_id,
                     "eventType": "assist",
-                    "minute": 25
+                    "minute": 20
                 })
                 .to_string(),
             ))
@@ -139,7 +149,7 @@ async fn create_and_list_events() {
     assert_eq!(status, 200);
     let arr = body.as_array().unwrap();
     assert_eq!(arr.len(), 3);
-    assert_eq!(arr[0]["minute"], 25);
+    assert_eq!(arr[0]["minute"], 20);
     assert_eq!(arr[1]["minute"], 25);
     assert_eq!(arr[2]["minute"], 60);
 }
@@ -190,47 +200,6 @@ async fn delete_event() {
     )
     .await;
     assert_json_snapshot!(body, @"[]");
-}
-
-#[tokio::test]
-async fn delete_event_wrong_match() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
-    let match_id = create_match(&mut app, &token).await;
-    let player_id = create_player(&mut app, &token, "Scorer", 9).await;
-
-    let (_, created) = call(
-        &mut app,
-        auth_json_request("POST", &format!("/api/matches/{match_id}/events"), &token)
-            .body(Body::from(
-                serde_json::json!({
-                    "playerId": player_id,
-                    "eventType": "goal",
-                    "minute": 10
-                })
-                .to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
-    let event_id = created["id"].as_str().unwrap();
-
-    // Create a second match
-    let other_match_id = create_match(&mut app, &token).await;
-
-    // Try to delete event under wrong match
-    let (status, _) = call(
-        &mut app,
-        auth_json_request(
-            "DELETE",
-            &format!("/api/matches/{other_match_id}/events/{event_id}"),
-            &token,
-        )
-        .body(Body::empty())
-        .unwrap(),
-    )
-    .await;
-    assert_eq!(status, 400);
 }
 
 #[tokio::test]

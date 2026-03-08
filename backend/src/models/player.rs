@@ -1,4 +1,5 @@
 use serde::Serialize;
+use toasty::Model;
 use uuid::Uuid;
 
 use super::Position;
@@ -15,4 +16,10 @@ pub struct Player {
     pub position: Position,
     #[default(true)]
     pub active: bool,
+}
+
+impl Player {
+    pub fn all_active() -> <Player as Model>::Query {
+        Player::all().filter(Player::fields().active().eq(true))
+    }
 }

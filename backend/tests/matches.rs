@@ -2,22 +2,38 @@ mod common;
 
 use axum::body::Body;
 use common::{auth_json_request, call, get_token, json_request, request, setup};
-use insta::{assert_json_snapshot, Settings};
+use insta::{Settings, assert_json_snapshot};
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
-    settings.add_redaction(".id", insta::dynamic_redaction(|val, _| {
-        val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
-    }));
-    settings.add_redaction(".createdAt", insta::dynamic_redaction(|val, _| {
-        val.as_str().map(|_| "[timestamp]".into()).unwrap_or(val.clone())
-    }));
-    settings.add_redaction("[].id", insta::dynamic_redaction(|val, _| {
-        val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
-    }));
-    settings.add_redaction("[].createdAt", insta::dynamic_redaction(|val, _| {
-        val.as_str().map(|_| "[timestamp]".into()).unwrap_or(val.clone())
-    }));
+    settings.add_redaction(
+        ".id",
+        insta::dynamic_redaction(|val, _| {
+            val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
+        }),
+    );
+    settings.add_redaction(
+        ".createdAt",
+        insta::dynamic_redaction(|val, _| {
+            val.as_str()
+                .map(|_| "[timestamp]".into())
+                .unwrap_or(val.clone())
+        }),
+    );
+    settings.add_redaction(
+        "[].id",
+        insta::dynamic_redaction(|val, _| {
+            val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
+        }),
+    );
+    settings.add_redaction(
+        "[].createdAt",
+        insta::dynamic_redaction(|val, _| {
+            val.as_str()
+                .map(|_| "[timestamp]".into())
+                .unwrap_or(val.clone())
+        }),
+    );
     settings
 }
 
@@ -230,12 +246,9 @@ async fn get_match_not_found() {
     let (mut app, _) = setup().await;
     let (status, _) = call(
         &mut app,
-        request(
-            "GET",
-            "/api/matches/00000000-0000-0000-0000-000000000000",
-        )
-        .body(Body::empty())
-        .unwrap(),
+        request("GET", "/api/matches/00000000-0000-0000-0000-000000000000")
+            .body(Body::empty())
+            .unwrap(),
     )
     .await;
     assert_eq!(status, 404);

@@ -26,10 +26,10 @@ pub struct LoginRequest {
 const TOKEN_LIFETIME_SECS: u64 = 24 * 60 * 60;
 
 pub async fn register(
-    State(state): State<AppState>,
+    State(mut state): State<AppState>,
     Json(body): Json<RegisterRequest>,
 ) -> Result<Json<AuthResponse>, AppError> {
-    let mut db = state.db.clone();
+    let db = &mut state.db;
 
     let password_hash = password::hash_password(&body.password)?;
 
@@ -42,7 +42,7 @@ pub async fn register(
             }
 
     )
-    .exec(&mut db)
+    .exec(db)
     .await
     .map_err(|e| {
         let msg = e.to_string();
@@ -79,9 +79,7 @@ pub async fn login(
         return Err(AppError::Unauthorized("Invalid email or password".into()));
     }
 
-    let role_records = user.roles.get();
-
-    let roles: Vec<Role> = role_records.iter().map(|r| r.role).collect();
+    let roles: Vec<Role> = user.roles.get().iter().map(|r| r.role).collect();
 
     let token = encode_token(&state.jwt, &user, &roles)?;
 

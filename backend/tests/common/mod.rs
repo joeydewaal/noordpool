@@ -65,11 +65,7 @@ pub fn json_request(method: &str, uri: &str) -> axum::http::request::Builder {
     request(method, uri).header("content-type", "application/json")
 }
 
-pub fn auth_json_request(
-    method: &str,
-    uri: &str,
-    token: &str,
-) -> axum::http::request::Builder {
+pub fn auth_json_request(method: &str, uri: &str, token: &str) -> axum::http::request::Builder {
     json_request(method, uri).header("authorization", format!("Bearer {token}"))
 }
 
@@ -77,11 +73,7 @@ pub async fn call(
     app: &mut Router,
     req: axum::http::Request<axum::body::Body>,
 ) -> (axum::http::StatusCode, serde_json::Value) {
-    let resp = app
-        .clone()
-        .oneshot(req)
-        .await
-        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
     let status = resp.status();
     let body = resp.into_body().collect().await.unwrap().to_bytes();
     let json: serde_json::Value = if body.is_empty() {
