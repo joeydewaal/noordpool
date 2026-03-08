@@ -1,10 +1,12 @@
 use jiff::Timestamp;
+use serde::Serialize;
 use toasty::HasMany;
 use uuid::Uuid;
 
 use super::{HomeAway, MatchEvent, MatchStatus};
 
-#[derive(Debug, toasty::Model)]
+#[derive(Debug, Serialize, toasty::Model)]
+#[serde(rename_all = "camelCase")]
 pub struct Game {
     #[key]
     #[auto]
@@ -21,6 +23,7 @@ pub struct Game {
     pub away_score: i32,
     #[default(Timestamp::now())]
     pub created_at: Timestamp,
+    #[serde(skip)]
     #[has_many]
     pub events: HasMany<MatchEvent>,
 }

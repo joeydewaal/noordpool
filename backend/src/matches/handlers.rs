@@ -8,7 +8,7 @@ use crate::{
     app_state::AppState,
     auth::claims::Claims,
     error::AppError,
-    json::{CreateMatchRequest, MatchResponse, UpdateMatchRequest},
+    json::{CreateMatchRequest, UpdateMatchRequest},
     models::{Game, MatchStatus},
 };
 
@@ -19,33 +19,26 @@ pub struct LimitQuery {
 
 pub async fn list(
     State(state): State<AppState>,
-) -> Result<Json<Vec<MatchResponse>>, AppError> {
+) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db.clone();
     let mut games: Vec<Game> = Game::all().collect(&mut db).await?;
     games.sort_by(|a, b| b.date_time.cmp(&a.date_time));
-    let resp: Vec<MatchResponse> = games.iter().map(MatchResponse::from_game).collect();
-    Ok(Json(resp))
+    Ok(Json(games))
 }
 
 pub async fn get_one(
     State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<MatchResponse>, AppError> {
+    Path(id): Path<Uuid>,
+) -> Result<Json<Game>, AppError> {
     let mut db = state.db.clone();
-    let id: Uuid = id
-        .parse()
-        .map_err(|_| AppError::BadRequest("Invalid match ID".into()))?;
-    let game = Game::filter_by_id(&id)
-        .first(&mut db)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Match not found".into()))?;
-    Ok(Json(MatchResponse::from_game(&game)))
+    let game = Game::get_by_id(&mut db, &id).await?;
+    Ok(Json(game))
 }
 
 pub async fn upcoming(
     State(state): State<AppState>,
     Query(query): Query<LimitQuery>,
-) -> Result<Json<Vec<MatchResponse>>, AppError> {
+) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db.clone();
     let mut games: Vec<Game> = Game::all().collect(&mut db).await?;
     games.retain(|g| g.status == MatchStatus::Scheduled);
@@ -53,14 +46,13 @@ pub async fn upcoming(
     if let Some(limit) = query.limit {
         games.truncate(limit);
     }
-    let resp: Vec<MatchResponse> = games.iter().map(MatchResponse::from_game).collect();
-    Ok(Json(resp))
+    Ok(Json(games))
 }
 
 pub async fn recent(
     State(state): State<AppState>,
     Query(query): Query<LimitQuery>,
-) -> Result<Json<Vec<MatchResponse>>, AppError> {
+) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db.clone();
     let mut games: Vec<Game> = Game::all().collect(&mut db).await?;
     games.retain(|g| g.status == MatchStatus::Completed);
@@ -68,15 +60,14 @@ pub async fn recent(
     if let Some(limit) = query.limit {
         games.truncate(limit);
     }
-    let resp: Vec<MatchResponse> = games.iter().map(MatchResponse::from_game).collect();
-    Ok(Json(resp))
+    Ok(Json(games))
 }
 
 pub async fn create(
     _claims: Jwt<Claims>,
     State(state): State<AppState>,
     Json(body): Json<CreateMatchRequest>,
-) -> Result<Json<MatchResponse>, AppError> {
+) -> Result<Json<Game>, AppError> {
     let mut db = state.db.clone();
     let date_time: Timestamp = body
         .date_time
@@ -90,23 +81,17 @@ pub async fn create(
     })
     .exec(&mut db)
     .await?;
-    Ok(Json(MatchResponse::from_game(&game)))
+    Ok(Json(game))
 }
 
 pub async fn update(
     _claims: Jwt<Claims>,
     State(state): State<AppState>,
-    Path(id): Path<String>,
+    Path(id): Path<Uuid>,
     Json(body): Json<UpdateMatchRequest>,
-) -> Result<Json<MatchResponse>, AppError> {
+) -> Result<Json<Game>, AppError> {
     let mut db = state.db.clone();
-    let id: Uuid = id
-        .parse()
-        .map_err(|_| AppError::BadRequest("Invalid match ID".into()))?;
-    let mut game = Game::filter_by_id(&id)
-        .first(&mut db)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Match not found".into()))?;
+    let mut game = Game::get_by_id(&mut db, &id).await?;
 
     let mut update = game.update();
     if let Some(opponent) = body.opponent {
@@ -135,9 +120,6 @@ pub async fn update(
     }
     update.exec(&mut db).await?;
 
-    let game = Game::filter_by_id(&id)
-        .first(&mut db)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Match not found".into()))?;
-    Ok(Json(MatchResponse::from_game(&game)))
+    let game = Game::get_by_id(&mut db, &id).await?;
+    Ok(Json(game))
 }

@@ -1,8 +1,10 @@
+use serde::Serialize;
 use uuid::Uuid;
 
 use super::Position;
 
-#[derive(Debug, toasty::Model)]
+#[derive(Debug, Serialize, toasty::Model)]
+#[serde(rename_all = "camelCase")]
 pub struct Player {
     #[key]
     #[auto]

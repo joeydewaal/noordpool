@@ -8,39 +8,32 @@ use crate::{
     app_state::AppState,
     auth::claims::Claims,
     error::AppError,
-    json::{CreatePlayerRequest, PlayerResponse, PlayerStatsResponse, UpdatePlayerRequest},
+    json::{CreatePlayerRequest, PlayerStatsResponse, UpdatePlayerRequest},
     models::{EventType, Game, MatchEvent, MatchStatus, Player},
 };
 
 pub async fn list(
     State(state): State<AppState>,
-) -> Result<Json<Vec<PlayerResponse>>, AppError> {
+) -> Result<Json<Vec<Player>>, AppError> {
     let mut db = state.db.clone();
     let players: Vec<Player> = Player::all().collect(&mut db).await?;
-    let resp: Vec<PlayerResponse> = players.iter().map(PlayerResponse::from_player).collect();
-    Ok(Json(resp))
+    Ok(Json(players))
 }
 
 pub async fn get_one(
     State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<PlayerResponse>, AppError> {
+    Path(id): Path<Uuid>,
+) -> Result<Json<Player>, AppError> {
     let mut db = state.db.clone();
-    let id: Uuid = id
-        .parse()
-        .map_err(|_| AppError::BadRequest("Invalid player ID".into()))?;
-    let player = Player::filter_by_id(&id)
-        .first(&mut db)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Player not found".into()))?;
-    Ok(Json(PlayerResponse::from_player(&player)))
+    let player = Player::get_by_id(&mut db, &id).await?;
+    Ok(Json(player))
 }
 
 pub async fn create(
     _claims: Jwt<Claims>,
     State(state): State<AppState>,
     Json(body): Json<CreatePlayerRequest>,
-) -> Result<Json<PlayerResponse>, AppError> {
+) -> Result<Json<Player>, AppError> {
     let mut db = state.db.clone();
     let player = toasty::create!(Player, {
         name: body.name,
@@ -49,23 +42,17 @@ pub async fn create(
     })
     .exec(&mut db)
     .await?;
-    Ok(Json(PlayerResponse::from_player(&player)))
+    Ok(Json(player))
 }
 
 pub async fn update(
     _claims: Jwt<Claims>,
     State(state): State<AppState>,
-    Path(id): Path<String>,
+    Path(id): Path<Uuid>,
     Json(body): Json<UpdatePlayerRequest>,
-) -> Result<Json<PlayerResponse>, AppError> {
+) -> Result<Json<Player>, AppError> {
     let mut db = state.db.clone();
-    let id: Uuid = id
-        .parse()
-        .map_err(|_| AppError::BadRequest("Invalid player ID".into()))?;
-    let mut player = Player::filter_by_id(&id)
-        .first(&mut db)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Player not found".into()))?;
+    let mut player = Player::get_by_id(&mut db, &id).await?;
 
     let mut update = player.update();
     if let Some(name) = body.name {
@@ -82,27 +69,18 @@ pub async fn update(
     }
     update.exec(&mut db).await?;
 
-    let player = Player::filter_by_id(&id)
-        .first(&mut db)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Player not found".into()))?;
-    Ok(Json(PlayerResponse::from_player(&player)))
+    let player = Player::get_by_id(&mut db, &id).await?;
+    Ok(Json(player))
 }
 
 pub async fn stats(
     State(state): State<AppState>,
-    Path(id): Path<String>,
+    Path(id): Path<Uuid>,
 ) -> Result<Json<PlayerStatsResponse>, AppError> {
     let mut db = state.db.clone();
-    let id: Uuid = id
-        .parse()
-        .map_err(|_| AppError::BadRequest("Invalid player ID".into()))?;
 
     // Verify player exists
-    Player::filter_by_id(&id)
-        .first(&mut db)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Player not found".into()))?;
+    Player::get_by_id(&mut db, &id).await?;
 
     // Get all events for this player
     let events: Vec<MatchEvent> = MatchEvent::filter_by_player_id(&id)
@@ -113,10 +91,9 @@ pub async fn stats(
     let game_ids: Vec<Uuid> = events.iter().map(|e| e.game_id).collect::<HashSet<_>>().into_iter().collect();
     let mut appearances = 0i32;
     for game_id in &game_ids {
-        if let Some(game) = Game::filter_by_id(game_id).first(&mut db).await? {
-            if game.status == MatchStatus::Completed {
-                appearances += 1;
-            }
+        let game = Game::get_by_id(&mut db, game_id).await?;
+        if game.status == MatchStatus::Completed {
+            appearances += 1;
         }
     }
 

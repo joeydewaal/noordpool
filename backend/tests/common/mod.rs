@@ -4,7 +4,9 @@ use http_body_util::BodyExt;
 use noordpool_backend::{
     app_state::AppState,
     auth::claims::Claims,
-    models::{Game, MatchEvent, Player, User, UserRole},
+    models::{
+        EventType, Game, HomeAway, MatchEvent, MatchStatus, Player, Position, Role, User, UserRole,
+    },
     routes,
 };
 use toasty::Db;
@@ -14,9 +16,14 @@ pub async fn setup() -> (Router, AppState) {
     let mut builder = Db::builder();
     builder.register::<User>();
     builder.register::<UserRole>();
+    builder.register::<Role>();
     builder.register::<Player>();
+    builder.register::<Position>();
     builder.register::<Game>();
+    builder.register::<MatchStatus>();
+    builder.register::<HomeAway>();
     builder.register::<MatchEvent>();
+    builder.register::<EventType>();
     let mut db = builder.connect("sqlite::memory:").await.unwrap();
     db.push_schema().await.unwrap();
 
