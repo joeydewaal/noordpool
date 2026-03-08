@@ -2,14 +2,18 @@ mod app_state;
 mod auth;
 mod config;
 mod error;
+mod events;
 mod json;
+mod matches;
 mod models;
+mod players;
 mod routes;
+mod stats;
 
 use app_state::AppState;
 use axum_security::jwt::JwtContext;
 use config::Config;
-use models::{User, UserRole};
+use models::{Game, MatchEvent, Player, User, UserRole};
 use toasty::Db;
 use tokio::net::TcpListener;
 
@@ -26,6 +30,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut builder = Db::builder();
     builder.register::<User>();
     builder.register::<UserRole>();
+    builder.register::<Player>();
+    builder.register::<Game>();
+    builder.register::<MatchEvent>();
     let mut db = builder.connect(&config.database_url).await?;
     db.push_schema().await?;
 
