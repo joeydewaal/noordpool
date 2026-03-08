@@ -22,3 +22,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 insta = { version = "1", features = ["json", "redactions"] }
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
+toasty = { path = "/home/joey/dev/toasty/crates/toasty", features = ["postgresql", "sqlite", "jiff"] }
