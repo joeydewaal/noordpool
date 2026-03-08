@@ -29,10 +29,10 @@
 			{#if pwa.installable}
 				<button
 					onclick={() => pwa.install()}
-					class="text-sm bg-primary-light hover:bg-white/20 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5"
+					class="text-sm bg-accent hover:bg-accent-light text-primary font-medium px-4 py-1.5 rounded transition-colors flex items-center gap-1.5"
 				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
 					</svg>
 					Installeer
 				</button>
@@ -81,7 +81,7 @@
 			{#if pwa.installable}
 				<button
 					onclick={() => { pwa.install(); mobileMenuOpen = false; }}
-					class="text-left text-sm hover:text-accent-light flex items-center gap-1.5"
+					class="text-sm bg-accent hover:bg-accent-light text-primary font-medium px-4 py-1.5 rounded transition-colors flex items-center gap-1.5 w-fit"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
