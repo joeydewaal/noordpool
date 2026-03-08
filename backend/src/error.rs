@@ -24,3 +24,9 @@ impl IntoResponse for AppError {
         (status, body).into_response()
     }
 }
+
+impl From<toasty::Error> for AppError {
+    fn from(value: toasty::Error) -> Self {
+        Self::Internal(value.to_string())
+    }
+}

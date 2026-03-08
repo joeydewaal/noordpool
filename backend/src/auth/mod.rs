@@ -2,7 +2,10 @@ pub mod claims;
 pub mod handlers;
 pub mod password;
 
-use axum::{Router, routing::{get, post}};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 
 use crate::app_state::AppState;
 

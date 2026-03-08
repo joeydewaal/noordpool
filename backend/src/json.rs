@@ -1,7 +1,6 @@
 use serde::Serialize;
 
-use crate::auth::claims::Role;
-use crate::models::User;
+use crate::models::{Role, User};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

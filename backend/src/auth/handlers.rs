@@ -4,13 +4,10 @@ use serde::Deserialize;
 
 use crate::{
     app_state::AppState,
-    auth::{
-        claims::{Claims, Role},
-        password,
-    },
+    auth::{claims::Claims, password},
     error::AppError,
     json::{AuthResponse, UserResponse},
-    models::{User, UserRole},
+    models::{Role, User, UserRole},
 };
 
 #[derive(Deserialize)]
@@ -37,10 +34,11 @@ pub async fn register(
     let password_hash = password::hash_password(&body.password)?;
 
     let user = User::create()
-        .name(&body.name)
-        .email(&body.email)
-        .password_hash(&password_hash)
+        .name(body.name)
+        .email(body.email)
+        .password_hash(password_hash)
         .created_at(jiff::Timestamp::now())
+        .role(UserRole::create().role(Role::Player))
         .exec(&mut db)
         .await
         .map_err(|e| {
@@ -51,14 +49,6 @@ pub async fn register(
                 AppError::Internal(msg)
             }
         })?;
-
-    let _role = user
-        .roles()
-        .create()
-        .role("player")
-        .exec(&mut db)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let roles = vec![Role::Player];
     let token = encode_token(&state.jwt, &user, &roles)?;
@@ -75,20 +65,20 @@ pub async fn login(
 ) -> Result<Json<AuthResponse>, AppError> {
     let mut db = state.db.clone();
 
-    let user = User::get_by_email(&mut db, &body.email)
-        .await
-        .map_err(|_| AppError::Unauthorized("Invalid email or password".into()))?;
+    let user = User::filter_by_email(&body.email)
+        .include(User::fields().roles())
+        .first(&mut db)
+        .await?
+        .ok_or_else(|| AppError::Unauthorized("Invalid email or password".into()))?;
 
     let valid = password::verify_password(&body.password, &user.password_hash)?;
     if !valid {
         return Err(AppError::Unauthorized("Invalid email or password".into()));
     }
 
-    let role_records = user.roles().collect::<Vec<_>>(&mut db).await.map_err(|e| AppError::Internal(e.to_string()))?;
-    let roles: Vec<Role> = role_records
-        .iter()
-        .filter_map(|r| Role::from_str(&r.role))
-        .collect();
+    let role_records = user.roles.get();
+
+    let roles: Vec<Role> = role_records.iter().map(|r| r.role).collect();
 
     let token = encode_token(&state.jwt, &user, &roles)?;
 
@@ -112,11 +102,7 @@ pub async fn logout() -> axum::http::StatusCode {
     axum::http::StatusCode::OK
 }
 
-fn encode_token(
-    jwt: &JwtContext<Claims>,
-    user: &User,
-    roles: &[Role],
-) -> Result<String, AppError> {
+fn encode_token(jwt: &JwtContext<Claims>, user: &User, roles: &[Role]) -> Result<String, AppError> {
     let claims = Claims {
         sub: user.id.to_string(),
         email: user.email.clone(),

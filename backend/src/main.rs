@@ -10,15 +10,14 @@ use app_state::AppState;
 use axum_security::jwt::JwtContext;
 use config::Config;
 use models::{User, UserRole};
-use tokio::net::TcpListener;
 use toasty::Db;
+use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .init();
 
