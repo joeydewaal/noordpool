@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use toasty::Embed;
+use toasty::{BelongsTo, Embed};
 use uuid::Uuid;
 
 use super::User;
@@ -10,9 +10,9 @@ pub struct UserRole {
     #[auto]
     pub id: Uuid,
     #[index]
-    pub user_id: uuid::Uuid,
+    pub user_id: Uuid,
     #[belongs_to(key = user_id, references = id)]
-    pub user: toasty::BelongsTo<User>,
+    pub user: BelongsTo<User>,
     pub role: Role,
 }
 

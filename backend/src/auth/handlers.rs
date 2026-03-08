@@ -7,7 +7,7 @@ use crate::{
     auth::{claims::Claims, password},
     error::AppError,
     json::{AuthResponse, UserResponse},
-    models::{Role, User, UserRole},
+    models::{Role, User},
 };
 
 #[derive(Deserialize)]
@@ -33,22 +33,25 @@ pub async fn register(
 
     let password_hash = password::hash_password(&body.password)?;
 
-    let user = User::create()
-        .name(body.name)
-        .email(body.email)
-        .password_hash(password_hash)
-        .created_at(jiff::Timestamp::now())
-        .role(UserRole::create().role(Role::Player))
-        .exec(&mut db)
-        .await
-        .map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("unique") || msg.contains("duplicate") || msg.contains("UNIQUE") {
-                AppError::Conflict("Email already registered".into())
-            } else {
-                AppError::Internal(msg)
+    let user = toasty::create!(
+        User, {
+                name: body.name,
+                email: body.email,
+                password_hash: password_hash,
+                roles: [{ role: Role::Player }]
             }
-        })?;
+
+    )
+    .exec(&mut db)
+    .await
+    .map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("unique") || msg.contains("duplicate") || msg.contains("UNIQUE") {
+            AppError::Conflict("Email already registered".into())
+        } else {
+            AppError::Internal(msg)
+        }
+    })?;
 
     let roles = vec![Role::Player];
     let token = encode_token(&state.jwt, &user, &roles)?;
@@ -65,7 +68,7 @@ pub async fn login(
 ) -> Result<Json<AuthResponse>, AppError> {
     let mut db = state.db.clone();
 
-    let user = User::filter_by_email(&body.email)
+    let user = User::filter_by_email(body.email)
         .include(User::fields().roles())
         .first(&mut db)
         .await?

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-axum = { version = "0.8", features = ["tokio"] }
-tokio = { version = "1", features = ["full"] }
+axum = { version = "0.8.8", features = ["tokio"] }
+tokio = { version = "1.50", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors"] }
 toasty = { path = "/home/joey/dev/toasty/crates/toasty", features = ["postgresql", "jiff"] }
