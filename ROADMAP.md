@@ -11,6 +11,12 @@ A PWA for a single football team where players can view upcoming matches, match 
 - **Database:** PostgreSQL
 - **Auth:** Guest access (read-only), email+password, Google OAuth
 
+## Language Convention
+
+- **UI text:** Dutch (nl-NL) — all user-facing labels, messages, buttons, headings
+- **Code:** English — variable names, function names, comments, database models, API fields
+- **Date/time formatting:** nl-NL locale
+
 ---
 
 ## Phase 1: Project Scaffolding & Auth

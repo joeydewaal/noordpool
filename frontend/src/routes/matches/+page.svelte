@@ -94,7 +94,7 @@
 						<div class="flex items-center gap-3">
 							<span class="font-bold text-gray-900">{formatScore(match)}</span>
 							<span class="text-xs font-medium px-2.5 py-1 rounded-full {match.homeAway === 'home' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
-								{match.homeAway}
+								{match.homeAway === 'home' ? 'thuis' : 'uit'}
 							</span>
 						</div>
 					</div>

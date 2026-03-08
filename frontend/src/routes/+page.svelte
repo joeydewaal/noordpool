@@ -46,7 +46,7 @@
 								<div class="flex items-center justify-between">
 									<div class="font-medium text-gray-900 text-sm">vs {match.opponent}</div>
 									<span class="text-xs font-medium px-2 py-0.5 rounded-full {match.homeAway === 'home' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
-										{match.homeAway}
+										{match.homeAway === 'home' ? 'thuis' : 'uit'}
 									</span>
 								</div>
 								<div class="text-xs text-gray-500 mt-1">{formatDate(match.dateTime)}</div>
@@ -71,7 +71,7 @@
 									<div class="flex items-center gap-2">
 										<span class="font-bold text-sm text-gray-900">{formatScore(match)}</span>
 										<span class="text-xs font-medium px-2 py-0.5 rounded-full {match.homeAway === 'home' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
-											{match.homeAway}
+											{match.homeAway === 'home' ? 'thuis' : 'uit'}
 										</span>
 									</div>
 								</div>
