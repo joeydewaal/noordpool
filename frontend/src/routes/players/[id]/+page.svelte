@@ -3,9 +3,11 @@
 	import { page } from '$app/state';
 	import { auth } from '$lib/state/auth.svelte.js';
 	import { getPlayer, updatePlayer } from '$lib/api/players.js';
-	import type { Player } from '$lib/api/types.js';
+	import { getPlayerStats } from '$lib/api/events.js';
+	import type { Player, PlayerStats } from '$lib/api/types.js';
 
 	let player: Player | null = $state(null);
+	let stats: PlayerStats | null = $state(null);
 
 	const canManage = $derived(auth.isAdmin || auth.isModerator);
 
@@ -23,6 +25,7 @@
 
 	onMount(() => {
 		player = getPlayer(page.params.id);
+		if (player) stats = getPlayerStats(player.id);
 	});
 </script>
 
@@ -45,7 +48,22 @@
 				</div>
 			</div>
 
-			<p class="text-sm text-gray-400 mt-4">Statistieken volgen later</p>
+			{#if stats}
+				<div class="grid grid-cols-5 gap-2 mt-4">
+					{#each [
+						{ value: stats.appearances, label: 'Wedstrijden' },
+						{ value: stats.goals, label: 'Doelpunten' },
+						{ value: stats.assists, label: 'Assists' },
+						{ value: stats.yellowCards, label: 'Gele kaarten' },
+						{ value: stats.redCards, label: 'Rode kaarten' }
+					] as item}
+						<div class="text-center p-2 bg-gray-50 rounded-lg">
+							<div class="text-2xl font-bold text-gray-900">{item.value}</div>
+							<div class="text-xs text-gray-500 mt-1">{item.label}</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
 
 			{#if canManage}
 				<div class="flex gap-3 mt-6 pt-4 border-t border-gray-100">

@@ -21,6 +21,7 @@
 			<a href="/" class="hover:text-accent-light transition-colors">Home</a>
 			<a href="/matches" class="hover:text-accent-light transition-colors">Wedstrijden</a>
 			<a href="/players" class="hover:text-accent-light transition-colors">Spelers</a>
+			<a href="/stats" class="hover:text-accent-light transition-colors">Statistieken</a>
 		</nav>
 
 		<div class="hidden md:flex items-center gap-4">
@@ -64,6 +65,7 @@
 			<a href="/" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Home</a>
 			<a href="/matches" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Wedstrijden</a>
 			<a href="/players" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Spelers</a>
+			<a href="/stats" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Statistieken</a>
 			<hr class="border-white/20" />
 			{#if auth.isAuthenticated}
 				<span class="text-sm">{auth.user?.name}</span>

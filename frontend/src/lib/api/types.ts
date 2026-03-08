@@ -79,3 +79,28 @@ export interface UpdateMatchRequest {
 	homeScore?: number | null;
 	awayScore?: number | null;
 }
+
+export type EventType = 'goal' | 'assist' | 'yellow_card' | 'red_card';
+
+export interface MatchEvent {
+	id: string;
+	matchId: string;
+	playerId: string;
+	eventType: EventType;
+	minute: number;
+}
+
+export interface CreateMatchEventRequest {
+	playerId: string;
+	eventType: EventType;
+	minute: number;
+}
+
+export interface PlayerStats {
+	playerId: string;
+	appearances: number;
+	goals: number;
+	assists: number;
+	yellowCards: number;
+	redCards: number;
+}
