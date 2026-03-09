@@ -8,7 +8,7 @@ use axum_security::{
 };
 use toasty::Db;
 
-use super::{claims::Claims, password};
+use super::claims::Claims;
 use crate::models::{Role, User};
 
 pub struct GoogleHandler {
@@ -51,14 +51,9 @@ impl OAuth2Handler for GoogleHandler {
         //         (user, roles)
         //     }
         //     Ok(None) => {
-        //         // Create new user with a random password hash (can't login with password)
-        //         let password_hash =
-        //             password::hash_password(&uuid::Uuid::new_v4().to_string()).unwrap();
-
         //         let user = match toasty::create!(User, {
         //             name: name.clone(),
         //             email: email.clone(),
-        //             password_hash: password_hash,
         //             avatar_url: picture,
         //             roles: [{ role: Role::Player }]
         //         })

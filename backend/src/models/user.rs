@@ -11,7 +11,7 @@ pub struct User {
     pub id: Uuid,
     #[unique]
     pub email: String,
-    pub password_hash: String,
+    pub password_hash: Option<String>,
     pub name: String,
     pub avatar_url: Option<String>,
     #[default(Timestamp::now())]

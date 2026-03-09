@@ -69,14 +69,15 @@ pub async fn login(
     let mut db = state.db.clone();
 
     let user = User::filter_by_email(body.email)
+        .filter(User::fields().password_hash().is_some())
         .include(User::fields().roles())
         .first(&mut db)
         .await?
         .ok_or_else(|| AppError::Unauthorized("Invalid email or password".into()))?;
 
-    dbg!(&user);
+    let password_hash = user.password_hash.as_ref().expect("Was filtered out in db");
 
-    let valid = password::verify_password(&body.password, &user.password_hash)?;
+    let valid = password::verify_password(&body.password, password_hash)?;
     if !valid {
         return Err(AppError::Unauthorized("Invalid email or password".into()));
     }
