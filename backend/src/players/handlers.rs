@@ -12,19 +12,31 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{CreatePlayerRequest, PlayerStatsResponse, UpdatePlayerRequest},
-    models::{EventType, MatchEvent, MatchStatus, Player, Role},
+    models::{EventType, MatchEvent, MatchStatus, Role, User},
 };
 
-pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Player>>, AppError> {
-    let players: Vec<Player> = Player::all_active().collect(&mut state.db).await?;
+pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {
+    let mut players: Vec<_> = User::all_active()
+        .include(User::fields().roles())
+        .collect(&mut state.db)
+        .await?;
+
+    players.retain(|p| {
+        p.roles
+            .get()
+            .iter()
+            .map(|r| r.role)
+            .any(|r| r == Role::Player)
+    });
+
     Ok(Json(players))
 }
 
 pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<Json<Player>, AppError> {
-    let player = Player::get_by_id(&mut state.db, &id).await?;
+) -> Result<Json<User>, AppError> {
+    let player = User::get_by_id(&mut state.db, &id).await?;
     Ok(Json(player))
 }
 
@@ -32,8 +44,8 @@ pub async fn get_one(
 pub async fn create(
     State(mut state): State<AppState>,
     Json(body): Json<CreatePlayerRequest>,
-) -> Result<Json<Player>, AppError> {
-    let player = toasty::create!(Player, {
+) -> Result<Json<User>, AppError> {
+    let player = toasty::create!(User, {
         name: body.name,
         shirt_number: body.shirt_number,
         position: body.position,
@@ -48,9 +60,9 @@ pub async fn update(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdatePlayerRequest>,
-) -> Result<Json<Player>, AppError> {
+) -> Result<Json<User>, AppError> {
     let db = &mut state.db;
-    let mut update = Player::update_by_id(id);
+    let mut update = User::update_by_id(id);
 
     if let Some(name) = body.name {
         update.set_name(name);
@@ -68,7 +80,7 @@ pub async fn update(
     let mut tx = db.transaction().await?;
 
     update.exec(&mut tx).await?;
-    let player = Player::get_by_id(&mut tx, &id).await?;
+    let player = User::get_by_id(&mut tx, &id).await?;
 
     tx.commit().await?;
     Ok(Json(player))
@@ -82,9 +94,9 @@ pub async fn delete(
     let db = &mut state.db;
 
     // Verify player exists
-    Player::get_by_id(db, &id).await?;
+    User::get_by_id(db, &id).await?;
 
-    let mut update = Player::update_by_id(id);
+    let mut update = User::update_by_id(id);
     update.set_active(false);
     update.exec(db).await?;
 
@@ -98,7 +110,7 @@ pub async fn stats(
     let db = &mut state.db;
 
     // Verify player exists
-    Player::get_by_id(db, &id).await?;
+    User::get_by_id(db, &id).await?;
 
     // Get all events for this player
     let events: Vec<MatchEvent> = MatchEvent::filter_by_player_id(id)

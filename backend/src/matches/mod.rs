@@ -9,5 +9,10 @@ pub fn router() -> Router<AppState> {
         .route("/", get(handlers::list).post(handlers::create))
         .route("/upcoming", get(handlers::upcoming))
         .route("/recent", get(handlers::recent))
-        .route("/{id}", get(handlers::get_one).put(handlers::update).delete(handlers::delete))
+        .route(
+            "/{id}",
+            get(handlers::get_one)
+                .put(handlers::update)
+                .delete(handlers::delete),
+        )
 }

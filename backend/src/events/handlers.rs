@@ -6,7 +6,9 @@ use axum_security::rbac::requires_any;
 use uuid::Uuid;
 
 use crate::{
-    app_state::AppState, error::AppError, json::CreateMatchEventRequest,
+    app_state::AppState,
+    error::AppError,
+    json::CreateMatchEventRequest,
     models::{MatchEvent, Role},
 };
 

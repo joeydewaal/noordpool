@@ -2618,6 +2618,8 @@ dependencies = [
  "index_vec",
  "indexmap",
  "jiff",
+ "serde_core",
+ "serde_json",
  "toasty-core",
  "toasty-driver-mysql",
  "toasty-driver-postgresql",

@@ -13,9 +13,7 @@ mod stats;
 use app_state::AppState;
 use axum_security::{jwt::JwtContext, oauth2::OAuth2Context};
 use config::Config;
-use models::{
-    EventType, Game, HomeAway, MatchEvent, MatchStatus, Player, Position, Role, User, UserRole,
-};
+use models::{EventType, Game, HomeAway, MatchEvent, MatchStatus, Position, Role, User, UserRole};
 use toasty::Db;
 use tokio::net::TcpListener;
 
@@ -33,7 +31,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     builder.register::<User>();
     builder.register::<UserRole>();
     builder.register::<Role>();
-    builder.register::<Player>();
     builder.register::<Position>();
     builder.register::<Game>();
     builder.register::<MatchStatus>();

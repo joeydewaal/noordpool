@@ -4,19 +4,24 @@ use uuid::Uuid;
 
 use super::User;
 
-#[derive(Debug, toasty::Model)]
+#[derive(Debug, toasty::Model, Serialize)]
 pub struct UserRole {
     #[key]
     #[auto]
     pub id: Uuid,
+
     #[index]
     pub user_id: Uuid,
+
     #[belongs_to(key = user_id, references = id)]
+    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
     pub user: BelongsTo<User>,
+
     pub role: Role,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Embed)]
+#[serde(rename_all = "snake_case")]
 pub enum Role {
     #[column(variant = 1)]
     Admin,

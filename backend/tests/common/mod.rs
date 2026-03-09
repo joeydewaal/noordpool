@@ -4,9 +4,7 @@ use http_body_util::BodyExt;
 use noordpool_backend::{
     app_state::AppState,
     auth::claims::Claims,
-    models::{
-        EventType, Game, HomeAway, MatchEvent, MatchStatus, Player, Position, Role, User, UserRole,
-    },
+    models::{EventType, Game, HomeAway, MatchEvent, MatchStatus, Position, Role, User, UserRole},
     routes,
 };
 use toasty::Db;
@@ -17,7 +15,6 @@ pub async fn setup() -> (Router, AppState) {
     builder.register::<User>();
     builder.register::<UserRole>();
     builder.register::<Role>();
-    builder.register::<Player>();
     builder.register::<Position>();
     builder.register::<Game>();
     builder.register::<MatchStatus>();
@@ -72,12 +69,7 @@ pub async fn get_moderator_token(app: &mut Router, state: &AppState) -> String {
     get_role_token(app, state, "moderator@example.com", Role::Moderator).await
 }
 
-async fn get_role_token(
-    app: &mut Router,
-    state: &AppState,
-    email: &str,
-    role: Role,
-) -> String {
+async fn get_role_token(app: &mut Router, state: &AppState, email: &str, role: Role) -> String {
     // Register the user (gets Player role in DB)
     let (_, body) = call(
         app,
