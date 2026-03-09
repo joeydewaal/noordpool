@@ -74,6 +74,8 @@ pub async fn login(
         .await?
         .ok_or_else(|| AppError::Unauthorized("Invalid email or password".into()))?;
 
+    dbg!(&user);
+
     let valid = password::verify_password(&body.password, &user.password_hash)?;
     if !valid {
         return Err(AppError::Unauthorized("Invalid email or password".into()));

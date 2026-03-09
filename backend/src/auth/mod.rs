@@ -1,4 +1,5 @@
 pub mod claims;
+pub mod google;
 pub mod handlers;
 pub mod password;
 

@@ -2,17 +2,16 @@ use axum::{
     Json,
     extract::{Path, Query, State},
 };
-use axum_security::jwt::Jwt;
+use axum_security::rbac::{requires, requires_any};
 use serde::Deserialize;
 use toasty::Executor;
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
-    auth::claims::Claims,
     error::AppError,
     json::{CreateMatchRequest, UpdateMatchRequest},
-    models::Game,
+    models::{Game, Role},
 };
 
 #[derive(Deserialize)]
@@ -25,10 +24,10 @@ pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Game>>, 
 
     // TODO: toasty does not support order by timestamp.
     let mut games: Vec<Game> = Game::all()
-        // .order_by(Game::fields().date_time().asc())
+        .order_by(Game::fields().date_time().asc())
         .collect(db)
         .await?;
-    games.sort_by(|a, b| b.date_time.cmp(&a.date_time));
+    // games.sort_by(|a, b| b.date_time.cmp(&a.date_time));
     Ok(Json(games))
 }
 
@@ -73,8 +72,8 @@ pub async fn recent(
     Ok(Json(games))
 }
 
+#[requires_any(Role::Admin, Role::Moderator)]
 pub async fn create(
-    _claims: Jwt<Claims>,
     State(mut state): State<AppState>,
     Json(body): Json<CreateMatchRequest>,
 ) -> Result<Json<Game>, AppError> {
@@ -91,8 +90,8 @@ pub async fn create(
     Ok(Json(game))
 }
 
+#[requires_any(Role::Admin, Role::Moderator)]
 pub async fn update(
-    _claims: Jwt<Claims>,
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateMatchRequest>,
@@ -129,4 +128,19 @@ pub async fn update(
     let game = Game::get_by_id(&mut tx, &id).await?;
     tx.commit().await?;
     Ok(Json(game))
+}
+
+#[requires(Role::Admin)]
+pub async fn delete(
+    State(mut state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<axum::http::StatusCode, AppError> {
+    let db = &mut state.db;
+
+    // Verify match exists
+    Game::get_by_id(db, &id).await?;
+
+    Game::filter_by_id(id).delete(db).await?;
+
+    Ok(axum::http::StatusCode::NO_CONTENT)
 }

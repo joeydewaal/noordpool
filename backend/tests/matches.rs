@@ -1,7 +1,10 @@
 mod common;
 
 use axum::body::Body;
-use common::{auth_json_request, call, get_token, json_request, request, setup};
+use common::{
+    auth_json_request, call, get_admin_token, get_moderator_token, get_token, json_request,
+    request, setup,
+};
 use insta::{Settings, assert_json_snapshot};
 
 fn redact_settings() -> Settings {
@@ -71,9 +74,32 @@ async fn create_match_requires_auth() {
 }
 
 #[tokio::test]
-async fn create_and_get_match() {
+async fn create_match_forbidden_for_player_role() {
     let (mut app, _) = setup().await;
     let token = get_token(&mut app).await;
+
+    let (status, _) = call(
+        &mut app,
+        auth_json_request("POST", "/api/matches", &token)
+            .body(Body::from(
+                serde_json::json!({
+                    "opponent": "FC Test",
+                    "location": "Stadium",
+                    "dateTime": "2026-06-15T18:00:00Z",
+                    "homeAway": "home"
+                })
+                .to_string(),
+            ))
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, 403);
+}
+
+#[tokio::test]
+async fn create_and_get_match() {
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
 
     let (status, body) = call(
         &mut app,
@@ -112,8 +138,8 @@ async fn create_and_get_match() {
 
 #[tokio::test]
 async fn update_match() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_moderator_token(&mut app, &state).await;
 
     let (_, created) = call(
         &mut app,
@@ -155,8 +181,8 @@ async fn update_match() {
 
 #[tokio::test]
 async fn upcoming_and_recent() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
 
     // Create a scheduled match (future)
     call(
@@ -252,4 +278,83 @@ async fn get_match_not_found() {
     )
     .await;
     assert_eq!(status, 404);
+}
+
+#[tokio::test]
+async fn delete_match() {
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
+
+    // Create a match
+    let (_, created) = call(
+        &mut app,
+        auth_json_request("POST", "/api/matches", &token)
+            .body(Body::from(
+                serde_json::json!({
+                    "opponent": "FC Test",
+                    "location": "Stadium",
+                    "dateTime": "2026-06-15T18:00:00Z",
+                    "homeAway": "home"
+                })
+                .to_string(),
+            ))
+            .unwrap(),
+    )
+    .await;
+    let match_id = created["id"].as_str().unwrap();
+
+    // Delete
+    let (status, _) = call(
+        &mut app,
+        auth_json_request("DELETE", &format!("/api/matches/{match_id}"), &token)
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, 204);
+
+    // Verify gone
+    let (status, _) = call(
+        &mut app,
+        request("GET", &format!("/api/matches/{match_id}"))
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, 404);
+}
+
+#[tokio::test]
+async fn delete_match_forbidden_for_moderator() {
+    let (mut app, state) = setup().await;
+    let admin_token = get_admin_token(&mut app, &state).await;
+    let mod_token = get_moderator_token(&mut app, &state).await;
+
+    // Create a match as admin
+    let (_, created) = call(
+        &mut app,
+        auth_json_request("POST", "/api/matches", &admin_token)
+            .body(Body::from(
+                serde_json::json!({
+                    "opponent": "FC Test",
+                    "location": "Stadium",
+                    "dateTime": "2026-06-15T18:00:00Z",
+                    "homeAway": "home"
+                })
+                .to_string(),
+            ))
+            .unwrap(),
+    )
+    .await;
+    let match_id = created["id"].as_str().unwrap();
+
+    // Moderator should not be able to delete
+    let (status, _) = call(
+        &mut app,
+        auth_json_request("DELETE", &format!("/api/matches/{match_id}"), &mod_token)
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, 403);
 }

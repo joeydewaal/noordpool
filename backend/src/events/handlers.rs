@@ -2,12 +2,12 @@ use axum::{
     Json,
     extract::{Path, State},
 };
-use axum_security::jwt::Jwt;
+use axum_security::rbac::requires_any;
 use uuid::Uuid;
 
 use crate::{
-    app_state::AppState, auth::claims::Claims, error::AppError, json::CreateMatchEventRequest,
-    models::MatchEvent,
+    app_state::AppState, error::AppError, json::CreateMatchEventRequest,
+    models::{MatchEvent, Role},
 };
 
 pub async fn list(
@@ -23,8 +23,8 @@ pub async fn list(
     Ok(Json(events))
 }
 
+#[requires_any(Role::Admin, Role::Moderator)]
 pub async fn create(
-    _claims: Jwt<Claims>,
     State(mut state): State<AppState>,
     Path(match_id): Path<Uuid>,
     Json(body): Json<CreateMatchEventRequest>,
@@ -42,8 +42,8 @@ pub async fn create(
     Ok(Json(event))
 }
 
+#[requires_any(Role::Admin, Role::Moderator)]
 pub async fn delete(
-    _claims: Jwt<Claims>,
     State(mut state): State<AppState>,
     Path((match_id, event_id)): Path<(Uuid, Uuid)>,
 ) -> Result<axum::http::StatusCode, AppError> {

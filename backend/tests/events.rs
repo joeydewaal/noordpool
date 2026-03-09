@@ -1,7 +1,7 @@
 mod common;
 
 use axum::body::Body;
-use common::{auth_json_request, call, get_token, request, setup};
+use common::{auth_json_request, call, get_admin_token, request, setup};
 use insta::{Settings, assert_json_snapshot};
 
 fn redact_settings() -> Settings {
@@ -63,8 +63,8 @@ async fn create_match(app: &mut axum::Router, token: &str) -> String {
 
 #[tokio::test]
 async fn list_events_empty() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
     let match_id = create_match(&mut app, &token).await;
 
     let (status, body) = call(
@@ -80,8 +80,8 @@ async fn list_events_empty() {
 
 #[tokio::test]
 async fn create_and_list_events() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
     let match_id = create_match(&mut app, &token).await;
     let player_id = create_player(&mut app, &token, "Scorer", 9).await;
 
@@ -156,8 +156,8 @@ async fn create_and_list_events() {
 
 #[tokio::test]
 async fn delete_event() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
     let match_id = create_match(&mut app, &token).await;
     let player_id = create_player(&mut app, &token, "Scorer", 9).await;
 
@@ -204,8 +204,8 @@ async fn delete_event() {
 
 #[tokio::test]
 async fn create_event_requires_auth() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
     let match_id = create_match(&mut app, &token).await;
 
     let (status, _) = call(

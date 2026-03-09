@@ -4,20 +4,19 @@ use axum::{
     Json,
     extract::{Path, State},
 };
-use axum_security::jwt::Jwt;
+use axum_security::rbac::{requires, requires_any};
 use toasty::Executor;
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
-    auth::claims::Claims,
     error::AppError,
     json::{CreatePlayerRequest, PlayerStatsResponse, UpdatePlayerRequest},
-    models::{EventType, MatchEvent, MatchStatus, Player},
+    models::{EventType, MatchEvent, MatchStatus, Player, Role},
 };
 
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Player>>, AppError> {
-    let players: Vec<Player> = Player::all().collect(&mut state.db).await?;
+    let players: Vec<Player> = Player::all_active().collect(&mut state.db).await?;
     Ok(Json(players))
 }
 
@@ -29,8 +28,8 @@ pub async fn get_one(
     Ok(Json(player))
 }
 
+#[requires_any(Role::Admin, Role::Moderator)]
 pub async fn create(
-    _claims: Jwt<Claims>,
     State(mut state): State<AppState>,
     Json(body): Json<CreatePlayerRequest>,
 ) -> Result<Json<Player>, AppError> {
@@ -44,8 +43,8 @@ pub async fn create(
     Ok(Json(player))
 }
 
+#[requires_any(Role::Admin, Role::Moderator)]
 pub async fn update(
-    _claims: Jwt<Claims>,
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdatePlayerRequest>,
@@ -73,6 +72,23 @@ pub async fn update(
 
     tx.commit().await?;
     Ok(Json(player))
+}
+
+#[requires(Role::Admin)]
+pub async fn delete(
+    State(mut state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<axum::http::StatusCode, AppError> {
+    let db = &mut state.db;
+
+    // Verify player exists
+    Player::get_by_id(db, &id).await?;
+
+    let mut update = Player::update_by_id(id);
+    update.set_active(false);
+    update.exec(db).await?;
+
+    Ok(axum::http::StatusCode::NO_CONTENT)
 }
 
 pub async fn stats(

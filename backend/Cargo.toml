@@ -8,8 +8,8 @@ axum = { version = "0.8.8", features = ["tokio"] }
 tokio = { version = "1.50", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors"] }
-toasty = { path = "/home/joey/dev/toasty/crates/toasty", features = ["postgresql", "jiff"] }
-axum-security = { path = "/home/joey/dev/axum-security/axum-security", features = ["jwt", "rbac", "macros", "jiff"] }
+toasty = { path = "/home/joey/dev/toasty/crates/toasty", features = ["postgresql", "jiff", "sqlite"] }
+axum-security = { path = "/home/joey/dev/axum-security/axum-security", features = ["jwt", "rbac", "macros", "jiff", "oauth2"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 argon2 = "0.5"

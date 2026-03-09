@@ -1,7 +1,7 @@
 mod common;
 
 use axum::body::Body;
-use common::{auth_json_request, call, get_token, request, setup};
+use common::{auth_json_request, call, get_admin_token, request, setup};
 use insta::{Settings, assert_json_snapshot};
 
 fn redact_settings() -> Settings {
@@ -132,8 +132,8 @@ async fn leaderboard_empty() {
 
 #[tokio::test]
 async fn leaderboard_with_data() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
 
     let striker = create_player(&mut app, &token, "Striker", 9, "forward").await;
     let midfield = create_player(&mut app, &token, "Playmaker", 10, "midfielder").await;
@@ -181,8 +181,8 @@ async fn leaderboard_with_data() {
 
 #[tokio::test]
 async fn player_stats_with_events() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
 
     let player = create_player(&mut app, &token, "Star Player", 7, "forward").await;
     let game = create_match_and_complete(&mut app, &token, "FC Rival", 2, 0).await;
@@ -210,8 +210,8 @@ async fn player_stats_with_events() {
 
 #[tokio::test]
 async fn stats_ignore_scheduled_game_events() {
-    let (mut app, _) = setup().await;
-    let token = get_token(&mut app).await;
+    let (mut app, state) = setup().await;
+    let token = get_admin_token(&mut app, &state).await;
 
     let player = create_player(&mut app, &token, "Player", 11, "forward").await;
 
