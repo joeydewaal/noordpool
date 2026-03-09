@@ -2,9 +2,7 @@ use serde::Serialize;
 use toasty::BelongsTo;
 use uuid::Uuid;
 
-use crate::models::User;
-
-use super::{EventType, Game};
+use super::{EventType, Game, Player};
 
 #[derive(Debug, Serialize, toasty::Model)]
 #[serde(rename_all = "camelCase")]
@@ -26,7 +24,7 @@ pub struct MatchEvent {
 
     #[belongs_to(key = player_id, references = id)]
     #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub user: BelongsTo<User>,
+    pub player: BelongsTo<Player>,
 
     pub event_type: EventType,
 

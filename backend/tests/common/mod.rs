@@ -4,24 +4,15 @@ use http_body_util::BodyExt;
 use noordpool_backend::{
     app_state::AppState,
     auth::claims::Claims,
-    models::{EventType, Game, HomeAway, MatchEvent, MatchStatus, Position, Role, User, UserRole},
+    models::{Role, build_db},
     routes,
 };
-use toasty::Db;
 use tower::ServiceExt;
 
 pub async fn setup() -> (Router, AppState) {
-    let mut builder = Db::builder();
-    builder.register::<User>();
-    builder.register::<UserRole>();
-    builder.register::<Role>();
-    builder.register::<Position>();
-    builder.register::<Game>();
-    builder.register::<MatchStatus>();
-    builder.register::<HomeAway>();
-    builder.register::<MatchEvent>();
-    builder.register::<EventType>();
-    let mut db = builder.connect("sqlite::memory:").await.unwrap();
+    let db_path = std::env::temp_dir().join(format!("noordpool-test-{}.db", uuid::Uuid::new_v4()));
+    let db_url = format!("sqlite:{}", db_path.display());
+    let mut db = build_db().connect(&db_url).await.unwrap();
     db.push_schema().await.unwrap();
 
     let jwt = JwtContext::builder()

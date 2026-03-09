@@ -13,9 +13,9 @@ mod stats;
 use app_state::AppState;
 use axum_security::{jwt::JwtContext, oauth2::OAuth2Context};
 use config::Config;
-use models::{EventType, Game, HomeAway, MatchEvent, MatchStatus, Position, Role, User, UserRole};
-use toasty::Db;
 use tokio::net::TcpListener;
+
+use crate::models::build_db;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -27,17 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = Config::from_env();
 
-    let mut builder = Db::builder();
-    builder.register::<User>();
-    builder.register::<UserRole>();
-    builder.register::<Role>();
-    builder.register::<Position>();
-    builder.register::<Game>();
-    builder.register::<MatchStatus>();
-    builder.register::<HomeAway>();
-    builder.register::<MatchEvent>();
-    builder.register::<EventType>();
-    let mut db = builder.connect(&config.database_url).await?;
+    let mut db = build_db().connect(&config.database_url).await?;
     let _ = db.push_schema().await;
 
     let jwt = JwtContext::builder()

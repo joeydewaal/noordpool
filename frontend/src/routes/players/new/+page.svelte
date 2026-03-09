@@ -6,6 +6,8 @@
 
 	const canManage = $derived(auth.isAdmin || auth.isModerator);
 
+
+
 	let name = $state('');
 	let shirtNumber = $state(0);
 	let position: Position = $state('midfielder');
