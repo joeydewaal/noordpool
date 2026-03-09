@@ -17,9 +17,9 @@
 	let awayScore: number | null = $state(null);
 	let loaded = $state(false);
 
-	function handleSubmit(e: Event) {
+	async function handleSubmit(e: Event) {
 		e.preventDefault();
-		updateMatch(page.params.id, {
+		await updateMatch(page.params.id, {
 			opponent,
 			location,
 			dateTime,
@@ -31,8 +31,8 @@
 		goto(`/matches/${page.params.id}`);
 	}
 
-	onMount(() => {
-		const match = getMatch(page.params.id);
+	onMount(async () => {
+		const match = await getMatch(page.params.id);
 		if (match) {
 			opponent = match.opponent;
 			location = match.location;

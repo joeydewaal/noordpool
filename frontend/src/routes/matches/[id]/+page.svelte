@@ -35,26 +35,27 @@
 		return players.find((p) => p.id === playerId)?.name ?? 'Onbekend';
 	}
 
-	function reloadEvents() {
-		if (match) events = getMatchEvents(match.id);
+	async function reloadEvents() {
+		if (match) events = await getMatchEvents(match.id);
 	}
 
-	function handleAddEvent() {
+	async function handleAddEvent() {
 		if (!match || !newPlayerId) return;
-		createMatchEvent(match.id, {
+		await createMatchEvent(match.id, {
 			playerId: newPlayerId,
 			eventType: newEventType,
 			minute: newMinute
 		});
-		reloadEvents();
+		await reloadEvents();
 		newPlayerId = '';
 		newEventType = 'goal';
 		newMinute = 1;
 	}
 
-	function handleDeleteEvent(eventId: string) {
-		deleteMatchEvent(eventId);
-		reloadEvents();
+	async function handleDeleteEvent(eventId: string) {
+		if (!match) return;
+		await deleteMatchEvent(match.id, eventId);
+		await reloadEvents();
 	}
 
 	function formatDate(dateTime: string): string {
@@ -68,10 +69,12 @@
 		});
 	}
 
-	onMount(() => {
-		match = getMatch(page.params.id);
-		players = getPlayers();
-		if (match) events = getMatchEvents(match.id);
+	onMount(async () => {
+		[match, players] = await Promise.all([
+			getMatch(page.params.id),
+			getPlayers()
+		]);
+		if (match) events = await getMatchEvents(match.id);
 	});
 </script>
 

@@ -18,14 +18,14 @@
 		forward: 'bg-red-100 text-red-800'
 	};
 
-	function toggleActive() {
+	async function toggleActive() {
 		if (!player) return;
-		player = updatePlayer(player.id, { active: !player.active });
+		player = await updatePlayer(player.id, { active: !player.active });
 	}
 
-	onMount(() => {
-		player = getPlayer(page.params.id);
-		if (player) stats = getPlayerStats(player.id);
+	onMount(async () => {
+		player = await getPlayer(page.params.id);
+		if (player) stats = await getPlayerStats(player.id);
 	});
 </script>
 

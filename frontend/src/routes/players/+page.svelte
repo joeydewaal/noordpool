@@ -20,8 +20,8 @@
 		forward: 'bg-red-100 text-red-800'
 	};
 
-	onMount(() => {
-		players = getPlayers();
+	onMount(async () => {
+		players = await getPlayers();
 	});
 </script>
 

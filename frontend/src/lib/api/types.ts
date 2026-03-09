@@ -104,3 +104,21 @@ export interface PlayerStats {
 	yellowCards: number;
 	redCards: number;
 }
+
+export interface LeaderboardEntry {
+	playerId: string;
+	name: string;
+	shirtNumber: number;
+	appearances: number;
+	goals: number;
+	assists: number;
+	yellowCards: number;
+	redCards: number;
+	totalCards: number;
+}
+
+export interface Leaderboard {
+	topScorers: LeaderboardEntry[];
+	topAssisters: LeaderboardEntry[];
+	mostCarded: LeaderboardEntry[];
+}

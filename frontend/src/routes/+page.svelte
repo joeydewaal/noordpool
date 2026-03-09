@@ -18,13 +18,15 @@
 	}
 
 	function formatScore(match: Match): string {
-		if (match.homeScore === null) return '';
+		if (match.homeScore === null || (match.status === 'scheduled' && match.homeScore === 0)) return '';
 		return `${match.homeScore} - ${match.awayScore}`;
 	}
 
-	onMount(() => {
-		upcoming = getUpcomingMatches(3);
-		results = getRecentResults(3);
+	onMount(async () => {
+		[upcoming, results] = await Promise.all([
+			getUpcomingMatches(3),
+			getRecentResults(3)
+		]);
 	});
 </script>
 

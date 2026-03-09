@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getLeaderboard } from '$lib/api/events.js';
+	import type { LeaderboardEntry } from '$lib/api/types.js';
 
-	let topScorers: Awaited<ReturnType<typeof getLeaderboard>>['topScorers'] = $state([]);
-	let topAssisters: Awaited<ReturnType<typeof getLeaderboard>>['topAssisters'] = $state([]);
-	let mostCarded: Awaited<ReturnType<typeof getLeaderboard>>['mostCarded'] = $state([]);
+	let topScorers: LeaderboardEntry[] = $state([]);
+	let topAssisters: LeaderboardEntry[] = $state([]);
+	let mostCarded: LeaderboardEntry[] = $state([]);
 
-	onMount(() => {
-		const data = getLeaderboard();
+	onMount(async () => {
+		const data = await getLeaderboard();
 		topScorers = data.topScorers;
 		topAssisters = data.topAssisters;
 		mostCarded = data.mostCarded;

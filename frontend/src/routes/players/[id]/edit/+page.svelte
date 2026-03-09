@@ -14,9 +14,9 @@
     let active = $state(true);
     let loaded = $state(false);
 
-    function handleSubmit(e: Event) {
+    async function handleSubmit(e: Event) {
         e.preventDefault();
-        updatePlayer(page.params.id || "", {
+        await updatePlayer(page.params.id || "", {
             name,
             shirtNumber,
             position,
@@ -25,8 +25,8 @@
         goto(`/players/${page.params.id}`);
     }
 
-    onMount(() => {
-        const player = getPlayer(page.params.id || "");
+    onMount(async () => {
+        const player = await getPlayer(page.params.id || "");
         if (player) {
             name = player.name;
             shirtNumber = player.shirtNumber;

@@ -11,9 +11,9 @@
 	let dateTime = $state('');
 	let homeAway: HomeAway = $state('home');
 
-	function handleSubmit(e: Event) {
+	async function handleSubmit(e: Event) {
 		e.preventDefault();
-		createMatch({ opponent, location, dateTime, homeAway });
+		await createMatch({ opponent, location, dateTime, homeAway });
 		goto('/matches');
 	}
 </script>

@@ -10,9 +10,9 @@
 	let shirtNumber = $state(0);
 	let position: Position = $state('midfielder');
 
-	function handleSubmit(e: Event) {
+	async function handleSubmit(e: Event) {
 		e.preventDefault();
-		createPlayer({ name, shirtNumber, position });
+		await createPlayer({ name, shirtNumber, position });
 		goto('/players');
 	}
 </script>
