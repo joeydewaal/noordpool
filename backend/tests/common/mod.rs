@@ -142,7 +142,7 @@ impl TestApp {
     pub async fn player_token(&mut self) -> String {
         let res = self
             .post("/api/auth/register")
-            .json(serde_json::json!({
+            .json(json!({
                 "name": "Test User",
                 "email": "test@example.com",
                 "password": "password123"
@@ -155,7 +155,7 @@ impl TestApp {
     pub async fn role_token(&mut self, email: &str, role: Role) -> String {
         let res = self
             .post("/api/auth/register")
-            .json(serde_json::json!({
+            .json(json!({
                 "name": format!("Test {:?}", role),
                 "email": email,
                 "password": "password123"
