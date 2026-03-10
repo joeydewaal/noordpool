@@ -12,7 +12,6 @@ pub struct UserResponse {
     pub id: String,
     pub email: String,
     pub name: String,
-    pub avatar_url: Option<String>,
     pub roles: Vec<Role>,
 }
 
@@ -22,7 +21,6 @@ impl UserResponse {
             id: user.id.to_string(),
             email: user.email.clone(),
             name: user.name.clone(),
-            avatar_url: user.avatar_url.clone(),
             roles: roles.to_vec(),
         }
     }

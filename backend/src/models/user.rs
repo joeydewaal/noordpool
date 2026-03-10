@@ -8,6 +8,7 @@ use crate::models::{MatchEvent, Position};
 use super::UserRole;
 
 #[derive(Debug, toasty::Model, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     #[key]
     #[auto]
@@ -16,10 +17,9 @@ pub struct User {
     #[unique]
     pub email: String,
 
+    #[serde(skip)]
     pub password_hash: Option<String>,
     pub name: String,
-
-    pub avatar_url: Option<String>,
 
     #[default(Timestamp::now())]
     pub created_at: Timestamp,

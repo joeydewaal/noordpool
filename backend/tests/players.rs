@@ -101,6 +101,7 @@ async fn create_and_get_player() {
             .body(Body::from(
                 serde_json::json!({
                     "name": "Jan de Boer",
+                    "email": "jan.de.boer@example.com",
                     "shirtNumber": 10,
                     "position": "midfielder"
                 })

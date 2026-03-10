@@ -54,7 +54,6 @@ impl OAuth2Handler for GoogleHandler {
         //         let user = match toasty::create!(User, {
         //             name: name.clone(),
         //             email: email.clone(),
-        //             avatar_url: picture,
         //             roles: [{ role: Role::Player }]
         //         })
         //         .exec(&mut db)

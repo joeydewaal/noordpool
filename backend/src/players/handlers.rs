@@ -34,7 +34,7 @@ pub async fn create(
     State(mut state): State<AppState>,
     Json(body): Json<CreatePlayerRequest>,
 ) -> Result<Json<User>, AppError> {
-    let user = toasty::create!(
+    let mut user = toasty::create!(
         User, {
                 name: body.name,
                 email: body.email,
@@ -47,6 +47,7 @@ pub async fn create(
     .exec(&mut state.db)
     .await?;
 
+    user.roles.unload();
     Ok(Json(user))
 }
 

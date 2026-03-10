@@ -97,7 +97,6 @@ pub async fn me(Jwt(claims): Jwt<Claims>) -> Json<UserResponse> {
         id: claims.sub,
         email: claims.email,
         name: claims.name,
-        avatar_url: None,
         roles: claims.roles,
     })
 }
