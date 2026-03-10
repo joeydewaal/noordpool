@@ -1,8 +1,9 @@
 mod common;
 
-use axum::body::Body;
-use common::{auth_json_request, call, get_admin_token, request, setup};
 use insta::{Settings, assert_json_snapshot};
+use serde_json::json;
+
+use crate::common::TestApp;
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
@@ -24,130 +25,90 @@ fn redact_settings() -> Settings {
     settings
 }
 
-async fn create_player(app: &mut axum::Router, token: &str, name: &str, number: i32) -> String {
-    let (_, body) = call(
-        app,
-        auth_json_request("POST", "/api/players", token)
-            .body(Body::from(
-                serde_json::json!({
-                    "name": name,
-                    "shirtNumber": number,
-                    "position": "forward",
-                    "email": format!("{name}@test.be")
-                })
-                .to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
+async fn create_player(app: &mut TestApp, token: &str, name: &str, number: i32) -> String {
+    let res = app
+        .post("/api/players")
+        .token(token)
+        .json(json!({
+            "name": name,
+            "shirtNumber": number,
+            "position": "forward",
+            "email": format!("{name}@test.be")
+        }))
+        .await;
+
+    let body = res.json_value().await;
     body["id"].as_str().unwrap().to_string()
 }
 
-async fn create_match(app: &mut axum::Router, token: &str) -> String {
-    let (_, body) = call(
-        app,
-        auth_json_request("POST", "/api/matches", token)
-            .body(Body::from(
-                serde_json::json!({
-                    "opponent": "FC Test",
-                    "location": "Stadium",
-                    "dateTime": "2026-06-15T18:00:00Z",
-                    "homeAway": "home"
-                })
-                .to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
+async fn create_match(app: &mut TestApp, token: &str) -> String {
+    let res = app
+        .post("/api/matches")
+        .token(token)
+        .json(json!({
+            "opponent": "FC Test",
+            "location": "Stadium",
+            "dateTime": "2026-06-15T18:00:00Z",
+            "homeAway": "home"
+        }))
+        .await;
+    let body = res.json_value().await;
     body["id"].as_str().unwrap().to_string()
-}
-
-#[tokio::test]
-async fn list_events_empty() {
-    let (mut app, state) = setup().await;
-    let token = get_admin_token(&mut app, &state).await;
-    let match_id = create_match(&mut app, &token).await;
-
-    let (status, body) = call(
-        &mut app,
-        request("GET", &format!("/api/matches/{match_id}/events"))
-            .body(Body::empty())
-            .unwrap(),
-    )
-    .await;
-    assert_eq!(status, 200);
-    assert_json_snapshot!(body, @"[]");
 }
 
 #[tokio::test]
 async fn create_and_list_events() {
-    let (mut app, state) = setup().await;
-    let token = get_admin_token(&mut app, &state).await;
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
     let match_id = create_match(&mut app, &token).await;
     let player_id = create_player(&mut app, &token, "Scorer", 9).await;
 
     // Create a goal event
-    let (status, body) = call(
-        &mut app,
-        auth_json_request("POST", &format!("/api/matches/{match_id}/events"), &token)
-            .body(Body::from(
-                serde_json::json!({
-                    "playerId": player_id,
-                    "eventType": "goal",
-                    "minute": 25
-                })
-                .to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
-    assert_eq!(status, 200);
-    let settings = redact_settings();
-    settings.bind(|| {
-        assert_json_snapshot!("create_event", body);
-    });
+    let res = app
+        .post(format!("/api/matches/{match_id}/events"))
+        .token(&token)
+        .json(json!({
+            "playerId": player_id,
+            "eventType": "goal",
+            "minute": 25
+        }))
+        .await;
+
+    assert_eq!(res.status(), 200);
+    redact_settings()
+        .bind_async(async {
+            assert_json_snapshot!("create_event", res.string().await);
+        })
+        .await;
 
     // Create an assist event
-    call(
-        &mut app,
-        auth_json_request("POST", &format!("/api/matches/{match_id}/events"), &token)
-            .body(Body::from(
-                serde_json::json!({
-                    "playerId": player_id,
-                    "eventType": "assist",
-                    "minute": 20
-                })
-                .to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
+    app.post(format!("/api/matches/{match_id}/events"))
+        .token(&token)
+        .json(json!({
+            "playerId": player_id,
+            "eventType": "assist",
+            "minute": 20
+        }))
+        .await;
 
     // Create a yellow card at minute 60
-    call(
-        &mut app,
-        auth_json_request("POST", &format!("/api/matches/{match_id}/events"), &token)
-            .body(Body::from(
-                serde_json::json!({
-                    "playerId": player_id,
-                    "eventType": "yellow_card",
-                    "minute": 60
-                })
-                .to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
+    app.post(format!("/api/matches/{match_id}/events"))
+        .token(&token)
+        .json(json!({
+            "playerId": player_id,
+            "eventType": "yellow_card",
+            "minute": 60
+        }))
+        .await;
 
     // List events — should be sorted by minute
-    let (status, body) = call(
-        &mut app,
-        request("GET", &format!("/api/matches/{match_id}/events"))
-            .body(Body::empty())
-            .unwrap(),
-    )
-    .await;
-    assert_eq!(status, 200);
+    let res = app
+        .get(format!("/api/matches/{match_id}/events"))
+        .send()
+        .await;
+
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
     let arr = body.as_array().unwrap();
     assert_eq!(arr.len(), 3);
     assert_eq!(arr[0]["minute"], 20);
@@ -157,71 +118,70 @@ async fn create_and_list_events() {
 
 #[tokio::test]
 async fn delete_event() {
-    let (mut app, state) = setup().await;
-    let token = get_admin_token(&mut app, &state).await;
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
     let match_id = create_match(&mut app, &token).await;
     let player_id = create_player(&mut app, &token, "Scorer", 9).await;
 
-    let (_, created) = call(
-        &mut app,
-        auth_json_request("POST", &format!("/api/matches/{match_id}/events"), &token)
-            .body(Body::from(
-                serde_json::json!({
-                    "playerId": player_id,
-                    "eventType": "goal",
-                    "minute": 10
-                })
-                .to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
-    let event_id = created["id"].as_str().unwrap();
+    let res = app
+        .post(format!("/api/matches/{match_id}/events"))
+        .token(&token)
+        .json(json!({
+            "playerId": player_id,
+            "eventType": "goal",
+            "minute": 10
+        }))
+        .await;
+
+    let json = res.json_value().await;
+    let event_id = json["id"].as_str().unwrap();
 
     // Delete
-    let (status, _) = call(
-        &mut app,
-        auth_json_request(
-            "DELETE",
-            &format!("/api/matches/{match_id}/events/{event_id}"),
-            &token,
-        )
-        .body(Body::empty())
-        .unwrap(),
-    )
-    .await;
-    assert_eq!(status, 204);
+    let res = app
+        .delete(format!("/api/matches/{match_id}/events/{event_id}"))
+        .send()
+        .await;
+
+    assert_eq!(res.status(), 204);
 
     // Verify gone
-    let (_, body) = call(
-        &mut app,
-        request("GET", &format!("/api/matches/{match_id}/events"))
-            .body(Body::empty())
-            .unwrap(),
-    )
-    .await;
-    assert_json_snapshot!(body, @"[]");
+    let res = app
+        .get(format!("/api/matches/{match_id}/events"))
+        .send()
+        .await;
+
+    assert_json_snapshot!(res.string().await, @"[]");
 }
 
 #[tokio::test]
 async fn create_event_requires_auth() {
-    let (mut app, state) = setup().await;
-    let token = get_admin_token(&mut app, &state).await;
-    let match_id = create_match(&mut app, &token).await;
+    let mut test_app = TestApp::new().await;
 
-    let (status, _) = call(
-        &mut app,
-        common::json_request("POST", &format!("/api/matches/{match_id}/events"))
-            .body(Body::from(
-                serde_json::json!({
-                    "playerId": "00000000-0000-0000-0000-000000000000",
-                    "eventType": "goal",
-                    "minute": 10
-                })
-                .to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
-    assert_eq!(status, 401);
+    let token = test_app.admin_token().await;
+    let match_id = create_match(&mut test_app, &token).await;
+
+    let res = test_app
+        .post(format!("/api/matches/{match_id}/events"))
+        .json(json!({
+            "playerId": "00000000-0000-0000-0000-000000000000",
+            "eventType": "goal",
+            "minute": 10
+        }))
+        .await;
+
+    assert_eq!(res.status(), 401);
+}
+
+#[tokio::test]
+async fn list_events_empty() {
+    let mut test_app = TestApp::new().await;
+    let token = test_app.admin_token().await;
+    let match_id = create_match(&mut test_app, &token).await;
+
+    let res = test_app
+        .get(format!("/api/matches/{match_id}/events"))
+        .send()
+        .await;
+    assert_eq!(res.status(), 200);
+    assert_json_snapshot!(res.string().await, @"[]");
 }

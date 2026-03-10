@@ -41,7 +41,6 @@ pub struct CreatePlayerRequest {
     pub email: String,
     pub shirt_number: i32,
     pub position: Position,
-
 }
 
 #[derive(Deserialize)]

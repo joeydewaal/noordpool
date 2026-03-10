@@ -9,30 +9,8 @@ use insta::{Settings, assert_json_snapshot};
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
-    settings.add_redaction(
-        ".id",
-        insta::dynamic_redaction(|val, _| {
-            val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
-        }),
-    );
-    settings.add_redaction(
-        ".userId",
-        insta::dynamic_redaction(|val, _| {
-            val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
-        }),
-    );
-    settings.add_redaction(
-        ".playerId",
-        insta::dynamic_redaction(|val, _| {
-            val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
-        }),
-    );
-    settings.add_redaction(
-        "[].id",
-        insta::dynamic_redaction(|val, _| {
-            val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
-        }),
-    );
+    settings.add_redaction(".id", "[uuid]");
+    settings.add_redaction(".createdAt", "[createdAt]");
     settings
 }
 
@@ -79,6 +57,7 @@ async fn create_player_forbidden_for_player_role() {
             .body(Body::from(
                 serde_json::json!({
                     "name": "Jan de Boer",
+                    "email": "jan.de.boer@example.com",
                     "shirtNumber": 10,
                     "position": "midfielder"
                 })
@@ -113,9 +92,7 @@ async fn create_and_get_player() {
     assert_eq!(status, 200);
     let settings = redact_settings();
     settings.bind(|| {
-        assert_json_snapshot!("create_player", body, {
-            ".id" => "[uuid]",
-        });
+        assert_json_snapshot!("create_player", body);
     });
 
     let player_id = body["id"].as_str().unwrap();
@@ -128,9 +105,7 @@ async fn create_and_get_player() {
     .await;
     assert_eq!(status, 200);
     settings.bind(|| {
-        assert_json_snapshot!("get_player", body, {
-            ".id" => "[uuid]",
-        });
+        assert_json_snapshot!("get_player", body);
     });
 }
 
@@ -171,9 +146,7 @@ async fn update_player() {
     assert_eq!(status, 200);
     let settings = redact_settings();
     settings.bind(|| {
-        assert_json_snapshot!("update_player", body, {
-            ".id" => "[uuid]",
-        });
+        assert_json_snapshot!("update_player", body);
     });
 }
 
@@ -221,9 +194,7 @@ async fn player_stats_empty() {
     assert_eq!(status, 200);
     let settings = redact_settings();
     settings.bind(|| {
-        assert_json_snapshot!("player_stats_empty", body, {
-            ".playerId" => "[uuid]",
-        });
+        assert_json_snapshot!("player_stats_empty", body);
     });
 }
 

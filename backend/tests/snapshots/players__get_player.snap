@@ -4,9 +4,10 @@ expression: body
 ---
 {
   "active": true,
+  "createdAt": "[createdAt]",
+  "email": "jan.de.boer@example.com",
   "id": "[uuid]",
   "name": "Jan de Boer",
   "position": "midfielder",
-  "shirtNumber": 10,
-  "userId": null
+  "shirtNumber": 10
 }

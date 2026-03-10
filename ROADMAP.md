@@ -25,7 +25,7 @@ A PWA for a single football team where players can view upcoming matches, match 
 - Initialize Rust workspace with Axum
 - Configure path dependencies for `axum-security` and `toasty`
 - Set up PostgreSQL connection (via toasty or sqlx — depends on what toasty provides)
-- Database schema: `users` table (id, email, password_hash, name, avatar_url, provider, created_at)
+- Database schema: `users` table (id, email, password_hash, name, provider, created_at)
 - Database schema: `roles` table or enum-based role assignment (admin, moderator, player) — many-to-many with users
 - Auth endpoints:
   - `POST /api/auth/register` (email + password)
@@ -160,7 +160,7 @@ A PWA for a single football team where players can view upcoming matches, match 
 ## Data Model Summary
 
 ```
-users (id, email, password_hash, name, avatar_url, provider, created_at)
+users (id, email, password_hash, name, provider, created_at)
 user_roles (user_id, role) -- role: admin | moderator | player
 players (id, user_id?, name, shirt_number, position, active)
 matches (id, opponent, location, date_time, home_away, status, home_score, away_score)
