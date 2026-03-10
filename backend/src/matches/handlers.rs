@@ -138,9 +138,8 @@ pub async fn delete(
     let db = &mut state.db;
 
     // Verify match exists
-    Game::get_by_id(db, &id).await?;
+    let game = Game::get_by_id(db, &id).await?;
 
-    Game::filter_by_id(id).delete(db).await?;
-
+    game.delete().exec(db).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }

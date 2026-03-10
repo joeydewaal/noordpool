@@ -53,7 +53,8 @@ pub async fn delete(
 
     MatchEvent::filter_by_id(event_id)
         .filter(MatchEvent::fields().game_id().eq(match_id))
-        .delete(db)
+        .delete()
+        .exec(db)
         .await?;
 
     Ok(axum::http::StatusCode::NO_CONTENT)
