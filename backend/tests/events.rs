@@ -32,7 +32,8 @@ async fn create_player(app: &mut axum::Router, token: &str, name: &str, number: 
                 serde_json::json!({
                     "name": name,
                     "shirtNumber": number,
-                    "position": "forward"
+                    "position": "forward",
+                    "email": format!("{name}@test.be")
                 })
                 .to_string(),
             ))

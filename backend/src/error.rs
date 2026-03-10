@@ -13,6 +13,12 @@ pub enum AppError {
     Internal(String),
 }
 
+impl AppError {
+    pub fn not_found(err: impl Into<String>) -> Self {
+        Self::NotFound(err.into())
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, message) = match self {

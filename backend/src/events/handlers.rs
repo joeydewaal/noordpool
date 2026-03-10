@@ -35,7 +35,7 @@ pub async fn create(
 
     let event = toasty::create!(MatchEvent, {
         game_id: match_id,
-        player_id: body.player_id,
+        user_id: body.player_id,
         event_type: body.event_type,
         minute: body.minute,
     })

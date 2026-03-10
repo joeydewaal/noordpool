@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use axum::{
     Json,
     extract::{Path, State},
+    http::StatusCode,
 };
 use axum_security::rbac::{requires, requires_any};
 use toasty::Executor;
@@ -12,19 +13,19 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{CreatePlayerRequest, PlayerStatsResponse, UpdatePlayerRequest},
-    models::{EventType, MatchEvent, MatchStatus, Player, Role},
+    models::{EventType, MatchEvent, MatchStatus, Role, User},
 };
 
-pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Player>>, AppError> {
-    let players: Vec<_> = Player::all_active().collect(&mut state.db).await?;
+pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {
+    let players: Vec<_> = User::all_active().collect(&mut state.db).await?;
     Ok(Json(players))
 }
 
 pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<Json<Player>, AppError> {
-    let player = Player::get_by_id(&mut state.db, &id).await?;
+) -> Result<Json<User>, AppError> {
+    let player = User::get_by_id(&mut state.db, &id).await?;
     Ok(Json(player))
 }
 
@@ -32,15 +33,21 @@ pub async fn get_one(
 pub async fn create(
     State(mut state): State<AppState>,
     Json(body): Json<CreatePlayerRequest>,
-) -> Result<Json<Player>, AppError> {
-    let player = toasty::create!(Player, {
-        name: body.name,
-        shirt_number: body.shirt_number,
-        position: body.position,
-    })
+) -> Result<Json<User>, AppError> {
+    let user = toasty::create!(
+        User, {
+                name: body.name,
+                email: body.email,
+                shirt_number: body.shirt_number,
+                position: body.position,
+                roles: [{ role: Role::Player }]
+            }
+
+    )
     .exec(&mut state.db)
     .await?;
-    Ok(Json(player))
+
+    Ok(Json(user))
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]
@@ -48,27 +55,27 @@ pub async fn update(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdatePlayerRequest>,
-) -> Result<Json<Player>, AppError> {
-    let db = &mut state.db;
-    let mut update = Player::update_by_id(id);
+) -> Result<Json<User>, AppError> {
+    let mut user_update = User::update_by_id(id);
 
     if let Some(name) = body.name {
-        update.set_name(name);
+        user_update.set_name(name);
     }
+
     if let Some(shirt_number) = body.shirt_number {
-        update.set_shirt_number(shirt_number);
+        user_update.set_shirt_number(shirt_number);
     }
     if let Some(position) = body.position {
-        update.set_position(position);
+        user_update.set_position(position);
     }
     if let Some(active) = body.active {
-        update.set_active(active);
+        user_update.set_active(active);
     }
 
-    let mut tx = db.transaction().await?;
+    let mut tx = state.db.transaction().await?;
 
-    update.exec(&mut tx).await?;
-    let player = Player::get_by_id(&mut tx, &id).await?;
+    user_update.exec(&mut tx).await?;
+    let player = User::get_by_id(&mut tx, &id).await?;
 
     tx.commit().await?;
     Ok(Json(player))
@@ -78,13 +85,12 @@ pub async fn update(
 pub async fn delete(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<axum::http::StatusCode, AppError> {
+) -> Result<StatusCode, AppError> {
     let db = &mut state.db;
 
-    // Verify player exists
-    Player::get_by_id(db, &id).await?;
+    let mut player = User::get_by_id(db, &id).await?;
 
-    let mut update = Player::update_by_id(id);
+    let mut update = player.update();
     update.set_active(false);
     update.exec(db).await?;
 
@@ -97,14 +103,12 @@ pub async fn stats(
 ) -> Result<Json<PlayerStatsResponse>, AppError> {
     let db = &mut state.db;
 
-    // Verify player exists
-    Player::get_by_id(db, &id).await?;
-
-    // Get all events for this player
-    let events: Vec<MatchEvent> = MatchEvent::filter_by_player_id(id)
-        .include(MatchEvent::fields().game())
-        .collect(db)
+    let user = User::filter_by_id(id)
+        .include(User::fields().match_events().game())
+        .get(db)
         .await?;
+
+    let events = user.match_events.get();
 
     // Get completed game IDs for appearances
     let game_ids: Vec<Uuid> = events
@@ -119,7 +123,7 @@ pub async fn stats(
     let mut assists = 0i32;
     let mut yellow_cards = 0i32;
     let mut red_cards = 0i32;
-    for event in &events {
+    for event in events {
         match event.event_type {
             EventType::Goal => goals += 1,
             EventType::Assist => assists += 1,

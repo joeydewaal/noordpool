@@ -40,8 +40,10 @@ pub struct AuthResponse {
 #[serde(rename_all = "camelCase")]
 pub struct CreatePlayerRequest {
     pub name: String,
+    pub email: String,
     pub shirt_number: i32,
     pub position: Position,
+
 }
 
 #[derive(Deserialize)]

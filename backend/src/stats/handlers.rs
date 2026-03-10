@@ -6,7 +6,7 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{LeaderboardEntryResponse, LeaderboardResponse},
-    models::{EventType, MatchEvent, MatchStatus, Player},
+    models::{EventType, MatchEvent, MatchStatus, User},
 };
 
 #[derive(Default)]
@@ -37,7 +37,7 @@ pub async fn leaderboard(
             continue;
         }
 
-        let entry = stats_map.entry(event.player_id).or_default();
+        let entry = stats_map.entry(event.user_id).or_default();
         entry.game_ids.insert(event.game_id);
         match event.event_type {
             EventType::Goal => entry.goals += 1,
@@ -48,8 +48,8 @@ pub async fn leaderboard(
     }
 
     // Get active players
-    let players: Vec<Player> = Player::all_active().collect(db).await?;
-    let player_map: HashMap<uuid::Uuid, &Player> = players.iter().map(|p| (p.id, p)).collect();
+    let players: Vec<User> = User::all_active().collect(db).await?;
+    let player_map: HashMap<uuid::Uuid, &User> = players.iter().map(|p| (p.id, p)).collect();
 
     // Build entries
     let mut entries: Vec<LeaderboardEntryResponse> = stats_map
