@@ -1,12 +1,14 @@
 ---
 source: tests/players.rs
+assertion_line: 119
 expression: body
 ---
 {
   "active": true,
+  "createdAt": "[createdAt]",
+  "email": "jan@example.com",
   "id": "[uuid]",
   "name": "Jan de Boer",
   "position": "forward",
-  "shirtNumber": 7,
-  "userId": null
+  "shirtNumber": 7
 }

@@ -77,7 +77,7 @@ async fn create_and_list_events() {
     assert_eq!(res.status(), 200);
     redact_settings()
         .bind_async(async {
-            assert_json_snapshot!("create_event", res.string().await);
+            assert_json_snapshot!("create_event", res.json_value().await);
         })
         .await;
 
@@ -139,6 +139,7 @@ async fn delete_event() {
     // Delete
     let res = app
         .delete(format!("/api/matches/{match_id}/events/{event_id}"))
+        .token(&token)
         .send()
         .await;
 
@@ -150,7 +151,7 @@ async fn delete_event() {
         .send()
         .await;
 
-    assert_json_snapshot!(res.string().await, @"[]");
+    assert_json_snapshot!(res.json_value().await, @"[]");
 }
 
 #[tokio::test]
@@ -183,5 +184,5 @@ async fn list_events_empty() {
         .send()
         .await;
     assert_eq!(res.status(), 200);
-    assert_json_snapshot!(res.string().await, @"[]");
+    assert_json_snapshot!(res.json_value().await, @"[]");
 }
