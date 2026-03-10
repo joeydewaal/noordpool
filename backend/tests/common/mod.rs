@@ -12,6 +12,7 @@ use noordpool_backend::{
     routes,
 };
 use serde::{Serialize, de::DeserializeOwned};
+use serde_json::json;
 use tower::Service;
 
 pub struct TestApp {
