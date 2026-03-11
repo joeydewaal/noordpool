@@ -6,9 +6,9 @@ use crate::models::User;
 
 use super::{EventType, Game};
 
-#[derive(Debug, Serialize, toasty::Model)]
+#[derive(Debug, Serialize, toasty::Model, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct MatchEvent {
+pub struct GameEvent {
     #[key]
     #[auto]
     pub id: Uuid,

@@ -2,33 +2,11 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::{EventType, HomeAway, MatchStatus, Position, Role, User};
-
-// ── Auth ──
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserResponse {
-    pub id: String,
-    pub email: String,
-    pub name: String,
-    pub roles: Vec<Role>,
-}
-
-impl UserResponse {
-    pub fn from_user(user: &User, roles: &[Role]) -> Self {
-        UserResponse {
-            id: user.id.to_string(),
-            email: user.email.clone(),
-            name: user.name.clone(),
-            roles: roles.to_vec(),
-        }
-    }
-}
+use crate::models::{EventType, HomeAway, GameStatus, Position, Role, User};
 
 #[derive(Serialize)]
 pub struct AuthResponse {
-    pub user: UserResponse,
+    pub user: User,
     pub token: String,
 }
 
@@ -52,11 +30,11 @@ pub struct UpdatePlayerRequest {
     pub active: Option<bool>,
 }
 
-// ── Matches ──
+// ── Games ──
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateMatchRequest {
+pub struct CreateGameRequest {
     pub opponent: String,
     pub location: String,
     pub date_time: Timestamp,
@@ -65,12 +43,12 @@ pub struct CreateMatchRequest {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateMatchRequest {
+pub struct UpdateGameRequest {
     pub opponent: Option<String>,
     pub location: Option<String>,
     pub date_time: Option<Timestamp>,
     pub home_away: Option<HomeAway>,
-    pub status: Option<MatchStatus>,
+    pub status: Option<GameStatus>,
     pub home_score: Option<i32>,
     pub away_score: Option<i32>,
 }
@@ -79,7 +57,7 @@ pub struct UpdateMatchRequest {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateMatchEventRequest {
+pub struct CreateGameEventRequest {
     pub player_id: Uuid,
     pub event_type: EventType,
     pub minute: i32,

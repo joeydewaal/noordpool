@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -14,8 +16,16 @@ pub enum AppError {
 }
 
 impl AppError {
+    pub fn unauthorized(err: impl Into<String>) -> Self {
+        Self::Unauthorized(err.into())
+    }
+
     pub fn not_found(err: impl Into<String>) -> Self {
         Self::NotFound(err.into())
+    }
+
+    pub fn internal(err: impl Display) -> Self {
+        Self::Internal(err.to_string())
     }
 }
 

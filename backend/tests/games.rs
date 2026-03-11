@@ -6,6 +6,7 @@ use serde_json::json;
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
+    settings.add_redaction(".dateTime", "[dateTime]");
     settings.add_redaction(
         ".id",
         insta::dynamic_redaction(|val, _| {
@@ -38,18 +39,18 @@ fn redact_settings() -> Settings {
 }
 
 #[tokio::test]
-async fn list_matches_empty() {
+async fn list_games_empty() {
     let mut app = TestApp::new().await;
-    let res = app.get("/api/matches").send().await;
+    let res = app.get("/api/games").send().await;
     assert_eq!(res.status(), 200);
     assert_json_snapshot!(res.json_value().await, @"[]");
 }
 
 #[tokio::test]
-async fn create_match_requires_auth() {
+async fn create_game_requires_auth() {
     let mut app = TestApp::new().await;
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .json(json!({
             "opponent": "FC Test",
             "location": "Stadium",
@@ -61,12 +62,12 @@ async fn create_match_requires_auth() {
 }
 
 #[tokio::test]
-async fn create_match_forbidden_for_player_role() {
+async fn create_game_forbidden_for_player_role() {
     let mut app = TestApp::new().await;
     let token = app.player_token().await;
 
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(&token)
         .json(json!({
             "opponent": "FC Test",
@@ -79,12 +80,12 @@ async fn create_match_forbidden_for_player_role() {
 }
 
 #[tokio::test]
-async fn create_and_get_match() {
+async fn create_and_get_game() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(&token)
         .json(json!({
             "opponent": "FC Test",
@@ -97,25 +98,25 @@ async fn create_and_get_match() {
     let body = res.json_value().await;
     let settings = redact_settings();
     settings.bind(|| {
-        assert_json_snapshot!("create_match", body);
+        assert_json_snapshot!("create_game", body);
     });
 
-    let match_id = body["id"].as_str().unwrap();
-    let res = app.get(format!("/api/matches/{match_id}")).send().await;
+    let game_id = body["id"].as_str().unwrap();
+    let res = app.get(format!("/api/games/{game_id}")).send().await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     settings.bind(|| {
-        assert_json_snapshot!("get_match", body);
+        assert_json_snapshot!("get_game", body);
     });
 }
 
 #[tokio::test]
-async fn update_match() {
+async fn update_game() {
     let mut app = TestApp::new().await;
     let token = app.moderator_token().await;
 
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(&token)
         .json(json!({
             "opponent": "FC Test",
@@ -126,9 +127,9 @@ async fn update_match() {
         .await;
     let created = res.json_value().await;
 
-    let match_id = created["id"].as_str().unwrap();
+    let game_id = created["id"].as_str().unwrap();
     let res = app
-        .put(format!("/api/matches/{match_id}"))
+        .put(format!("/api/games/{game_id}"))
         .token(&token)
         .json(json!({
             "status": "completed",
@@ -140,7 +141,7 @@ async fn update_match() {
     let body = res.json_value().await;
     let settings = redact_settings();
     settings.bind(|| {
-        assert_json_snapshot!("update_match", body);
+        assert_json_snapshot!("update_game", body);
     });
 }
 
@@ -150,7 +151,7 @@ async fn upcoming_and_recent() {
     let token = app.admin_token().await;
 
     // Create a scheduled match (future)
-    app.post("/api/matches")
+    app.post("/api/games")
         .token(&token)
         .json(json!({
             "opponent": "FC Future",
@@ -162,7 +163,7 @@ async fn upcoming_and_recent() {
 
     // Create and complete a match
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(&token)
         .json(json!({
             "opponent": "FC Past",
@@ -171,15 +172,15 @@ async fn upcoming_and_recent() {
             "homeAway": "away"
         }))
         .await;
-    let past_match = res.json_value().await;
-    let past_id = past_match["id"].as_str().unwrap();
-    app.put(format!("/api/matches/{past_id}"))
+    let past_game = res.json_value().await;
+    let past_id = past_game["id"].as_str().unwrap();
+    app.put(format!("/api/games/{past_id}"))
         .token(&token)
         .json(json!({ "status": "completed", "homeScore": 2, "awayScore": 1 }))
         .await;
 
     // Check upcoming
-    let res = app.get("/api/matches/upcoming").send().await;
+    let res = app.get("/api/games/upcoming").send().await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     let arr = body.as_array().unwrap();
@@ -187,7 +188,7 @@ async fn upcoming_and_recent() {
     assert_eq!(arr[0]["opponent"], "FC Future");
 
     // Check recent
-    let res = app.get("/api/matches/recent").send().await;
+    let res = app.get("/api/games/recent").send().await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     let arr = body.as_array().unwrap();
@@ -195,29 +196,29 @@ async fn upcoming_and_recent() {
     assert_eq!(arr[0]["opponent"], "FC Past");
 
     // Check limit
-    let res = app.get("/api/matches/upcoming?limit=0").send().await;
+    let res = app.get("/api/games/upcoming?limit=0").send().await;
     assert_eq!(res.status(), 200);
     assert_json_snapshot!(res.json_value().await, @"[]");
 }
 
 #[tokio::test]
-async fn get_match_not_found() {
+async fn get_game_not_found() {
     let mut app = TestApp::new().await;
     let res = app
-        .get("/api/matches/00000000-0000-0000-0000-000000000000")
+        .get("/api/games/00000000-0000-0000-0000-000000000000")
         .send()
         .await;
     assert_eq!(res.status(), 404);
 }
 
 #[tokio::test]
-async fn delete_match() {
+async fn delete_game() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
     // Create a match
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(&token)
         .json(json!({
             "opponent": "FC Test",
@@ -227,18 +228,18 @@ async fn delete_match() {
         }))
         .await;
     let created = res.json_value().await;
-    let match_id = created["id"].as_str().unwrap();
+    let game_id = created["id"].as_str().unwrap();
 
     // Delete
     let res = app
-        .delete(format!("/api/matches/{match_id}"))
+        .delete(format!("/api/games/{game_id}"))
         .token(&token)
         .send()
         .await;
     assert_eq!(res.status(), 204);
 
     // Verify gone
-    let res = app.get(format!("/api/matches/{match_id}")).send().await;
+    let res = app.get(format!("/api/games/{game_id}")).send().await;
     assert_eq!(res.status(), 404);
 }
 
@@ -250,7 +251,7 @@ async fn delete_match_forbidden_for_moderator() {
 
     // Create a match as admin
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(&admin_token)
         .json(json!({
             "opponent": "FC Test",
@@ -260,11 +261,11 @@ async fn delete_match_forbidden_for_moderator() {
         }))
         .await;
     let created = res.json_value().await;
-    let match_id = created["id"].as_str().unwrap();
+    let game_id = created["id"].as_str().unwrap();
 
     // Moderator should not be able to delete
     let res = app
-        .delete(format!("/api/matches/{match_id}"))
+        .delete(format!("/api/games/{game_id}"))
         .token(&mod_token)
         .send()
         .await;

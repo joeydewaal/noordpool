@@ -1,15 +1,18 @@
 use axum_security::rbac::RBAC;
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::models::Role;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,
+    pub sub: Uuid,
     pub email: String,
     pub name: String,
     pub roles: Vec<Role>,
-    pub exp: u64,
+    #[serde(with = "jiff::fmt::serde::timestamp::second::required")]
+    pub exp: Timestamp,
 }
 
 impl RBAC for Role {

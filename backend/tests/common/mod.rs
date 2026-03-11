@@ -3,8 +3,9 @@ use axum::{
     extract::Request,
     http::{self, StatusCode},
 };
-use axum_security::jwt::{JwtContext, get_current_timestamp};
+use axum_security::jwt::JwtContext;
 use http_body_util::BodyExt;
+use jiff::{Timestamp, ToSpan};
 use noordpool_backend::{
     app_state::AppState,
     auth::claims::Claims,
@@ -14,6 +15,7 @@ use noordpool_backend::{
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::json;
 use tower::Service;
+use uuid::Uuid;
 
 pub struct TestApp {
     state: AppState,
@@ -163,15 +165,15 @@ impl TestApp {
             }))
             .await;
         let body = res.json_value().await;
-        let user_id = body["user"]["id"].as_str().unwrap();
+        let user_id: Uuid = body["user"]["id"].as_str().unwrap().parse().unwrap();
 
         // Encode a JWT with the elevated roles — RBAC checks the token, not the DB
         let claims = Claims {
-            sub: user_id.to_string(),
+            sub: user_id,
             email: email.to_string(),
             name: format!("Test {:?}", role),
             roles: vec![Role::Player, role],
-            exp: get_current_timestamp() + 24 * 60 * 60,
+            exp: Timestamp::now() + 24.hour(),
         };
         self.state.jwt.encode_token(&claims).unwrap()
     }

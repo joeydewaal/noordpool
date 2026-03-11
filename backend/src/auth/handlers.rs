@@ -1,12 +1,13 @@
-use axum::{Json, extract::State};
-use axum_security::jwt::{Jwt, JwtContext, get_current_timestamp};
+use axum::{Json, extract::State, http::StatusCode};
+use axum_security::jwt::{Jwt, JwtContext};
+use jiff::{Timestamp, ToSpan as _};
 use serde::Deserialize;
 
 use crate::{
     app_state::AppState,
     auth::{claims::Claims, password},
     error::AppError,
-    json::{AuthResponse, UserResponse},
+    json::AuthResponse,
     models::{Role, User},
 };
 
@@ -23,13 +24,11 @@ pub struct LoginRequest {
     password: String,
 }
 
-const TOKEN_LIFETIME_SECS: u64 = 24 * 60 * 60;
-
 pub async fn register(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
     Json(body): Json<RegisterRequest>,
 ) -> Result<Json<AuthResponse>, AppError> {
-    let db = &mut state.db;
+    let mut db = state.db;
 
     let password_hash = password::hash_password(&body.password)?;
 
@@ -42,77 +41,74 @@ pub async fn register(
             }
 
     )
-    .exec(db)
+    .exec(&mut db)
     .await
     .map_err(|e| {
         let msg = e.to_string();
         if msg.contains("unique") || msg.contains("duplicate") || msg.contains("UNIQUE") {
             AppError::Conflict("Email already registered".into())
         } else {
-            AppError::Internal(msg)
+            AppError::internal(msg)
         }
     })?;
 
     let roles = vec![Role::Player];
     let token = encode_token(&state.jwt, &user, &roles)?;
 
-    Ok(Json(AuthResponse {
-        user: UserResponse::from_user(&user, &roles),
-        token,
-    }))
+    Ok(Json(AuthResponse { user, token }))
 }
 
 pub async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, AppError> {
-    let mut db = state.db.clone();
+    let mut db = state.db;
 
     let user = User::filter_by_email(body.email)
         .filter(User::fields().password_hash().is_some())
         .include(User::fields().roles())
         .first(&mut db)
-        .await?
-        .ok_or_else(|| AppError::Unauthorized("Invalid email or password".into()))?;
+        .await?;
+
+    let Some(user) = user else {
+        // Timing attacks.
+        password::verify_password(&body.password, "")?;
+        return Err(AppError::unauthorized("Invalid email or password"));
+    };
 
     let password_hash = user.password_hash.as_ref().expect("Was filtered out in db");
 
-    let valid = password::verify_password(&body.password, password_hash)?;
-    if !valid {
-        return Err(AppError::Unauthorized("Invalid email or password".into()));
+    if !password::verify_password(&body.password, password_hash)? {
+        return Err(AppError::unauthorized("Invalid email or password"));
     }
 
-    let roles: Vec<Role> = user.roles.get().iter().map(|r| r.role).collect();
-
+    let roles: Vec<Role> = user.get_roles();
     let token = encode_token(&state.jwt, &user, &roles)?;
-
-    Ok(Json(AuthResponse {
-        user: UserResponse::from_user(&user, &roles),
-        token,
-    }))
+    Ok(Json(AuthResponse { user, token }))
 }
 
-pub async fn me(Jwt(claims): Jwt<Claims>) -> Json<UserResponse> {
-    Json(UserResponse {
-        id: claims.sub,
-        email: claims.email,
-        name: claims.name,
-        roles: claims.roles,
-    })
+pub async fn me(
+    State(mut state): State<AppState>,
+    Jwt(claims): Jwt<Claims>,
+) -> Result<Json<User>, AppError> {
+    let user = User::filter_by_id(claims.sub)
+        .include(User::fields().roles())
+        .get(&mut state.db)
+        .await?;
+    Ok(Json(user))
 }
 
-pub async fn logout() -> axum::http::StatusCode {
-    axum::http::StatusCode::OK
+pub async fn logout() -> StatusCode {
+    StatusCode::OK
 }
 
 fn encode_token(jwt: &JwtContext<Claims>, user: &User, roles: &[Role]) -> Result<String, AppError> {
     let claims = Claims {
-        sub: user.id.to_string(),
+        sub: user.id,
         email: user.email.clone(),
         name: user.name.clone(),
         roles: roles.to_vec(),
-        exp: get_current_timestamp() + TOKEN_LIFETIME_SECS,
+        exp: Timestamp::now() + 24.hours(),
     };
-    jwt.encode_token(&claims)
-        .map_err(|e| AppError::Internal(e.to_string()))
+    jwt.encode_token(&claims).map_err(AppError::internal)
 }

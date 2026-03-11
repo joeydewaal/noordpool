@@ -3,7 +3,7 @@ use toasty::Embed;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Embed)]
 #[serde(rename_all = "lowercase")]
-pub enum MatchStatus {
+pub enum GameStatus {
     #[column(variant = 1)]
     Scheduled,
     #[column(variant = 2)]

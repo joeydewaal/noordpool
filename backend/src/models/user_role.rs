@@ -4,7 +4,8 @@ use uuid::Uuid;
 
 use super::User;
 
-#[derive(Debug, toasty::Model, Serialize)]
+#[derive(Debug, toasty::Model, Serialize, Clone)]
+#[serde(into = "Role")]
 pub struct UserRole {
     #[key]
     #[auto]
@@ -18,6 +19,12 @@ pub struct UserRole {
     pub user: BelongsTo<User>,
 
     pub role: Role,
+}
+
+impl From<UserRole> for Role {
+    fn from(value: UserRole) -> Self {
+        value.role
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Embed)]

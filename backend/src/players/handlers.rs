@@ -13,7 +13,7 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{CreatePlayerRequest, PlayerStatsResponse, UpdatePlayerRequest},
-    models::{EventType, MatchEvent, MatchStatus, Role, User},
+    models::{EventType, GameEvent, GameStatus, Role, User},
 };
 
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {
@@ -105,16 +105,16 @@ pub async fn stats(
     let db = &mut state.db;
 
     let user = User::filter_by_id(id)
-        .include(User::fields().match_events().game())
+        .include(User::fields().game_events().game())
         .get(db)
         .await?;
 
-    let events = user.match_events.get();
+    let events = user.game_events.get();
 
     // Get completed game IDs for appearances
     let game_ids: Vec<Uuid> = events
         .iter()
-        .filter(|e| e.game.get().status == MatchStatus::Completed)
+        .filter(|e| e.game.get().status == GameStatus::Completed)
         .map(|e| e.game_id)
         .collect::<HashSet<_>>()
         .into_iter()

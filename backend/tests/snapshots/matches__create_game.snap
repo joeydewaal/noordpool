@@ -1,0 +1,15 @@
+---
+source: tests/matches.rs
+expression: body
+---
+{
+  "awayScore": 0,
+  "createdAt": "[timestamp]",
+  "dateTime": "[dateTime]",
+  "homeAway": "home",
+  "homeScore": 0,
+  "id": "[uuid]",
+  "location": "Stadium",
+  "opponent": "FC Test",
+  "status": "scheduled"
+}

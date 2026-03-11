@@ -3,9 +3,9 @@ use serde::Serialize;
 use toasty::HasMany;
 use uuid::Uuid;
 
-use super::{HomeAway, MatchEvent, MatchStatus};
+use super::{HomeAway, GameEvent, GameStatus};
 
-#[derive(Debug, Serialize, toasty::Model)]
+#[derive(Debug, Serialize, toasty::Model, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Game {
     #[key]
@@ -20,8 +20,8 @@ pub struct Game {
 
     pub home_away: HomeAway,
 
-    #[default(MatchStatus::Scheduled)]
-    pub status: MatchStatus,
+    #[default(GameStatus::Scheduled)]
+    pub status: GameStatus,
 
     #[default(0)]
     pub home_score: i32,
@@ -34,5 +34,5 @@ pub struct Game {
 
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]
-    pub events: HasMany<MatchEvent>,
+    pub events: HasMany<GameEvent>,
 }

@@ -3,11 +3,11 @@ use serde::Serialize;
 use toasty::{HasMany, Model};
 use uuid::Uuid;
 
-use crate::models::{MatchEvent, Position};
+use crate::models::{GameEvent, Position, Role};
 
 use super::UserRole;
 
-#[derive(Debug, toasty::Model, Serialize)]
+#[derive(Debug, toasty::Model, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     #[key]
@@ -39,11 +39,15 @@ pub struct User {
 
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]
-    pub match_events: HasMany<MatchEvent>,
+    pub game_events: HasMany<GameEvent>,
 }
 
 impl User {
     pub fn all_active() -> <User as Model>::Query {
         User::all().filter(User::fields().active().eq(true))
+    }
+
+    pub fn get_roles(&self) -> Vec<Role> {
+        self.roles.get().iter().map(|r| r.role).collect()
     }
 }

@@ -6,7 +6,7 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{LeaderboardEntryResponse, LeaderboardResponse},
-    models::{EventType, MatchEvent, MatchStatus, User},
+    models::{EventType, GameEvent, GameStatus, User},
 };
 
 #[derive(Default)]
@@ -24,8 +24,8 @@ pub async fn leaderboard(
     let db = &mut state.db;
 
     // Get all events
-    let events: Vec<MatchEvent> = MatchEvent::all()
-        .include(MatchEvent::fields().game())
+    let events: Vec<GameEvent> = GameEvent::all()
+        .include(GameEvent::fields().game())
         .collect(db)
         .await?;
 
@@ -33,7 +33,7 @@ pub async fn leaderboard(
     let mut stats_map: HashMap<uuid::Uuid, PlayerStats> = HashMap::new();
 
     for event in &events {
-        if event.game.get().status != MatchStatus::Completed {
+        if event.game.get().status != GameStatus::Completed {
             continue;
         }
 

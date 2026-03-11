@@ -43,7 +43,7 @@ async fn create_player(
     body["id"].as_str().unwrap().to_string()
 }
 
-async fn create_match_and_complete(
+async fn create_game_and_complete(
     app: &mut TestApp,
     token: &str,
     opponent: &str,
@@ -51,7 +51,7 @@ async fn create_match_and_complete(
     away_score: i32,
 ) -> String {
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(token)
         .json(json!({
             "opponent": opponent,
@@ -61,8 +61,8 @@ async fn create_match_and_complete(
         }))
         .await;
     let body = res.json_value().await;
-    let match_id = body["id"].as_str().unwrap().to_string();
-    app.put(format!("/api/matches/{match_id}"))
+    let game_id = body["id"].as_str().unwrap().to_string();
+    app.put(format!("/api/games/{game_id}"))
         .token(token)
         .json(json!({
             "status": "completed",
@@ -70,18 +70,18 @@ async fn create_match_and_complete(
             "awayScore": away_score
         }))
         .await;
-    match_id
+    game_id
 }
 
 async fn add_event(
     app: &mut TestApp,
     token: &str,
-    match_id: &str,
+    game_id: &str,
     player_id: &str,
     event_type: &str,
     minute: i32,
 ) {
-    app.post(format!("/api/matches/{match_id}/events"))
+    app.post(format!("/api/games/{game_id}/events"))
         .token(token)
         .json(json!({
             "playerId": player_id,
@@ -114,8 +114,8 @@ async fn leaderboard_with_data() {
     let midfield = create_player(&mut app, &token, "Playmaker", 10, "midfielder").await;
     let defender = create_player(&mut app, &token, "Tough Guy", 4, "defender").await;
 
-    let game1 = create_match_and_complete(&mut app, &token, "FC Alpha", 3, 0).await;
-    let game2 = create_match_and_complete(&mut app, &token, "FC Beta", 2, 1).await;
+    let game1 = create_game_and_complete(&mut app, &token, "FC Alpha", 3, 0).await;
+    let game2 = create_game_and_complete(&mut app, &token, "FC Beta", 2, 1).await;
 
     // Game 1 events: striker scores 2, midfield assists 2, defender yellow card
     add_event(&mut app, &token, &game1, &striker, "goal", 15).await;
@@ -155,7 +155,7 @@ async fn player_stats_with_events() {
     let token = app.admin_token().await;
 
     let player = create_player(&mut app, &token, "Star Player", 7, "forward").await;
-    let game = create_match_and_complete(&mut app, &token, "FC Rival", 2, 0).await;
+    let game = create_game_and_complete(&mut app, &token, "FC Rival", 2, 0).await;
 
     add_event(&mut app, &token, &game, &player, "goal", 10).await;
     add_event(&mut app, &token, &game, &player, "goal", 55).await;
@@ -182,7 +182,7 @@ async fn stats_ignore_scheduled_game_events() {
 
     // Create a scheduled (not completed) match
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(&token)
         .json(json!({
             "opponent": "FC Scheduled",
@@ -192,10 +192,10 @@ async fn stats_ignore_scheduled_game_events() {
         }))
         .await;
     let body = res.json_value().await;
-    let match_id = body["id"].as_str().unwrap();
+    let game_id = body["id"].as_str().unwrap();
 
     // Add a goal to the scheduled match
-    add_event(&mut app, &token, match_id, &player, "goal", 10).await;
+    add_event(&mut app, &token, game_id, &player, "goal", 10).await;
 
     // Stats should show 0 appearances (game not completed)
     let res = app.get(format!("/api/players/{player}/stats")).send().await;

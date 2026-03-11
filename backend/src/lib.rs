@@ -4,7 +4,7 @@ pub mod config;
 pub mod error;
 pub mod events;
 pub mod json;
-pub mod matches;
+pub mod games;
 pub mod models;
 pub mod players;
 pub mod routes;

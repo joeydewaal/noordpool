@@ -7,14 +7,7 @@ use crate::common::TestApp;
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
-    for path in &[
-        ".id",
-        ".matchId",
-        ".playerId",
-        "[].id",
-        "[].matchId",
-        "[].playerId",
-    ] {
+    for path in &[".id", ".playerId", "[].id", "[].playerId"] {
         settings.add_redaction(
             *path,
             insta::dynamic_redaction(|val, _| {
@@ -41,9 +34,10 @@ async fn create_player(app: &mut TestApp, token: &str, name: &str, number: i32) 
     body["id"].as_str().unwrap().to_string()
 }
 
-async fn create_match(app: &mut TestApp, token: &str) -> String {
+async fn create_game(app: &mut TestApp, token: &str) -> String {
+    dbg!(&token);
     let res = app
-        .post("/api/matches")
+        .post("/api/games")
         .token(token)
         .json(json!({
             "opponent": "FC Test",
@@ -52,7 +46,9 @@ async fn create_match(app: &mut TestApp, token: &str) -> String {
             "homeAway": "home"
         }))
         .await;
+    dbg!(res.status());
     let body = res.json_value().await;
+
     body["id"].as_str().unwrap().to_string()
 }
 
@@ -60,12 +56,12 @@ async fn create_match(app: &mut TestApp, token: &str) -> String {
 async fn create_and_list_events() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
-    let match_id = create_match(&mut app, &token).await;
+    let game_id = create_game(&mut app, &token).await;
     let player_id = create_player(&mut app, &token, "Scorer", 9).await;
 
     // Create a goal event
     let res = app
-        .post(format!("/api/matches/{match_id}/events"))
+        .post(format!("/api/games/{game_id}/events"))
         .token(&token)
         .json(json!({
             "playerId": player_id,
@@ -82,7 +78,7 @@ async fn create_and_list_events() {
         .await;
 
     // Create an assist event
-    app.post(format!("/api/matches/{match_id}/events"))
+    app.post(format!("/api/games/{game_id}/events"))
         .token(&token)
         .json(json!({
             "playerId": player_id,
@@ -92,7 +88,7 @@ async fn create_and_list_events() {
         .await;
 
     // Create a yellow card at minute 60
-    app.post(format!("/api/matches/{match_id}/events"))
+    app.post(format!("/api/games/{game_id}/events"))
         .token(&token)
         .json(json!({
             "playerId": player_id,
@@ -102,10 +98,7 @@ async fn create_and_list_events() {
         .await;
 
     // List events — should be sorted by minute
-    let res = app
-        .get(format!("/api/matches/{match_id}/events"))
-        .send()
-        .await;
+    let res = app.get(format!("/api/games/{game_id}/events")).send().await;
 
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
@@ -120,11 +113,11 @@ async fn create_and_list_events() {
 async fn delete_event() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
-    let match_id = create_match(&mut app, &token).await;
+    let game_id = create_game(&mut app, &token).await;
     let player_id = create_player(&mut app, &token, "Scorer", 9).await;
 
     let res = app
-        .post(format!("/api/matches/{match_id}/events"))
+        .post(format!("/api/games/{game_id}/events"))
         .token(&token)
         .json(json!({
             "playerId": player_id,
@@ -138,7 +131,7 @@ async fn delete_event() {
 
     // Delete
     let res = app
-        .delete(format!("/api/matches/{match_id}/events/{event_id}"))
+        .delete(format!("/api/games/{game_id}/events/{event_id}"))
         .token(&token)
         .send()
         .await;
@@ -146,10 +139,7 @@ async fn delete_event() {
     assert_eq!(res.status(), 204);
 
     // Verify gone
-    let res = app
-        .get(format!("/api/matches/{match_id}/events"))
-        .send()
-        .await;
+    let res = app.get(format!("/api/games/{game_id}/events")).send().await;
 
     assert_json_snapshot!(res.json_value().await, @"[]");
 }
@@ -159,10 +149,10 @@ async fn create_event_requires_auth() {
     let mut test_app = TestApp::new().await;
 
     let token = test_app.admin_token().await;
-    let match_id = create_match(&mut test_app, &token).await;
+    let match_id = create_game(&mut test_app, &token).await;
 
     let res = test_app
-        .post(format!("/api/matches/{match_id}/events"))
+        .post(format!("/api/games/{match_id}/events"))
         .json(json!({
             "playerId": "00000000-0000-0000-0000-000000000000",
             "eventType": "goal",
@@ -177,10 +167,10 @@ async fn create_event_requires_auth() {
 async fn list_events_empty() {
     let mut test_app = TestApp::new().await;
     let token = test_app.admin_token().await;
-    let match_id = create_match(&mut test_app, &token).await;
+    let game_id = create_game(&mut test_app, &token).await;
 
     let res = test_app
-        .get(format!("/api/matches/{match_id}/events"))
+        .get(format!("/api/games/{game_id}/events"))
         .send()
         .await;
     assert_eq!(res.status(), 200);

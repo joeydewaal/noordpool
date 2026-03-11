@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    json::{CreateMatchRequest, UpdateMatchRequest},
+    json::{CreateGameRequest, UpdateGameRequest},
     models::{Game, Role},
 };
 
@@ -75,7 +75,7 @@ pub async fn recent(
 #[requires_any(Role::Admin, Role::Moderator)]
 pub async fn create(
     State(mut state): State<AppState>,
-    Json(body): Json<CreateMatchRequest>,
+    Json(body): Json<CreateGameRequest>,
 ) -> Result<Json<Game>, AppError> {
     let db = &mut state.db;
 
@@ -94,7 +94,7 @@ pub async fn create(
 pub async fn update(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
-    Json(body): Json<UpdateMatchRequest>,
+    Json(body): Json<UpdateGameRequest>,
 ) -> Result<Json<Game>, AppError> {
     let db = &mut state.db;
 
