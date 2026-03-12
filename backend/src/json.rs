@@ -2,7 +2,7 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::{EventType, HomeAway, GameStatus, Position, Role, User};
+use crate::models::{EventType, GameStatus, HomeAway, Position, User};
 
 #[derive(Serialize)]
 pub struct AuthResponse {

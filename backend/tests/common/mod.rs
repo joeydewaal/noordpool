@@ -94,7 +94,7 @@ impl TestApp {
         let state = AppState {
             db,
             jwt,
-            google_oauth2: None,
+            google_oidc: None,
         };
         let router = routes::app(state.clone());
         TestApp { state, router }

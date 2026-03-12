@@ -1,5 +1,5 @@
 use axum::Router;
-use axum_security::oauth2::OAuth2Ext;
+use axum_security::oidc::OidcExt as _;
 use tower_http::cors::CorsLayer;
 
 use crate::{app_state::AppState, auth, events, games, players, stats};
@@ -13,8 +13,8 @@ pub fn app(state: AppState) -> Router {
         .nest("/api/stats", stats::router())
         .layer(state.jwt.clone());
 
-    if let Some(google_oidc) = state.google_oauth2.clone() {
-        app = app.with_oauth2(google_oidc);
+    if let Some(google_oidc) = state.google_oidc.clone() {
+        app = app.with_oidc(google_oidc);
     }
 
     app.layer(CorsLayer::permissive()).with_state(state)

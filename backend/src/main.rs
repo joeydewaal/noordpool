@@ -3,15 +3,15 @@ mod auth;
 mod config;
 mod error;
 mod events;
+mod games;
 mod json;
 mod models;
-mod games;
 mod players;
 mod routes;
 mod stats;
 
 use app_state::AppState;
-use axum_security::{jwt::JwtContext, oauth2::OAuth2Context};
+use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use config::Config;
 use tokio::net::TcpListener;
 
@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .jwt_secret(&config.jwt_secret)
         .build::<auth::claims::Claims>();
 
-    let google_oauth2 = if let (Some(client_id), Some(client_secret), Some(redirect_url)) = (
+    let google_oidc = if let (Some(client_id), Some(client_secret), Some(redirect_url)) = (
         &config.google_client_id,
         &config.google_client_secret,
         &config.google_redirect_url,
@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             frontend_url,
         };
 
-        let oidc = OAuth2Context::builder("google")
+        let oidc = OidcContext::builder("google")
             .client_id(client_id)
             .client_secret(client_secret)
             .redirect_url(redirect_url)
@@ -68,7 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState {
         db,
         jwt,
-        google_oauth2,
+        google_oidc,
     };
 
     let listener = TcpListener::bind(("0.0.0.0", config.port)).await?;

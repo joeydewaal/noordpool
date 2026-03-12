@@ -1,5 +1,5 @@
 use axum::extract::FromRef;
-use axum_security::{jwt::JwtContext, oauth2::OAuth2Context};
+use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use toasty::Db;
 
 use crate::auth::{claims::Claims, google::GoogleHandler};
@@ -8,7 +8,7 @@ use crate::auth::{claims::Claims, google::GoogleHandler};
 pub struct AppState {
     pub db: Db,
     pub jwt: JwtContext<Claims>,
-    pub google_oauth2: Option<OAuth2Context<GoogleHandler>>,
+    pub google_oidc: Option<OidcContext<GoogleHandler>>,
 }
 
 impl FromRef<AppState> for JwtContext<Claims> {
