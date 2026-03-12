@@ -4,29 +4,29 @@
     import { goto } from "$app/navigation";
     import { auth } from "$lib/state/auth.svelte.js";
     import { getGame, updateGame } from "$lib/api/games.js";
-    import type { HomeAway, GameStatus } from "$lib/api/types.js";
+    import type { Game } from "$lib/api/types.js";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
 
-    let opponent = $state("");
-    let location = $state("");
-    let dateTime = $state("");
-    let homeAway: HomeAway = $state("home");
-    let status: GameStatus = $state("scheduled");
-    let homeScore: number | null = $state(null);
-    let awayScore: number | null = $state(null);
+    let game_state: Game | null = $state(null);
     let loaded = $state(false);
 
     async function handleSubmit(e: Event) {
         e.preventDefault();
         await updateGame(page.params.id, {
-            opponent,
-            location,
-            dateTime,
-            homeAway,
-            status,
-            homeScore: status === "completed" ? homeScore : null,
-            awayScore: status === "completed" ? awayScore : null,
+            opponent: game_state?.opponent,
+            location: game_state?.location,
+            dateTime: game_state?.location,
+            homeAway: game_state?.homeAway,
+            status: game_state?.status,
+            homeScore:
+                game_state?.status === "completed"
+                    ? game_state.homeScore
+                    : null,
+            awayScore:
+                game_state?.status === "completed"
+                    ? game_state.awayScore
+                    : null,
         });
         goto(`/games/${page.params.id}`);
     }
@@ -34,13 +34,6 @@
     onMount(async () => {
         const game = await getGame(page.params.id);
         if (game) {
-            opponent = game.opponent;
-            location = game.location;
-            dateTime = game.dateTime;
-            homeAway = game.homeAway;
-            status = game.status;
-            homeScore = game.homeScore;
-            awayScore = game.awayScore;
             loaded = true;
         }
     });
@@ -52,7 +45,7 @@
     </p>
 {:else if !loaded}
     <p class="text-gray-500">Wedstrijd niet gevonden.</p>
-{:else}
+{:else if game_state != null}
     <div class="max-w-lg">
         <a
             href="/games/{page.params.id}"
@@ -75,7 +68,7 @@
                 <input
                     id="opponent"
                     type="text"
-                    bind:value={opponent}
+                    bind:value={game_state.opponent}
                     required
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
@@ -89,7 +82,7 @@
                 <input
                     id="location"
                     type="text"
-                    bind:value={location}
+                    bind:value={game_state.location}
                     required
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
@@ -103,7 +96,7 @@
                 <input
                     id="dateTime"
                     type="datetime-local"
-                    bind:value={dateTime}
+                    bind:value={game_state.dateTime}
                     required
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
@@ -116,7 +109,7 @@
                     <label class="flex items-center gap-2">
                         <input
                             type="radio"
-                            bind:group={homeAway}
+                            bind:group={game_state.homeAway}
                             value="home"
                         />
                         <span class="text-sm">Thuis</span>
@@ -124,7 +117,7 @@
                     <label class="flex items-center gap-2">
                         <input
                             type="radio"
-                            bind:group={homeAway}
+                            bind:group={game_state.homeAway}
                             value="away"
                         />
                         <span class="text-sm">Uit</span>
@@ -139,7 +132,7 @@
                 >
                 <select
                     id="status"
-                    bind:value={status}
+                    bind:value={game_state.status}
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                     <option value="scheduled">Gepland</option>
@@ -147,7 +140,7 @@
                     <option value="cancelled">Afgelast</option>
                 </select>
             </div>
-            {#if status === "completed"}
+            {#if game_state.status === "completed"}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label
@@ -158,7 +151,7 @@
                         <input
                             id="homeScore"
                             type="number"
-                            bind:value={homeScore}
+                            bind:value={game_state.homeScore}
                             min="0"
                             required
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -173,7 +166,7 @@
                         <input
                             id="awayScore"
                             type="number"
-                            bind:value={awayScore}
+                            bind:value={game_state.awayScore}
                             min="0"
                             required
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
