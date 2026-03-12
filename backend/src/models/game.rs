@@ -3,7 +3,7 @@ use serde::Serialize;
 use toasty::HasMany;
 use uuid::Uuid;
 
-use super::{HomeAway, GameEvent, GameStatus};
+use super::{GameEvent, GameStatus, HomeAway};
 
 #[derive(Debug, Serialize, toasty::Model, Clone)]
 #[serde(rename_all = "camelCase")]

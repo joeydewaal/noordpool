@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/state/auth.svelte.js';
-	import { createMatch } from '$lib/api/matches.js';
+	import { createGame } from '$lib/api/games.js';
 	import type { HomeAway } from '$lib/api/types.js';
 
 	const canManage = $derived(auth.isAdmin || auth.isModerator);
@@ -13,14 +13,14 @@
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
-		await createMatch({ opponent, location, dateTime, homeAway });
-		goto('/matches');
+		await createGame({ opponent, location, dateTime, homeAway });
+		goto('/games');
 	}
 </script>
 
 {#if canManage}
 	<div class="max-w-lg">
-		<a href="/matches" class="text-sm text-primary hover:underline mb-4 inline-block">&larr; Alle wedstrijden</a>
+		<a href="/games" class="text-sm text-primary hover:underline mb-4 inline-block">&larr; Alle wedstrijden</a>
 		<h1 class="text-2xl font-bold text-gray-900 mb-6">Nieuwe wedstrijd</h1>
 		<form onsubmit={handleSubmit} class="bg-white rounded-lg shadow p-6 space-y-4">
 			<div>

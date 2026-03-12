@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/state/auth.svelte.js';
-	import { getUpcomingMatches, getRecentResults } from '$lib/api/matches.js';
-	import type { Match } from '$lib/api/types.js';
+	import { getUpcomingGames, getRecentResults } from '$lib/api/games.js';
+	import type { Game } from '$lib/api/types.js';
 
-	let upcoming: Match[] = $state([]);
-	let results: Match[] = $state([]);
+	let upcoming: Game[] = $state([]);
+	let results: Game[] = $state([]);
 	let activeTab: 'upcoming' | 'results' = $state('upcoming');
 
 	const canManage = $derived(auth.isAdmin || auth.isModerator);
@@ -21,14 +21,14 @@
 		});
 	}
 
-	function formatScore(match: Match): string {
-		if (match.homeScore === null || (match.status === 'scheduled' && match.homeScore === 0)) return '';
-		return `${match.homeScore} - ${match.awayScore}`;
+	function formatScore(game: Game): string {
+		if (game.homeScore === null || (game.status === 'scheduled' && game.homeScore === 0)) return '';
+		return `${game.homeScore} - ${game.awayScore}`;
 	}
 
 	onMount(async () => {
 		[upcoming, results] = await Promise.all([
-			getUpcomingMatches(),
+			getUpcomingGames(),
 			getRecentResults()
 		]);
 	});
@@ -38,7 +38,7 @@
 	<h1 class="text-2xl font-bold text-gray-900">Wedstrijden</h1>
 	{#if canManage}
 		<a
-			href="/matches/new"
+			href="/games/new"
 			class="bg-primary hover:bg-primary-light text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
 		>
 			Nieuwe wedstrijd
@@ -66,15 +66,15 @@
 		<p class="text-gray-500 text-sm">Geen komende wedstrijden gepland.</p>
 	{:else}
 		<div class="space-y-3">
-			{#each upcoming as match}
-				<a href="/matches/{match.id}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4">
+			{#each upcoming as game}
+				<a href="/games/{game.id}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<div class="font-semibold text-gray-900">vs {match.opponent}</div>
-							<div class="text-sm text-gray-500 mt-1">{formatDate(match.dateTime)}</div>
+							<div class="font-semibold text-gray-900">vs {game.opponent}</div>
+							<div class="text-sm text-gray-500 mt-1">{formatDate(game.dateTime)}</div>
 						</div>
-						<span class="text-xs font-medium px-2.5 py-1 rounded-full {match.homeAway === 'home' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
-							{match.homeAway === 'home' ? 'thuis' : 'uit'}
+						<span class="text-xs font-medium px-2.5 py-1 rounded-full {game.homeAway === 'home' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
+							{game.homeAway === 'home' ? 'thuis' : 'uit'}
 						</span>
 					</div>
 				</a>
@@ -86,17 +86,17 @@
 		<p class="text-gray-500 text-sm">Nog geen uitslagen.</p>
 	{:else}
 		<div class="space-y-3">
-			{#each results as match}
-				<a href="/matches/{match.id}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4">
+			{#each results as game}
+				<a href="/games/{game.id}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<div class="font-semibold text-gray-900">vs {match.opponent}</div>
-							<div class="text-sm text-gray-500 mt-1">{formatDate(match.dateTime)}</div>
+							<div class="font-semibold text-gray-900">vs {game.opponent}</div>
+							<div class="text-sm text-gray-500 mt-1">{formatDate(game.dateTime)}</div>
 						</div>
 						<div class="flex items-center gap-3">
-							<span class="font-bold text-gray-900">{formatScore(match)}</span>
-							<span class="text-xs font-medium px-2.5 py-1 rounded-full {match.homeAway === 'home' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
-								{match.homeAway === 'home' ? 'thuis' : 'uit'}
+							<span class="font-bold text-gray-900">{formatScore(game)}</span>
+							<span class="text-xs font-medium px-2.5 py-1 rounded-full {game.homeAway === 'home' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
+								{game.homeAway === 'home' ? 'thuis' : 'uit'}
 							</span>
 						</div>
 					</div>

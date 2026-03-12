@@ -13,7 +13,7 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{CreatePlayerRequest, PlayerStatsResponse, UpdatePlayerRequest},
-    models::{EventType, GameEvent, GameStatus, Role, User},
+    models::{EventType, GameStatus, Role, User},
 };
 
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {

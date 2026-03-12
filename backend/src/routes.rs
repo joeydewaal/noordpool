@@ -9,7 +9,7 @@ pub fn app(state: AppState) -> Router {
         .nest("/api/auth", auth::router())
         .nest("/api/players", players::router())
         .nest("/api/games", games::router())
-        .nest("/api/games/{match_id}/events", events::router())
+        .nest("/api/games/{game_id}/events", events::router())
         .nest("/api/stats", stats::router())
         .layer(state.jwt.clone());
 

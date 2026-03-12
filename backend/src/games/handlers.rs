@@ -19,15 +19,13 @@ pub struct LimitQuery {
     pub limit: Option<usize>,
 }
 
-pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Game>>, AppError> {
-    let db = &mut state.db;
+pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<Game>>, AppError> {
+    let mut db = state.db;
 
-    // TODO: toasty does not support order by timestamp.
-    let mut games: Vec<Game> = Game::all()
+    let games: Vec<Game> = Game::all()
         .order_by(Game::fields().date_time().asc())
-        .collect(db)
+        .collect(&mut db)
         .await?;
-    // games.sort_by(|a, b| b.date_time.cmp(&a.date_time));
     Ok(Json(games))
 }
 

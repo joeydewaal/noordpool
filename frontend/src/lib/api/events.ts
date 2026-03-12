@@ -1,19 +1,19 @@
-import type { MatchEvent, CreateMatchEventRequest, PlayerStats, Leaderboard } from './types.js';
+import type { GameEvent, CreateGameEventRequest, PlayerStats, Leaderboard } from './types.js';
 import { fetchApi } from './client.js';
 
-export async function getMatchEvents(matchId: string): Promise<MatchEvent[]> {
-	return fetchApi<MatchEvent[]>(`/matches/${matchId}/events`);
+export async function getGameEvents(gameId: string): Promise<GameEvent[]> {
+	return fetchApi<GameEvent[]>(`/games/${gameId}/events`);
 }
 
-export async function createMatchEvent(matchId: string, data: CreateMatchEventRequest): Promise<MatchEvent> {
-	return fetchApi<MatchEvent>(`/matches/${matchId}/events`, {
+export async function createGameEvent(gameId: string, data: CreateGameEventRequest): Promise<GameEvent> {
+	return fetchApi<GameEvent>(`/games/${gameId}/events`, {
 		method: 'POST',
 		body: JSON.stringify(data)
 	});
 }
 
-export async function deleteMatchEvent(matchId: string, eventId: string): Promise<void> {
-	return fetchApi<void>(`/matches/${matchId}/events/${eventId}`, {
+export async function deleteGameEvent(gameId: string, eventId: string): Promise<void> {
+	return fetchApi<void>(`/games/${gameId}/events/${eventId}`, {
 		method: 'DELETE'
 	});
 }

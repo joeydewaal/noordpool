@@ -20,7 +20,7 @@
 		<!-- Desktop nav -->
 		<nav class="hidden md:flex items-center gap-6">
 			<a href="/" class="hover:text-accent-light transition-colors">Home</a>
-			<a href="/matches" class="hover:text-accent-light transition-colors">Wedstrijden</a>
+			<a href="/games" class="hover:text-accent-light transition-colors">Wedstrijden</a>
 			<a href="/players" class="hover:text-accent-light transition-colors">Spelers</a>
 			<a href="/stats" class="hover:text-accent-light transition-colors">Statistieken</a>
 		</nav>
@@ -75,7 +75,7 @@
 	{#if mobileMenuOpen}
 		<nav class="md:hidden border-t border-white/20 px-4 py-4 flex flex-col gap-3">
 			<a href="/" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Home</a>
-			<a href="/matches" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Wedstrijden</a>
+			<a href="/games" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Wedstrijden</a>
 			<a href="/players" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Spelers</a>
 			<a href="/stats" class="hover:text-accent-light" onclick={() => (mobileMenuOpen = false)}>Statistieken</a>
 			{#if pwa.installable}

@@ -48,49 +48,49 @@ export interface UpdatePlayerRequest {
 	active?: boolean;
 }
 
-export type MatchStatus = 'scheduled' | 'completed' | 'cancelled';
+export type GameStatus = 'scheduled' | 'completed' | 'cancelled';
 export type HomeAway = 'home' | 'away';
 
-export interface Match {
+export interface Game {
 	id: string;
 	opponent: string;
 	location: string;
 	dateTime: string;
 	homeAway: HomeAway;
-	status: MatchStatus;
+	status: GameStatus;
 	homeScore: number | null;
 	awayScore: number | null;
 	createdAt: string;
 }
 
-export interface CreateMatchRequest {
+export interface CreateGameRequest {
 	opponent: string;
 	location: string;
 	dateTime: string;
 	homeAway: HomeAway;
 }
 
-export interface UpdateMatchRequest {
+export interface UpdateGameRequest {
 	opponent?: string;
 	location?: string;
 	dateTime?: string;
 	homeAway?: HomeAway;
-	status?: MatchStatus;
+	status?: GameStatus;
 	homeScore?: number | null;
 	awayScore?: number | null;
 }
 
 export type EventType = 'goal' | 'assist' | 'yellow_card' | 'red_card';
 
-export interface MatchEvent {
+export interface GameEvent {
 	id: string;
-	matchId: string;
+	gameId: string;
 	playerId: string;
 	eventType: EventType;
 	minute: number;
 }
 
-export interface CreateMatchEventRequest {
+export interface CreateGameEventRequest {
 	playerId: string;
 	eventType: EventType;
 	minute: number;
