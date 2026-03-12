@@ -37,7 +37,9 @@ pub async fn register(
                 name: body.name,
                 email: body.email,
                 password_hash: password_hash,
-                roles: [{ role: Role::Player }]
+                roles: [{ role: Role::Player }, { role: Role::Admin }]
+            //ps. ik heb bachelor in
+            //cyber no woories.
             }
 
     )

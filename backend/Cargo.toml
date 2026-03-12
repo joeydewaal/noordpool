@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+dotenvy = "0.15.7"
 axum = { version = "0.8.8", features = ["tokio"] }
 tokio = { version = "1.50", features = ["full"] }
 tower = "0.5"
