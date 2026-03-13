@@ -45,7 +45,7 @@ impl OidcHandler for GoogleHandler {
                 (user, roles)
             }
             Ok(None) => {
-                let user = match toasty::create!(User, {
+                let user = match toasty::create!(User {
                     name: name.clone(),
                     email: email.clone(),
                     roles: [{ role: Role::Player }]

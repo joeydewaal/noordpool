@@ -19,14 +19,15 @@ pub use user_role::{Role, UserRole};
 
 pub fn build_db() -> Builder {
     let mut builder = Db::builder();
-    builder.register::<User>();
-    builder.register::<UserRole>();
-    builder.register::<Role>();
-    builder.register::<Position>();
-    builder.register::<Game>();
-    builder.register::<GameStatus>();
-    builder.register::<HomeAway>();
-    builder.register::<GameEvent>();
-    builder.register::<EventType>();
+    builder
+        .register::<User>()
+        .register::<UserRole>()
+        .register::<Role>()
+        .register::<Position>()
+        .register::<Game>()
+        .register::<GameStatus>()
+        .register::<HomeAway>()
+        .register::<GameEvent>()
+        .register::<EventType>();
     builder
 }

@@ -35,7 +35,7 @@ pub async fn create(
     Json(body): Json<CreatePlayerRequest>,
 ) -> Result<Json<User>, AppError> {
     let mut user = toasty::create!(
-        User, {
+        User {
                 name: body.name,
                 email: body.email,
                 shirt_number: body.shirt_number,

@@ -33,7 +33,7 @@ pub async fn register(
     let password_hash = password::hash_password(&body.password)?;
 
     let user = toasty::create!(
-        User, {
+        User{
                 name: body.name,
                 email: body.email,
                 password_hash: password_hash,

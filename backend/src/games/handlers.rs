@@ -77,7 +77,7 @@ pub async fn create(
 ) -> Result<Json<Game>, AppError> {
     let db = &mut state.db;
 
-    let game = toasty::create!(Game, {
+    let game = toasty::create!(Game {
         opponent: body.opponent,
         location: body.location,
         date_time: body.date_time,

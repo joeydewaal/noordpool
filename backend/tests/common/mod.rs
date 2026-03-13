@@ -81,11 +81,17 @@ impl RequestBuilder<'_> {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let db_path =
-            std::env::temp_dir().join(format!("noordpool-test-{}.db", uuid::Uuid::new_v4()));
-        let db_url = format!("sqlite:{}", db_path.display());
-        let mut db = build_db().connect(&db_url).await.unwrap();
+        let mut db = build_db().connect("sqlite::memory:").await.unwrap();
         db.push_schema().await.unwrap();
+        // Release the cached connection back to the pool so handlers can use it.
+        // With max_connections=1 for in-memory SQLite, the pool only allows one
+        // connection. If we keep it cached here, handler clones will deadlock
+        // waiting for it.
+        let db = {
+            let fresh = db.clone();
+            drop(db);
+            fresh
+        };
 
         let jwt = JwtContext::builder()
             .jwt_secret("test-secret")
