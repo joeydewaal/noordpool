@@ -13,9 +13,11 @@ pub use game_event::GameEvent;
 pub use game_status::GameStatus;
 pub use home_away::HomeAway;
 pub use position::Position;
-use toasty::{Db, db::Builder};
+use toasty::{Db, create, db::Builder};
 pub use user::User;
 pub use user_role::{Role, UserRole};
+
+use crate::auth::password;
 
 pub fn build_db() -> Builder {
     let mut builder = Db::builder();
@@ -30,4 +32,17 @@ pub fn build_db() -> Builder {
         .register::<GameEvent>()
         .register::<EventType>();
     builder
+}
+
+pub async fn init_db(db: &mut Db) {
+    let password = password::hash_password("Admin123").await.unwrap();
+
+    let _ = create!(User {
+        name: "admin",
+        email: "admin@noordpool.be",
+        password_hash: password,
+        roles: [{ role: Role::Admin }]
+    })
+    .exec(db)
+    .await;
 }

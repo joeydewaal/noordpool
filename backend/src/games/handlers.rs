@@ -4,7 +4,6 @@ use axum::{
 };
 use axum_security::rbac::{requires, requires_any};
 use serde::Deserialize;
-use toasty::Executor;
 use uuid::Uuid;
 
 use crate::{
@@ -90,41 +89,40 @@ pub async fn create(
 
 #[requires_any(Role::Admin, Role::Moderator)]
 pub async fn update(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
-    Json(body): Json<UpdateGameRequest>,
+    Json(req): Json<UpdateGameRequest>,
 ) -> Result<Json<Game>, AppError> {
-    let db = &mut state.db;
+    let mut db = state.db;
 
-    let mut update = Game::update_by_id(id);
+    let mut game = Game::get_by_id(&mut db, id).await?;
 
-    if let Some(opponent) = body.opponent {
+    let mut update = game.update();
+
+    if let Some(opponent) = req.opponent {
         update.set_opponent(opponent);
     }
-    if let Some(location) = body.location {
+    if let Some(location) = req.location {
         update.set_location(location);
     }
-    if let Some(date_time) = body.date_time {
+    if let Some(date_time) = req.date_time {
         update.set_date_time(date_time);
     }
 
-    if let Some(home_away) = body.home_away {
+    if let Some(home_away) = req.home_away {
         update.set_home_away(home_away);
     }
-    if let Some(status) = body.status {
+    if let Some(status) = req.status {
         update.set_status(status);
     }
-    if let Some(home_score) = body.home_score {
+    if let Some(home_score) = req.home_score {
         update.set_home_score(home_score);
     }
-    if let Some(away_score) = body.away_score {
+    if let Some(away_score) = req.away_score {
         update.set_away_score(away_score);
     }
 
-    let mut tx = db.transaction().await?;
-    update.exec(&mut tx).await?;
-    let game = Game::get_by_id(&mut tx, &id).await?;
-    tx.commit().await?;
+    update.exec(&mut db).await?;
     Ok(Json(game))
 }
 

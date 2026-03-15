@@ -27,6 +27,10 @@ impl AppError {
     pub fn internal(err: impl Display) -> Self {
         Self::Internal(err.to_string())
     }
+
+    pub fn conflict(err: impl Into<String>) -> Self {
+        Self::Conflict(err.into())
+    }
 }
 
 impl IntoResponse for AppError {

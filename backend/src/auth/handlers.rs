@@ -30,25 +30,22 @@ pub async fn register(
 ) -> Result<Json<AuthResponse>, AppError> {
     let mut db = state.db;
 
-    let password_hash = password::hash_password(&body.password)?;
+    let password_hash = password::hash_password(&body.password).await?;
 
     let user = toasty::create!(
-        User{
-                name: body.name,
-                email: body.email,
-                password_hash: password_hash,
-                roles: [{ role: Role::Player }, { role: Role::Admin }]
-            //ps. ik heb bachelor in
-            //cyber no woories.
-            }
-
+        User {
+            name: body.name,
+            email: body.email,
+            password_hash: password_hash,
+            roles: [{ role: Role::Player }]
+        }
     )
     .exec(&mut db)
     .await
     .map_err(|e| {
         let msg = e.to_string();
         if msg.contains("unique") || msg.contains("duplicate") || msg.contains("UNIQUE") {
-            AppError::Conflict("Email already registered".into())
+            AppError::conflict("Email already registered")
         } else {
             AppError::internal(msg)
         }
@@ -74,13 +71,13 @@ pub async fn login(
 
     let Some(user) = user else {
         // Timing attacks.
-        password::verify_password(&body.password, "")?;
+        password::verify_password(&body.password, "").await?;
         return Err(AppError::unauthorized("Invalid email or password"));
     };
 
     let password_hash = user.password_hash.as_ref().expect("Was filtered out in db");
 
-    if !password::verify_password(&body.password, password_hash)? {
+    if !password::verify_password(&body.password, password_hash).await? {
         return Err(AppError::unauthorized("Invalid email or password"));
     }
 
