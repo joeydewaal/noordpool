@@ -17,8 +17,8 @@ export default defineConfig({
                 short_name: 'Noordpool',
                 description: 'Noordpool voetbal team app',
                 lang: 'nl',
-                theme_color: '#1e3a5f',
-                background_color: '#ffffff',
+                theme_color: '#0a0a0a',
+                background_color: '#0a0a0a',
                 display: 'standalone',
                 icons: [
                     { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },

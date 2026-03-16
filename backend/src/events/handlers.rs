@@ -19,9 +19,9 @@ pub async fn list(
 ) -> Result<Json<Vec<GameEvent>>, AppError> {
     let mut db = state.db;
 
-    let events: Vec<GameEvent> = GameEvent::filter_by_game_id(game_id)
+    let events = GameEvent::filter_by_game_id(game_id)
         .order_by(GameEvent::fields().minute().asc())
-        .collect(&mut db)
+        .all(&mut db)
         .await?;
     Ok(Json(events))
 }

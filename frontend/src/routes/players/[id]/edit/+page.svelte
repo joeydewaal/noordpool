@@ -38,43 +38,35 @@
 </script>
 
 {#if !canManage}
-    <p class="text-red-600 font-medium">
+    <p class="text-error-500 font-medium">
         Geen toegang. Admin- of moderatorrol vereist.
     </p>
 {:else if !loaded}
-    <p class="text-gray-500">Speler niet gevonden.</p>
+    <p class="text-surface-400">Speler niet gevonden.</p>
 {:else}
     <div class="max-w-lg">
         <a
             href="/players/{page.params.id}"
-            class="text-sm text-primary hover:underline mb-4 inline-block"
+            class="text-sm text-primary-500 hover:underline mb-4 inline-block"
             >&larr; Terug naar speler</a
         >
-        <h1 class="text-2xl font-bold text-gray-900 mb-6">Speler bewerken</h1>
+        <h1 class="text-2xl font-bold mb-6">Speler bewerken</h1>
         <form
             onsubmit={handleSubmit}
-            class="bg-white rounded-lg shadow p-6 space-y-4"
+            class="card p-6 space-y-4"
         >
             <div>
-                <label
-                    for="name"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Naam</label
-                >
+                <label for="name" class="label-text">Naam</label>
                 <input
                     id="name"
                     type="text"
                     bind:value={name}
                     required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="input"
                 />
             </div>
             <div>
-                <label
-                    for="shirtNumber"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Rugnummer</label
-                >
+                <label for="shirtNumber" class="label-text">Rugnummer</label>
                 <input
                     id="shirtNumber"
                     type="number"
@@ -82,19 +74,15 @@
                     min="1"
                     max="99"
                     required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="input"
                 />
             </div>
             <div>
-                <label
-                    for="position"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Positie</label
-                >
+                <label for="position" class="label-text">Positie</label>
                 <select
                     id="position"
                     bind:value={position}
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="select"
                 >
                     <option value="goalkeeper">Keeper</option>
                     <option value="defender">Verdediger</option>
@@ -107,15 +95,13 @@
                     id="active"
                     type="checkbox"
                     bind:checked={active}
-                    class="rounded"
+                    class="checkbox"
                 />
-                <label for="active" class="text-sm font-medium text-gray-700"
-                    >Actief</label
-                >
+                <label for="active" class="text-sm font-medium">Actief</label>
             </div>
             <button
                 type="submit"
-                class="w-full bg-primary hover:bg-primary-light text-white font-medium py-2.5 rounded-lg transition-colors"
+                class="btn w-full preset-filled-primary-500"
             >
                 Wijzigingen opslaan
             </button>

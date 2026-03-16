@@ -86,35 +86,34 @@
     <div class="max-w-lg">
         <a
             href="/games"
-            class="text-sm text-primary hover:underline mb-4 inline-block"
+            class="text-sm text-primary-500 hover:underline mb-4 inline-block"
             >&larr; Alle wedstrijden</a
         >
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="card p-6">
             <div class="flex items-center justify-between mb-2">
-                <h1 class="text-2xl font-bold text-gray-900">
+                <h1 class="text-2xl font-bold">
                     vs {game.opponent}
                 </h1>
                 <span
-                    class="text-xs font-medium px-2.5 py-1 rounded-full {game.homeAway ===
-                    'home'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-purple-100 text-purple-800'}"
+                    class="chip {game.homeAway === 'home'
+                        ? 'preset-filled-success-500'
+                        : 'preset-filled-secondary-500'}"
                 >
                     {game.homeAway === "home" ? "thuis" : "uit"}
                 </span>
             </div>
 
-            <div class="text-sm text-gray-500 space-y-1 mb-4">
+            <div class="text-sm text-surface-400 space-y-1 mb-4">
                 <div>{formatDate(game.dateTime)}</div>
                 <div>{game.location}</div>
                 <div>
                     Status:
                     <span
                         class="font-medium {game.status === 'completed'
-                            ? 'text-green-700'
+                            ? 'text-success-500'
                             : game.status === 'cancelled'
-                              ? 'text-red-700'
-                              : 'text-blue-700'}"
+                              ? 'text-error-500'
+                              : 'text-primary-500'}"
                     >
                         {game.status === "scheduled"
                             ? "gepland"
@@ -126,13 +125,13 @@
             </div>
 
             {#if game.status === "completed" && game.homeScore !== null}
-                <div class="bg-gray-50 rounded-lg p-4 text-center">
+                <div class="card preset-tonal-surface p-4 text-center">
                     {#if game.homeAway === "home"}
                         <div class="text-lg">
                             <span class="font-bold"
                                 >Noordpool {game.homeScore}</span
                             >
-                            <span class="text-gray-400 mx-2">-</span>
+                            <span class="text-surface-500 mx-2">-</span>
                             <span class="font-bold"
                                 >{game.awayScore} {game.opponent}</span
                             >
@@ -142,7 +141,7 @@
                             <span class="font-bold"
                                 >{game.opponent} {game.homeScore}</span
                             >
-                            <span class="text-gray-400 mx-2">-</span>
+                            <span class="text-surface-500 mx-2">-</span>
                             <span class="font-bold"
                                 >{game.awayScore} Noordpool</span
                             >
@@ -152,13 +151,13 @@
             {/if}
 
             {#if game.status === "completed"}
-                <div class="mt-6 pt-4 border-t border-gray-100">
-                    <h2 class="text-lg font-bold text-gray-900 mb-3">
+                <div class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800">
+                    <h2 class="text-lg font-bold mb-3">
                         Wedstrijdverloop
                     </h2>
 
                     {#if events.length === 0}
-                        <p class="text-sm text-gray-400">
+                        <p class="text-sm text-surface-400">
                             Geen gebeurtenissen geregistreerd.
                         </p>
                     {:else}
@@ -166,24 +165,24 @@
                             {#each events as event}
                                 <div class="flex items-center gap-3 text-sm">
                                     <span
-                                        class="inline-flex items-center justify-center w-10 h-6 bg-gray-100 text-gray-700 font-mono text-xs rounded"
+                                        class="inline-flex items-center justify-center w-10 h-6 preset-tonal-surface font-mono text-xs rounded"
                                     >
                                         {event.minute}'
                                     </span>
                                     <span class="text-base"
                                         >{eventIcons[event.eventType]}</span
                                     >
-                                    <span class="font-medium text-gray-900"
+                                    <span class="font-medium"
                                         >{playerName(event.playerId)}</span
                                     >
-                                    <span class="text-gray-500"
+                                    <span class="text-surface-400"
                                         >{eventLabels[event.eventType]}</span
                                     >
                                     {#if canManage}
                                         <button
                                             onclick={() =>
                                                 handleDeleteEvent(event.id)}
-                                            class="ml-auto text-red-400 hover:text-red-600 text-xs"
+                                            class="ml-auto text-error-400 hover:text-error-500 text-xs"
                                             title="Verwijderen">&times;</button
                                         >
                                     {/if}
@@ -193,10 +192,8 @@
                     {/if}
 
                     {#if canManage}
-                        <div class="mt-4 pt-3 border-t border-gray-50">
-                            <h3
-                                class="text-sm font-semibold text-gray-700 mb-2"
-                            >
+                        <div class="mt-4 pt-3 border-t border-surface-200 dark:border-surface-800">
+                            <h3 class="text-sm font-semibold mb-2">
                                 Gebeurtenis toevoegen
                             </h3>
                             <form
@@ -208,7 +205,7 @@
                             >
                                 <select
                                     bind:value={newPlayerId}
-                                    class="border border-gray-300 rounded px-2 py-1.5 text-sm flex-1 min-w-[140px]"
+                                    class="select flex-1 min-w-[140px]"
                                 >
                                     <option value="">Speler...</option>
                                     {#each players.filter((p) => p.active) as p}
@@ -217,7 +214,7 @@
                                 </select>
                                 <select
                                     bind:value={newEventType}
-                                    class="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                                    class="select"
                                 >
                                     <option value="goal">Doelpunt</option>
                                     <option value="assist">Assist</option>
@@ -231,13 +228,13 @@
                                     bind:value={newMinute}
                                     min="1"
                                     max="120"
-                                    class="border border-gray-300 rounded px-2 py-1.5 text-sm w-16"
+                                    class="input w-16"
                                     placeholder="min"
                                 />
                                 <button
                                     type="submit"
                                     disabled={!newPlayerId}
-                                    class="bg-primary hover:bg-primary-light disabled:opacity-50 text-white text-sm font-medium px-3 py-1.5 rounded transition-colors"
+                                    class="btn btn-sm preset-filled-primary-500 disabled:opacity-50"
                                 >
                                     Toevoegen
                                 </button>
@@ -248,10 +245,10 @@
             {/if}
 
             {#if canManage}
-                <div class="mt-6 pt-4 border-t border-gray-100">
+                <div class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800">
                     <a
                         href="/games/{game.id}/edit"
-                        class="bg-primary hover:bg-primary-light text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                        class="btn btn-sm preset-filled-primary-500"
                     >
                         Bewerken
                     </a>
@@ -260,5 +257,5 @@
         </div>
     </div>
 {:else}
-    <p class="text-gray-500">Wedstrijd niet gevonden.</p>
+    <p class="text-surface-400">Wedstrijd niet gevonden.</p>
 {/if}

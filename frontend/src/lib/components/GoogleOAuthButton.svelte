@@ -7,7 +7,7 @@
 <button
 	type="button"
 	onclick={handleClick}
-	class="w-full flex items-center justify-center gap-3 border border-gray-300 bg-white text-gray-700 font-medium py-2.5 px-4 rounded hover:bg-gray-50 transition-colors"
+	class="btn w-full preset-outlined-surface-500"
 >
 	<svg class="w-5 h-5" viewBox="0 0 24 24">
 		<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />

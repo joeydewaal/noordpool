@@ -22,50 +22,47 @@
 </script>
 
 <div class="max-w-md mx-auto mt-8">
-	<h1 class="text-2xl font-bold text-gray-900 mb-6">Inloggen</h1>
+	<h1 class="text-2xl font-bold mb-6">Inloggen</h1>
 
 	{#if error}
-		<div class="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>
+		<div class="card preset-tonal-error p-3 mb-4 text-sm">{error}</div>
 	{/if}
 
 	<form onsubmit={handleSubmit} class="space-y-4">
 		<div>
-			<label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+			<label for="email" class="label-text">E-mail</label>
 			<input
 				id="email"
 				type="email"
 				bind:value={email}
 				required
-				class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+				class="input"
 			/>
 		</div>
 		<div>
-			<label for="password" class="block text-sm font-medium text-gray-700 mb-1">Wachtwoord</label>
+			<label for="password" class="label-text">Wachtwoord</label>
 			<input
 				id="password"
 				type="password"
 				bind:value={password}
 				required
-				class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+				class="input"
 			/>
 		</div>
-		<button
-			type="submit"
-			class="w-full bg-primary hover:bg-primary-light text-white font-medium py-2.5 rounded transition-colors"
-		>
+		<button type="submit" class="btn w-full preset-filled-primary-500">
 			Inloggen
 		</button>
 	</form>
 
 	<div class="my-6 flex items-center gap-4">
-		<hr class="flex-1 border-gray-300" />
-		<span class="text-sm text-gray-500">of</span>
-		<hr class="flex-1 border-gray-300" />
+		<hr class="flex-1 border-surface-300 dark:border-surface-700" />
+		<span class="text-sm text-surface-400">of</span>
+		<hr class="flex-1 border-surface-300 dark:border-surface-700" />
 	</div>
 
 	<GoogleOAuthButton />
 
-	<p class="mt-6 text-center text-sm text-gray-600">
-		Nog geen account? <a href="/auth/register" class="text-primary font-medium hover:underline">Registreren</a>
+	<p class="mt-6 text-center text-sm text-surface-400">
+		Nog geen account? <a href="/auth/register" class="text-primary-500 font-medium hover:underline">Registreren</a>
 	</p>
 </div>

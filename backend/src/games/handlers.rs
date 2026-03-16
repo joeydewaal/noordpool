@@ -21,9 +21,9 @@ pub struct LimitQuery {
 pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db;
 
-    let games: Vec<Game> = Game::all()
+    let games = Game::all()
         .order_by(Game::fields().date_time().asc())
-        .collect(&mut db)
+        .all(&mut db)
         .await?;
     Ok(Json(games))
 }
@@ -47,7 +47,7 @@ pub async fn upcoming(
         game_query = game_query.limit(limit);
     }
 
-    let mut games: Vec<Game> = game_query.collect(db).await?;
+    let mut games = game_query.all(db).await?;
     games.sort_by(|a, b| a.date_time.cmp(&b.date_time));
     Ok(Json(games))
 }
@@ -64,7 +64,7 @@ pub async fn recent(
         game_query = game_query.limit(limit);
     }
 
-    let mut games: Vec<Game> = game_query.collect(db).await?;
+    let mut games = game_query.all(db).await?;
     games.sort_by(|a, b| a.date_time.cmp(&b.date_time));
     Ok(Json(games))
 }

@@ -12,10 +12,10 @@
 	const canManage = $derived(auth.isAdmin || auth.isModerator);
 
 	const positionColor: Record<string, string> = {
-		goalkeeper: 'bg-amber-100 text-amber-800',
-		defender: 'bg-blue-100 text-blue-800',
-		midfielder: 'bg-green-100 text-green-800',
-		forward: 'bg-red-100 text-red-800'
+		goalkeeper: 'preset-filled-warning-500',
+		defender: 'preset-filled-secondary-500',
+		midfielder: 'preset-filled-primary-500',
+		forward: 'preset-filled-error-500'
 	};
 
 	async function toggleActive() {
@@ -31,17 +31,17 @@
 
 {#if player}
 	<div class="max-w-lg">
-		<a href="/players" class="text-sm text-primary hover:underline mb-4 inline-block">&larr; Alle spelers</a>
-		<div class="bg-white rounded-lg shadow p-6">
+		<a href="/players" class="text-sm text-primary-500 hover:underline mb-4 inline-block">&larr; Alle spelers</a>
+		<div class="card p-6">
 			<div class="flex items-center gap-4 mb-4">
-				<div class="text-4xl font-bold text-primary">{player.shirtNumber}</div>
+				<div class="text-4xl font-bold text-primary-500">{player.shirtNumber}</div>
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">{player.name}</h1>
-					<span class="inline-block mt-1 text-sm font-medium px-2.5 py-0.5 rounded-full {positionColor[player.position]}">
+					<h1 class="text-2xl font-bold">{player.name}</h1>
+					<span class="chip mt-1 {positionColor[player.position]}">
 						{player.position}
 					</span>
 					{#if !player.active}
-						<span class="inline-block mt-1 ml-1 text-sm font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
+						<span class="chip mt-1 ml-1 preset-tonal-surface">
 							inactief
 						</span>
 					{/if}
@@ -57,25 +57,25 @@
 						{ value: stats.yellowCards, label: 'Gele kaarten' },
 						{ value: stats.redCards, label: 'Rode kaarten' }
 					] as item}
-						<div class="text-center p-2 bg-gray-50 rounded-lg">
-							<div class="text-2xl font-bold text-gray-900">{item.value}</div>
-							<div class="text-xs text-gray-500 mt-1">{item.label}</div>
+						<div class="text-center p-2 card preset-tonal-surface rounded-lg">
+							<div class="text-2xl font-bold">{item.value}</div>
+							<div class="text-xs text-surface-400 mt-1">{item.label}</div>
 						</div>
 					{/each}
 				</div>
 			{/if}
 
 			{#if canManage}
-				<div class="flex gap-3 mt-6 pt-4 border-t border-gray-100">
+				<div class="flex gap-3 mt-6 pt-4 border-t border-surface-200 dark:border-surface-800">
 					<a
 						href="/players/{player.id}/edit"
-						class="bg-primary hover:bg-primary-light text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+						class="btn btn-sm preset-filled-primary-500"
 					>
 						Bewerken
 					</a>
 					<button
 						onclick={toggleActive}
-						class="text-sm font-medium px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+						class="btn btn-sm preset-outlined-surface-500"
 					>
 						{player.active ? 'Deactiveren' : 'Activeren'}
 					</button>
@@ -84,5 +84,5 @@
 		</div>
 	</div>
 {:else}
-	<p class="text-gray-500">Speler niet gevonden.</p>
+	<p class="text-surface-400">Speler niet gevonden.</p>
 {/if}

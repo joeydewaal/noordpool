@@ -27,66 +27,53 @@
     <div class="max-w-lg">
         <a
             href="/games"
-            class="text-sm text-primary hover:underline mb-4 inline-block"
+            class="text-sm text-primary-500 hover:underline mb-4 inline-block"
             >&larr; Alle wedstrijden</a
         >
-        <h1 class="text-2xl font-bold text-gray-900 mb-6">Nieuwe wedstrijd</h1>
+        <h1 class="text-2xl font-bold mb-6">Nieuwe wedstrijd</h1>
         <form
             onsubmit={handleSubmit}
-            class="bg-white rounded-lg shadow p-6 space-y-4"
+            class="card p-6 space-y-4"
         >
             <div>
-                <label
-                    for="opponent"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Tegenstander</label
-                >
+                <label for="opponent" class="label-text">Tegenstander</label>
                 <input
                     id="opponent"
                     type="text"
                     bind:value={opponent}
                     required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="input"
                 />
             </div>
             <div>
-                <label
-                    for="location"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Locatie</label
-                >
+                <label for="location" class="label-text">Locatie</label>
                 <input
                     id="location"
                     type="text"
                     bind:value={location}
                     required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="input"
                 />
             </div>
             <div>
-                <label
-                    for="dateTime"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Datum & tijd</label
-                >
+                <label for="dateTime" class="label-text">Datum & tijd</label>
                 <input
                     id="dateTime"
                     type="datetime-local"
                     bind:value={dateTime}
                     required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="input"
                 />
             </div>
             <fieldset>
-                <legend class="block text-sm font-medium text-gray-700 mb-2"
-                    >Thuis / Uit</legend
-                >
+                <legend class="label-text mb-2">Thuis / Uit</legend>
                 <div class="flex gap-4">
                     <label class="flex items-center gap-2">
                         <input
                             type="radio"
                             bind:group={homeAway}
                             value="home"
+                            class="radio"
                         />
                         <span class="text-sm">Thuis</span>
                     </label>
@@ -95,6 +82,7 @@
                             type="radio"
                             bind:group={homeAway}
                             value="away"
+                            class="radio"
                         />
                         <span class="text-sm">Uit</span>
                     </label>
@@ -102,14 +90,14 @@
             </fieldset>
             <button
                 type="submit"
-                class="w-full bg-primary hover:bg-primary-light text-white font-medium py-2.5 rounded-lg transition-colors"
+                class="btn w-full preset-filled-primary-500"
             >
                 Wedstrijd aanmaken
             </button>
         </form>
     </div>
 {:else}
-    <p class="text-red-600 font-medium">
+    <p class="text-error-500 font-medium">
         Geen toegang. Admin- of moderatorrol vereist.
     </p>
 {/if}

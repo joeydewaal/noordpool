@@ -40,77 +40,64 @@
 </script>
 
 {#if !canManage}
-    <p class="text-red-600 font-medium">
+    <p class="text-error-500 font-medium">
         Geen toegang. Admin- of moderatorrol vereist.
     </p>
 {:else if !loaded}
-    <p class="text-gray-500">Wedstrijd niet gevonden.</p>
+    <p class="text-surface-400">Wedstrijd niet gevonden.</p>
 {:else if game_state != null}
     <div class="max-w-lg">
         <a
             href="/games/{page.params.id}"
-            class="text-sm text-primary hover:underline mb-4 inline-block"
+            class="text-sm text-primary-500 hover:underline mb-4 inline-block"
             >&larr; Terug naar wedstrijd</a
         >
-        <h1 class="text-2xl font-bold text-gray-900 mb-6">
+        <h1 class="text-2xl font-bold mb-6">
             Wedstrijd bewerken
         </h1>
         <form
             onsubmit={handleSubmit}
-            class="bg-white rounded-lg shadow p-6 space-y-4"
+            class="card p-6 space-y-4"
         >
             <div>
-                <label
-                    for="opponent"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Tegenstander</label
-                >
+                <label for="opponent" class="label-text">Tegenstander</label>
                 <input
                     id="opponent"
                     type="text"
                     bind:value={game_state.opponent}
                     required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="input"
                 />
             </div>
             <div>
-                <label
-                    for="location"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Locatie</label
-                >
+                <label for="location" class="label-text">Locatie</label>
                 <input
                     id="location"
                     type="text"
                     bind:value={game_state.location}
                     required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="input"
                 />
             </div>
             <div>
-                <label
-                    for="dateTime"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Datum & tijd</label
-                >
+                <label for="dateTime" class="label-text">Datum & tijd</label>
                 <input
                     id="dateTime"
                     type="datetime-local"
                     bind:value={game_state.dateTime}
                     required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="input"
                 />
             </div>
             <fieldset>
-                <legend class="block text-sm font-medium text-gray-700 mb-2"
-                    >Thuis / Uit</legend
-                >
+                <legend class="label-text mb-2">Thuis / Uit</legend>
                 <div class="flex gap-4">
                     <label class="flex items-center gap-2">
                         <input
                             type="radio"
                             bind:group={game_state.homeAway}
                             value="home"
+                            class="radio"
                         />
                         <span class="text-sm">Thuis</span>
                     </label>
@@ -119,21 +106,18 @@
                             type="radio"
                             bind:group={game_state.homeAway}
                             value="away"
+                            class="radio"
                         />
                         <span class="text-sm">Uit</span>
                     </label>
                 </div>
             </fieldset>
             <div>
-                <label
-                    for="status"
-                    class="block text-sm font-medium text-gray-700 mb-1"
-                    >Status</label
-                >
+                <label for="status" class="label-text">Status</label>
                 <select
                     id="status"
                     bind:value={game_state.status}
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    class="select"
                 >
                     <option value="scheduled">Gepland</option>
                     <option value="completed">Gespeeld</option>
@@ -143,40 +127,32 @@
             {#if game_state.status === "completed"}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label
-                            for="homeScore"
-                            class="block text-sm font-medium text-gray-700 mb-1"
-                            >Thuisscore</label
-                        >
+                        <label for="homeScore" class="label-text">Thuisscore</label>
                         <input
                             id="homeScore"
                             type="number"
                             bind:value={game_state.homeScore}
                             min="0"
                             required
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            class="input"
                         />
                     </div>
                     <div>
-                        <label
-                            for="awayScore"
-                            class="block text-sm font-medium text-gray-700 mb-1"
-                            >Uitscore</label
-                        >
+                        <label for="awayScore" class="label-text">Uitscore</label>
                         <input
                             id="awayScore"
                             type="number"
                             bind:value={game_state.awayScore}
                             min="0"
                             required
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            class="input"
                         />
                     </div>
                 </div>
             {/if}
             <button
                 type="submit"
-                class="w-full bg-primary hover:bg-primary-light text-white font-medium py-2.5 rounded-lg transition-colors"
+                class="btn w-full preset-filled-primary-500"
             >
                 Wijzigingen opslaan
             </button>

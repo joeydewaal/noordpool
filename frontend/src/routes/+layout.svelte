@@ -4,10 +4,12 @@
     import { onMount } from "svelte";
     import { registerSW } from "virtual:pwa-register";
     import { pwa } from "$lib/state/pwa.svelte.js";
+    import { theme } from "$lib/state/theme.svelte.js";
 
     let { children } = $props();
 
     onMount(() => {
+        theme.init();
         registerSW();
 
         window.addEventListener("beforeinstallprompt", (e) => {
@@ -21,9 +23,9 @@
     });
 </script>
 
-<div class="min-h-screen bg-gray-50 flex flex-col">
+<div class="min-h-screen flex">
     <Header />
-    <main class="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
+    <main class="flex-1 max-w-5xl w-full px-4 py-8 md:px-8 pb-24 md:pb-8">
         {@render children()}
     </main>
 </div>
