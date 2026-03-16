@@ -28,10 +28,12 @@
 	}
 
 	onMount(async () => {
-		[upcoming, results] = await Promise.all([
+		const [fetched_upcoming, fetched_results] = await Promise.all([
 			getUpcomingGames(),
 			getRecentResults()
 		]);
+        upcoming = fetched_upcoming;
+        results = fetched_results;
 	});
 </script>
 
