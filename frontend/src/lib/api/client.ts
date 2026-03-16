@@ -21,7 +21,7 @@ export function removeToken(): void {
 	localStorage.removeItem(TOKEN_KEY);
 }
 
-export async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function fetchApi<T>(path: string, options: RequestInit = {}, customFetch: typeof fetch = fetch): Promise<T> {
 	const token = getToken();
 	const headers: Record<string, string> = {};
 
@@ -34,7 +34,7 @@ export async function fetchApi<T>(path: string, options: RequestInit = {}): Prom
 		headers['Content-Type'] = 'application/json';
 	}
 
-	const res = await fetch(`/api${path}`, {
+	const res = await customFetch(`/api${path}`, {
 		...options,
 		headers: { ...headers, ...options.headers }
 	});

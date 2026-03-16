@@ -2,10 +2,10 @@ import { me } from '$lib/api/auth.js';
 import { auth } from '$lib/state/auth.svelte.js';
 import { browser } from '$app/environment';
 
-export async function load() {
+export async function load({ fetch }) {
 	if (browser) {
 		try {
-			const user = await me();
+			const user = await me(fetch);
 			if (user) {
 				auth.setUser(user);
 			}

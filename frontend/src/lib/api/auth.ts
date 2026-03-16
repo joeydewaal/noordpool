@@ -19,10 +19,10 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 	return response;
 }
 
-export async function me(): Promise<User | null> {
+export async function me(customFetch?: typeof fetch): Promise<User | null> {
 	if (!getToken()) return null;
 	try {
-		return await fetchApi<User>('/auth/me');
+		return await fetchApi<User>('/auth/me', {}, customFetch);
 	} catch (e) {
 		if (e instanceof ApiError && e.status === 401) return null;
 		throw e;
