@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { auth } from '$lib/state/auth.svelte.js';
-	import { pwa } from '$lib/state/pwa.svelte.js';
-	import { theme } from '$lib/state/theme.svelte.js';
-	import { logout } from '$lib/api/auth.js';
+	import { auth } from '$lib/state/auth.svelte.ts';
+	import { pwa } from '$lib/state/pwa.svelte.ts';
+	import { theme } from '$lib/state/theme.svelte.ts';
+	import { logout } from '$lib/api/auth.ts';
 	import { goto } from '$app/navigation';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 

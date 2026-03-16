@@ -1,5 +1,5 @@
-import type { GameEvent, CreateGameEventRequest, PlayerStats, Leaderboard } from './types.js';
-import { fetchApi } from './client.js';
+import type { GameEvent, CreateGameEventRequest, PlayerStats, Leaderboard } from './types.ts';
+import { fetchApi } from './client.ts';
 
 export async function getGameEvents(gameId: string): Promise<GameEvent[]> {
 	return fetchApi<GameEvent[]>(`/games/${gameId}/events`);

@@ -1,8 +1,8 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { auth } from "$lib/state/auth.svelte.js";
-    import { createGame } from "$lib/api/games.js";
-    import type { HomeAway } from "$lib/api/types.js";
+    import { auth } from "$lib/state/auth.svelte.ts";
+    import { createGame } from "$lib/api/games.ts";
+    import type { HomeAway } from "$lib/api/types.ts";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
 

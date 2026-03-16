@@ -2,9 +2,9 @@
     import { onMount } from "svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
-    import { auth } from "$lib/state/auth.svelte.js";
-    import { getGame, updateGame } from "$lib/api/games.js";
-    import type { Game } from "$lib/api/types.js";
+    import { auth } from "$lib/state/auth.svelte.ts";
+    import { getGame, updateGame } from "$lib/api/games.ts";
+    import type { Game } from "$lib/api/types.ts";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
 

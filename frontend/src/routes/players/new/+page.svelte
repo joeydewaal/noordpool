@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { auth } from '$lib/state/auth.svelte.js';
-	import { createPlayer } from '$lib/api/players.js';
-	import type { Position } from '$lib/api/types.js';
+	import { auth } from '$lib/state/auth.svelte.ts';
+	import { createPlayer } from '$lib/api/players.ts';
+	import type { Position } from '$lib/api/types.ts';
 
 	const canManage = $derived(auth.isAdmin || auth.isModerator);
 

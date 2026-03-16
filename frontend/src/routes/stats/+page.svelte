@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getLeaderboard } from '$lib/api/events.js';
-	import type { LeaderboardEntry } from '$lib/api/types.js';
+	import { getLeaderboard } from '$lib/api/events.ts';
+	import type { LeaderboardEntry } from '$lib/api/types.ts';
 
 	let topScorers: LeaderboardEntry[] = $state([]);
 	let topAssisters: LeaderboardEntry[] = $state([]);

@@ -1,4 +1,4 @@
-import type { User } from '$lib/api/types.js';
+import type { User } from '$lib/api/types.ts';
 
 class AuthState {
 	user: User | null = $state(null);

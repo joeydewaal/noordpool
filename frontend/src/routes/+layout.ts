@@ -1,8 +1,8 @@
-import { me } from '$lib/api/auth.js';
-import { auth } from '$lib/state/auth.svelte.js';
+import { me } from '$lib/api/auth.ts';
+import { auth } from '$lib/state/auth.svelte.ts';
 import { browser } from '$app/environment';
 
-export async function load({ fetch }) {
+export async function load({ fetch }: { fetch: typeof globalThis.fetch }) {
 	if (browser) {
 		try {
 			const user = await me(fetch);

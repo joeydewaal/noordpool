@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { register } from '$lib/api/auth.js';
-	import { auth } from '$lib/state/auth.svelte.js';
+	import { register } from '$lib/api/auth.ts';
+	import { auth } from '$lib/state/auth.svelte.ts';
 	import { goto } from '$app/navigation';
 	import GoogleOAuthButton from '$lib/components/GoogleOAuthButton.svelte';
 

@@ -1,15 +1,15 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { page } from "$app/state";
-    import { auth } from "$lib/state/auth.svelte.js";
-    import { getGame } from "$lib/api/games.js";
+    import { auth } from "$lib/state/auth.svelte.ts";
+    import { getGame } from "$lib/api/games.ts";
     import {
         getGameEvents,
         createGameEvent,
         deleteGameEvent,
-    } from "$lib/api/events.js";
-    import { getPlayers } from "$lib/api/players.js";
-    import type { Game, GameEvent, Player, EventType } from "$lib/api/types.js";
+    } from "$lib/api/events.ts";
+    import { getPlayers } from "$lib/api/players.ts";
+    import type { Game, GameEvent, Player, EventType } from "$lib/api/types.ts";
 
     let game: Game | null = $state(null);
     let events: GameEvent[] = $state([]);

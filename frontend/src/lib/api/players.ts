@@ -1,5 +1,5 @@
-import type { Player, CreatePlayerRequest, UpdatePlayerRequest } from './types.js';
-import { fetchApi } from './client.js';
+import type { Player, CreatePlayerRequest, UpdatePlayerRequest } from './types.ts';
+import { fetchApi } from './client.ts';
 
 export async function getPlayers(): Promise<Player[]> {
 	return fetchApi<Player[]>('/players');

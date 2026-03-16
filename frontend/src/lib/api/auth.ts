@@ -1,5 +1,5 @@
-import type { AuthResponse, LoginRequest, RegisterRequest, User } from './types.js';
-import { fetchApi, setToken, getToken, removeToken, ApiError } from './client.js';
+import type { AuthResponse, LoginRequest, RegisterRequest, User } from './types.ts';
+import { fetchApi, setToken, getToken, removeToken, ApiError } from './client.ts';
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
 	const response = await fetchApi<AuthResponse>('/auth/login', {

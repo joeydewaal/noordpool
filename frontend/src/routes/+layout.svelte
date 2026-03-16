@@ -3,8 +3,8 @@
     import Header from "$lib/components/Header.svelte";
     import { onMount } from "svelte";
     import { registerSW } from "virtual:pwa-register";
-    import { pwa } from "$lib/state/pwa.svelte.js";
-    import { theme } from "$lib/state/theme.svelte.js";
+    import { pwa } from "$lib/state/pwa.svelte.ts";
+    import { theme } from "$lib/state/theme.svelte.ts";
 
     let { children } = $props();
 

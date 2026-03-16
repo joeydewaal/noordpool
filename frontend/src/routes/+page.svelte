@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { auth } from '$lib/state/auth.svelte.js';
-	import { getUpcomingGames, getRecentResults } from '$lib/api/games.js';
-	import type { Game } from '$lib/api/types.js';
+	import { auth } from '$lib/state/auth.svelte.ts';
+	import { getUpcomingGames, getRecentResults } from '$lib/api/games.ts';
+	import type { Game } from '$lib/api/types.ts';
 
 	let upcoming: Game[] = $state([]);
 	let results: Game[] = $state([]);

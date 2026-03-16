@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { auth } from "$lib/state/auth.svelte.js";
-    import { getPlayers } from "$lib/api/players.js";
-    import type { Player } from "$lib/api/types.js";
+    import { auth } from "$lib/state/auth.svelte.ts";
+    import { getPlayers } from "$lib/api/players.ts";
+    import type { Player } from "$lib/api/types.ts";
 
     let players: Player[] = $state([]);
     let showInactive = $state(false);

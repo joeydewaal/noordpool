@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { auth } from '$lib/state/auth.svelte.js';
-	import { getPlayer, updatePlayer } from '$lib/api/players.js';
-	import { getPlayerStats } from '$lib/api/events.js';
-	import type { Player, PlayerStats } from '$lib/api/types.js';
+	import { auth } from '$lib/state/auth.svelte.ts';
+	import { getPlayer, updatePlayer } from '$lib/api/players.ts';
+	import { getPlayerStats } from '$lib/api/events.ts';
+	import type { Player, PlayerStats } from '$lib/api/types.ts';
 
 	let player: Player | null = $state(null);
 	let stats: PlayerStats | null = $state(null);
