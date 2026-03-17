@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { auth } from '$lib/state/auth.svelte.ts';
+	import { pwa } from '$lib/state/pwa.svelte.ts';
 	import { theme } from '$lib/state/theme.svelte.ts';
 	import { logout } from '$lib/api/auth.ts';
 	import { goto } from '$app/navigation';
@@ -60,6 +61,15 @@
 				{/if}
 			</button>
 		</div>
+
+		{#if pwa.installable}
+			<button class="btn preset-filled-surface-500 w-full md:hidden" onclick={() => pwa.install()}>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+				</svg>
+				<span>App installeren</span>
+			</button>
+		{/if}
 
 		<button class="btn preset-filled-error-500 w-full" onclick={handleLogout}>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

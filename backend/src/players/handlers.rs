@@ -17,7 +17,7 @@ use crate::{
 };
 
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {
-    let players = User::all_active().all(&mut state.db).await?;
+    let players = User::all_active().exec(&mut state.db).await?;
     Ok(Json(players))
 }
 

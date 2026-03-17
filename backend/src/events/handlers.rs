@@ -21,7 +21,7 @@ pub async fn list(
 
     let events = GameEvent::filter_by_game_id(game_id)
         .order_by(GameEvent::fields().minute().asc())
-        .all(&mut db)
+        .exec(&mut db)
         .await?;
     Ok(Json(events))
 }

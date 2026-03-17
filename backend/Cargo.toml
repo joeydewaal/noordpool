@@ -9,7 +9,7 @@ axum = { version = "0.8.8", features = ["tokio"] }
 tokio = { version = "1.50", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors"] }
-toasty = { git = "https://github.com/joeydewaal/toasty/", features = ["postgresql", "jiff", "sqlite", "serde"] }
+toasty = { git = "https://github.com/joeydewaal/toasty.git", features = ["postgresql", "jiff", "sqlite", "serde"] }
 axum-security = { git = "https://github.com/joeydewaal/axum-security/", features = ["jwt", "rbac", "macros", "jiff", "oidc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

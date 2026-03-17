@@ -26,7 +26,7 @@ pub async fn leaderboard(
     // Get all events
     let events = GameEvent::all()
         .include(GameEvent::fields().game())
-        .all(db)
+        .exec(db)
         .await?;
 
     // Aggregate stats per player (only for events in completed games)
@@ -48,7 +48,7 @@ pub async fn leaderboard(
     }
 
     // Get active players
-    let players = User::all_active().all(db).await?;
+    let players = User::all_active().exec(db).await?;
     let player_map: HashMap<uuid::Uuid, &User> = players.iter().map(|p| (p.id, p)).collect();
 
     // Build entries
