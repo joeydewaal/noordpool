@@ -16,20 +16,20 @@
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
 
-    const gameQuery = createQuery({
+    const gameQuery = createQuery(() => ({
         queryKey: ['games', id],
         queryFn: () => getGame(id),
-    });
+    }));
 
-    const playersQuery = createQuery({
+    const playersQuery = createQuery(() => ({
         queryKey: ['players'],
         queryFn: getPlayers,
-    });
+    }));
 
-    const eventsQuery = createQuery({
+    const eventsQuery = createQuery(() => ({
         queryKey: ['games', id, 'events'],
         queryFn: () => getGameEvents(id),
-    });
+    }));
 
     const addEventMutation = createMutation({
         mutationFn: (data: CreateGameEventRequest) => createGameEvent(id, data),

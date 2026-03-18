@@ -7,10 +7,10 @@
 
     let showInactive = $state(false);
 
-    const playersQuery = createQuery({
+    const playersQuery = createQuery(() => ({
         queryKey: ['players'],
         queryFn: getPlayers,
-    });
+    }));
 
     const filtered = $derived(
         showInactive

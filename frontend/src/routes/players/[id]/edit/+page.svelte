@@ -10,10 +10,10 @@
     const id = page.params.id;
     const queryClient = useQueryClient();
 
-    const playerQuery = createQuery({
+    const playerQuery = createQuery(() => ({
         queryKey: ['players', id],
         queryFn: () => getPlayer(id),
-    });
+    }));
 
     const updateMutation = createMutation({
         mutationFn: (data: UpdatePlayerRequest) => updatePlayer(id, data),

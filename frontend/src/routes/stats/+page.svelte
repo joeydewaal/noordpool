@@ -2,10 +2,10 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { getLeaderboard } from '$lib/api/events';
 
-	const leaderboardQuery = createQuery({
+	const leaderboardQuery = createQuery(() => ({
 		queryKey: ['leaderboard'],
 		queryFn: getLeaderboard,
-	});
+	}));
 </script>
 
 <div class="max-w-2xl space-y-6">

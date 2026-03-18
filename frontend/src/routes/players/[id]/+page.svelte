@@ -11,15 +11,15 @@
 
 	const canManage = $derived(auth.isAdmin || auth.isModerator);
 
-	const playerQuery = createQuery({
+	const playerQuery = createQuery(() => ({
 		queryKey: ['players', id],
 		queryFn: () => getPlayer(id),
-	});
+	}));
 
-	const statsQuery = createQuery({
+	const statsQuery = createQuery(() => ({
 		queryKey: ['players', id, 'stats'],
 		queryFn: () => getPlayerStats(id),
-	});
+	}));
 
 	const toggleActiveMutation = createMutation({
 		mutationFn: (data: UpdatePlayerRequest) => updatePlayer(id, data),

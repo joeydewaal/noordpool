@@ -7,15 +7,15 @@
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
 
-    const upcomingQuery = createQuery({
+    const upcomingQuery = createQuery(() => ({
         queryKey: ['games', 'upcoming'],
         queryFn: () => getUpcomingGames(),
-    });
+    }));
 
-    const recentQuery = createQuery({
+    const recentQuery = createQuery(() => ({
         queryKey: ['games', 'recent'],
         queryFn: () => getRecentResults(),
-    });
+    }));
 
     function formatDate(dateTime: string): string {
         return new Date(dateTime).toLocaleDateString("nl-NL", {
