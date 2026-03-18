@@ -35,7 +35,6 @@ async fn create_player(app: &mut TestApp, token: &str, name: &str, number: i32) 
 }
 
 async fn create_game(app: &mut TestApp, token: &str) -> String {
-    dbg!(&token);
     let res = app
         .post("/api/games")
         .token(token)
@@ -46,7 +45,6 @@ async fn create_game(app: &mut TestApp, token: &str) -> String {
             "homeAway": "home"
         }))
         .await;
-    dbg!(res.status());
     let body = res.json_value().await;
 
     body["id"].as_str().unwrap().to_string()

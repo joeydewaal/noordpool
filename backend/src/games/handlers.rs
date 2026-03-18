@@ -36,36 +36,38 @@ pub async fn get_one(
 }
 
 pub async fn upcoming(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
     Query(query): Query<LimitQuery>,
 ) -> Result<Json<Vec<Game>>, AppError> {
-    let db = &mut state.db;
+    let mut db = state.db;
 
-    let mut game_query = Game::all().filter(Game::fields().status().is_scheduled());
+    let mut game_query = Game::all()
+        .filter(Game::fields().status().is_scheduled())
+        .order_by(Game::fields().date_time().desc());
 
     if let Some(limit) = query.limit {
         game_query = game_query.limit(limit);
     }
 
-    let mut games = game_query.exec(db).await?;
-    games.sort_by(|a, b| a.date_time.cmp(&b.date_time));
+    let games = game_query.exec(&mut db).await?;
     Ok(Json(games))
 }
 
 pub async fn recent(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
     Query(query): Query<LimitQuery>,
 ) -> Result<Json<Vec<Game>>, AppError> {
-    let db = &mut state.db;
+    let mut db = state.db;
 
-    let mut game_query = Game::all().filter(Game::fields().status().is_completed());
+    let mut game_query = Game::all()
+        .filter(Game::fields().status().is_completed())
+        .order_by(Game::fields().date_time().desc());
 
     if let Some(limit) = query.limit {
         game_query = game_query.limit(limit);
     }
 
-    let mut games = game_query.exec(db).await?;
-    games.sort_by(|a, b| a.date_time.cmp(&b.date_time));
+    let games = game_query.exec(&mut db).await?;
     Ok(Json(games))
 }
 
