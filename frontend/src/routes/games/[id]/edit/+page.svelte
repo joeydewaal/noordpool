@@ -15,13 +15,13 @@
         queryFn: () => getGame(id),
     }));
 
-    const updateMutation = createMutation({
+    const updateMutation = createMutation(() => ({
         mutationFn: (data: UpdateGameRequest) => updateGame(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['games'] });
             goto(`/games/${id}`);
         },
-    });
+    }));
 
     let game_state: Game | null = $state(null);
 

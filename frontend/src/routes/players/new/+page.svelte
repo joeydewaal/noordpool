@@ -12,13 +12,13 @@
 	let shirtNumber = $state(0);
 	let position: Position = $state('midfielder');
 
-	const createMut = createMutation({
+	const createMut = createMutation(() => ({
 		mutationFn: (data: CreatePlayerRequest) => createPlayer(data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['players'] });
 			goto('/players');
 		},
-	});
+	}));
 
 	function handleSubmit(e: Event) {
 		e.preventDefault();

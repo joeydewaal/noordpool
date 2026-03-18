@@ -31,19 +31,19 @@
         queryFn: () => getGameEvents(id),
     }));
 
-    const addEventMutation = createMutation({
+    const addEventMutation = createMutation(() => ({
         mutationFn: (data: CreateGameEventRequest) => createGameEvent(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['games', id, 'events'] });
         },
-    });
+    }));
 
-    const deleteEventMutation = createMutation({
+    const deleteEventMutation = createMutation(() => ({
         mutationFn: (eventId: string) => deleteGameEvent(id, eventId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['games', id, 'events'] });
         },
-    });
+    }));
 
     const eventLabels: Record<EventType, string> = {
         goal: "Doelpunt",

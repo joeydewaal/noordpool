@@ -15,13 +15,13 @@
         queryFn: () => getPlayer(id),
     }));
 
-    const updateMutation = createMutation({
+    const updateMutation = createMutation(() => ({
         mutationFn: (data: UpdatePlayerRequest) => updatePlayer(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['players'] });
             goto(`/players/${id}`);
         },
-    });
+    }));
 
     let name = $state("");
     let shirtNumber = $state(0);

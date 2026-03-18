@@ -13,13 +13,13 @@
     let dateTime = $state("");
     let homeAway: HomeAway = $state("home");
 
-    const createMut = createMutation({
+    const createMut = createMutation(() => ({
         mutationFn: (data: CreateGameRequest) => createGame(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['games'] });
             goto("/games");
         },
-    });
+    }));
 
     function handleSubmit(e: Event) {
         e.preventDefault();

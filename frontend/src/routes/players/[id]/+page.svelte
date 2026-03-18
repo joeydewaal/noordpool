@@ -21,12 +21,12 @@
 		queryFn: () => getPlayerStats(id),
 	}));
 
-	const toggleActiveMutation = createMutation({
+	const toggleActiveMutation = createMutation(() => ({
 		mutationFn: (data: UpdatePlayerRequest) => updatePlayer(id, data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['players', id] });
 		},
-	});
+	}));
 
 	const positionColor: Record<string, string> = {
 		goalkeeper: 'preset-filled-warning-500',
