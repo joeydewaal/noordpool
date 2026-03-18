@@ -1,27 +1,22 @@
-import type { GameEvent, CreateGameEventRequest, PlayerStats, Leaderboard } from './types.ts';
-import { fetchApi } from './client.ts';
+import type { GameEvent, CreateGameEventRequest, PlayerStats, Leaderboard } from './types';
+import { api } from './client';
 
 export async function getGameEvents(gameId: string): Promise<GameEvent[]> {
-	return fetchApi<GameEvent[]>(`/games/${gameId}/events`);
+	return (await api.get<GameEvent[]>(`/games/${gameId}/events`)).data;
 }
 
 export async function createGameEvent(gameId: string, data: CreateGameEventRequest): Promise<GameEvent> {
-	return fetchApi<GameEvent>(`/games/${gameId}/events`, {
-		method: 'POST',
-		body: JSON.stringify(data)
-	});
+	return (await api.post<GameEvent>(`/games/${gameId}/events`, data)).data;
 }
 
 export async function deleteGameEvent(gameId: string, eventId: string): Promise<void> {
-	return fetchApi<void>(`/games/${gameId}/events/${eventId}`, {
-		method: 'DELETE'
-	});
+	await api.delete(`/games/${gameId}/events/${eventId}`);
 }
 
 export async function getPlayerStats(playerId: string): Promise<PlayerStats> {
-	return fetchApi<PlayerStats>(`/players/${playerId}/stats`);
+	return (await api.get<PlayerStats>(`/players/${playerId}/stats`)).data;
 }
 
 export async function getLeaderboard(): Promise<Leaderboard> {
-	return fetchApi<Leaderboard>('/stats/leaderboard');
+	return (await api.get<Leaderboard>('/stats/leaderboard')).data;
 }

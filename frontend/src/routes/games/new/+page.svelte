@@ -2,24 +2,33 @@
     import { goto } from "$app/navigation";
     import { auth } from "$lib/state/auth.svelte.ts";
     import { createGame } from "$lib/api/games.ts";
-    import type { HomeAway } from "$lib/api/types.ts";
+    import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+    import type { HomeAway, CreateGameRequest } from "$lib/api/types.ts";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
+    const queryClient = useQueryClient();
 
     let opponent = $state("");
     let location = $state("");
     let dateTime = $state("");
     let homeAway: HomeAway = $state("home");
 
-    async function handleSubmit(e: Event) {
+    const createMut = createMutation({
+        mutationFn: (data: CreateGameRequest) => createGame(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['games'] });
+            goto("/games");
+        },
+    });
+
+    function handleSubmit(e: Event) {
         e.preventDefault();
-        await createGame({
+        createMut.mutate({
             opponent,
             location,
             dateTime: new Date(dateTime),
             homeAway,
         });
-        goto("/games");
     }
 </script>
 

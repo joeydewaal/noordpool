@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { auth } from '$lib/state/auth.svelte.ts';
-	import { pwa } from '$lib/state/pwa.svelte.ts';
-	import { theme } from '$lib/state/theme.svelte.ts';
-	import { logout } from '$lib/api/auth.ts';
+	import { auth } from '$lib/state/auth.svelte';
+	import { pwa } from '$lib/state/pwa.svelte';
+	import { theme } from '$lib/state/theme.svelte';
+	import { logout } from '$lib/api/auth';
 	import { goto } from '$app/navigation';
 
 	if (!auth.isAuthenticated) {

@@ -1,30 +1,25 @@
-import type { AuthResponse, LoginRequest, RegisterRequest, User } from './types.ts';
-import { fetchApi, setToken, getToken, removeToken, ApiError } from './client.ts';
+import type { AuthResponse, LoginRequest, RegisterRequest, User } from './types';
+import { api, setToken, getToken, removeToken } from './client';
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
-	const response = await fetchApi<AuthResponse>('/auth/login', {
-		method: 'POST',
-		body: JSON.stringify(data)
-	});
-	setToken(response.token);
-	return response;
+	const response = await api.post<AuthResponse>('/auth/login', data);
+	setToken(response.data.token);
+	return response.data;
 }
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-	const response = await fetchApi<AuthResponse>('/auth/register', {
-		method: 'POST',
-		body: JSON.stringify(data)
-	});
-	setToken(response.token);
-	return response;
+	const response = await api.post<AuthResponse>('/auth/register', data);
+	setToken(response.data.token);
+	return response.data;
 }
 
-export async function me(customFetch?: typeof fetch): Promise<User | null> {
+export async function me(): Promise<User | null> {
 	if (!getToken()) return null;
 	try {
-		return await fetchApi<User>('/auth/me', {}, customFetch);
-	} catch (e) {
-		if (e instanceof ApiError && e.status === 401) return null;
+		const response = await api.get<User>('/auth/me');
+		return response.data;
+	} catch (e: any) {
+		if (e.response?.status === 401) return null;
 		throw e;
 	}
 }

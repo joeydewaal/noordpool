@@ -1,38 +1,32 @@
-import type { Game, CreateGameRequest, UpdateGameRequest } from './types.ts';
-import { fetchApi } from './client.ts';
+import type { Game, CreateGameRequest, UpdateGameRequest } from './types';
+import { api } from './client';
 
 export async function getGames(): Promise<Game[]> {
-    return fetchApi<Game[]>('/games');
+    return (await api.get<Game[]>('/games')).data;
 }
 
 export async function getGame(id: string): Promise<Game | null> {
     try {
-        return await fetchApi<Game>(`/games/${id}`);
+        return (await api.get<Game>(`/games/${id}`)).data;
     } catch {
         return null;
     }
 }
 
 export async function getUpcomingGames(limit?: number): Promise<Game[]> {
-    const params = limit ? `?limit=${limit}` : '';
-    return fetchApi<Game[]>(`/games/upcoming${params}`);
+    const params = limit ? { limit } : {};
+    return (await api.get<Game[]>('/games/upcoming', { params })).data;
 }
 
 export async function getRecentResults(limit?: number): Promise<Game[]> {
-    const params = limit ? `?limit=${limit}` : '';
-    return fetchApi<Game[]>(`/games/recent${params}`);
+    const params = limit ? { limit } : {};
+    return (await api.get<Game[]>('/games/recent', { params })).data;
 }
 
 export async function createGame(data: CreateGameRequest): Promise<Game> {
-    return fetchApi<Game>('/games', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
+    return (await api.post<Game>('/games', data)).data;
 }
 
 export async function updateGame(id: string, data: UpdateGameRequest): Promise<Game> {
-    return fetchApi<Game>(`/games/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
+    return (await api.put<Game>(`/games/${id}`, data)).data;
 }

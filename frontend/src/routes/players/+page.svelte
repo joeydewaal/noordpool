@@ -1,16 +1,21 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { createQuery } from '@tanstack/svelte-query';
     import { auth } from "$lib/state/auth.svelte.ts";
     import { getPlayers } from "$lib/api/players.ts";
-    import type { Player } from "$lib/api/types.ts";
-
-    let players: Player[] = $state([]);
-    let showInactive = $state(false);
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
 
+    let showInactive = $state(false);
+
+    const playersQuery = createQuery({
+        queryKey: ['players'],
+        queryFn: getPlayers,
+    });
+
     const filtered = $derived(
-        showInactive ? players : players.filter((p) => p.active),
+        showInactive
+            ? (playersQuery.data ?? [])
+            : (playersQuery.data ?? []).filter((p) => p.active),
     );
 
     const positionColor: Record<string, string> = {
@@ -19,10 +24,6 @@
         midfielder: "preset-filled-primary-500",
         forward: "preset-filled-error-500",
     };
-
-    onMount(async () => {
-        players = await getPlayers();
-    });
 </script>
 
 <div class="flex items-center justify-between mb-6">

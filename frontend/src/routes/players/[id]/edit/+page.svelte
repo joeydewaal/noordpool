@@ -1,52 +1,63 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { auth } from "$lib/state/auth.svelte.ts";
     import { getPlayer, updatePlayer } from "$lib/api/players.ts";
-    import type { Position } from "$lib/api/types.ts";
+    import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
+    import type { Position, UpdatePlayerRequest } from "$lib/api/types.ts";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
+    const id = page.params.id;
+    const queryClient = useQueryClient();
+
+    const playerQuery = createQuery({
+        queryKey: ['players', id],
+        queryFn: () => getPlayer(id),
+    });
+
+    const updateMutation = createMutation({
+        mutationFn: (data: UpdatePlayerRequest) => updatePlayer(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['players'] });
+            goto(`/players/${id}`);
+        },
+    });
 
     let name = $state("");
     let shirtNumber = $state(0);
     let position: Position = $state("midfielder");
     let active = $state(true);
-    let loaded = $state(false);
+    let initialized = $state(false);
 
-    async function handleSubmit(e: Event) {
-        e.preventDefault();
-        await updatePlayer(page.params.id || "", {
-            name,
-            shirtNumber,
-            position,
-            active,
-        });
-        goto(`/players/${page.params.id}`);
-    }
-
-    onMount(async () => {
-        const player = await getPlayer(page.params.id || "");
-        if (player) {
+    $effect(() => {
+        const player = playerQuery.data;
+        if (player && !initialized) {
             name = player.name;
             shirtNumber = player.shirtNumber;
             position = player.position;
             active = player.active;
-            loaded = true;
+            initialized = true;
         }
     });
+
+    function handleSubmit(e: Event) {
+        e.preventDefault();
+        updateMutation.mutate({ name, shirtNumber, position, active });
+    }
 </script>
 
 {#if !canManage}
     <p class="text-error-500 font-medium">
         Geen toegang. Admin- of moderatorrol vereist.
     </p>
-{:else if !loaded}
+{:else if playerQuery.isPending}
+    <p class="text-surface-400">Laden...</p>
+{:else if !playerQuery.data}
     <p class="text-surface-400">Speler niet gevonden.</p>
-{:else}
+{:else if initialized}
     <div class="max-w-lg">
         <a
-            href="/players/{page.params.id}"
+            href="/players/{id}"
             class="text-sm text-primary-500 hover:underline mb-4 inline-block"
             >&larr; Terug naar speler</a
         >

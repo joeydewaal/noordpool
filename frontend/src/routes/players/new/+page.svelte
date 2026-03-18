@@ -1,19 +1,28 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { auth } from '$lib/state/auth.svelte.ts';
-	import { createPlayer } from '$lib/api/players.ts';
-	import type { Position } from '$lib/api/types.ts';
+	import { auth } from '$lib/state/auth.svelte';
+	import { createPlayer } from '$lib/api/players';
+	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+	import type { Position, CreatePlayerRequest } from '$lib/api/types';
 
 	const canManage = $derived(auth.isAdmin || auth.isModerator);
+	const queryClient = useQueryClient();
 
 	let name = $state('');
 	let shirtNumber = $state(0);
 	let position: Position = $state('midfielder');
 
-	async function handleSubmit(e: Event) {
+	const createMut = createMutation({
+		mutationFn: (data: CreatePlayerRequest) => createPlayer(data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['players'] });
+			goto('/players');
+		},
+	});
+
+	function handleSubmit(e: Event) {
 		e.preventDefault();
-		await createPlayer({ name, shirtNumber, position });
-		goto('/players');
+		createMut.mutate({ name, shirtNumber, position });
 	}
 </script>
 

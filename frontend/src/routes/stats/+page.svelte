@@ -1,17 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { getLeaderboard } from '$lib/api/events.ts';
-	import type { LeaderboardEntry } from '$lib/api/types.ts';
+	import { createQuery } from '@tanstack/svelte-query';
+	import { getLeaderboard } from '$lib/api/events';
 
-	let topScorers: LeaderboardEntry[] = $state([]);
-	let topAssisters: LeaderboardEntry[] = $state([]);
-	let mostCarded: LeaderboardEntry[] = $state([]);
-
-	onMount(async () => {
-		const data = await getLeaderboard();
-		topScorers = data.topScorers;
-		topAssisters = data.topAssisters;
-		mostCarded = data.mostCarded;
+	const leaderboardQuery = createQuery({
+		queryKey: ['leaderboard'],
+		queryFn: getLeaderboard,
 	});
 </script>
 
@@ -20,7 +13,7 @@
 
 	<div class="card p-6">
 		<h2 class="text-lg font-bold mb-3">Topscorers</h2>
-		{#if topScorers.length === 0}
+		{#if !leaderboardQuery.data || leaderboardQuery.data.topScorers.length === 0}
 			<p class="text-sm text-surface-400">Nog geen doelpunten.</p>
 		{:else}
 			<div class="table-wrap">
@@ -34,7 +27,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each topScorers as player, i}
+						{#each leaderboardQuery.data.topScorers as player, i}
 							<tr>
 								<td class="text-surface-400">{i + 1}</td>
 								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.name}</a></td>
@@ -50,7 +43,7 @@
 
 	<div class="card p-6">
 		<h2 class="text-lg font-bold mb-3">Meeste assists</h2>
-		{#if topAssisters.length === 0}
+		{#if !leaderboardQuery.data || leaderboardQuery.data.topAssisters.length === 0}
 			<p class="text-sm text-surface-400">Nog geen assists.</p>
 		{:else}
 			<div class="table-wrap">
@@ -64,7 +57,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each topAssisters as player, i}
+						{#each leaderboardQuery.data.topAssisters as player, i}
 							<tr>
 								<td class="text-surface-400">{i + 1}</td>
 								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.name}</a></td>
@@ -80,7 +73,7 @@
 
 	<div class="card p-6">
 		<h2 class="text-lg font-bold mb-3">Meeste kaarten</h2>
-		{#if mostCarded.length === 0}
+		{#if !leaderboardQuery.data || leaderboardQuery.data.mostCarded.length === 0}
 			<p class="text-sm text-surface-400">Nog geen kaarten.</p>
 		{:else}
 			<div class="table-wrap">
@@ -96,7 +89,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each mostCarded as player, i}
+						{#each leaderboardQuery.data.mostCarded as player, i}
 							<tr>
 								<td class="text-surface-400">{i + 1}</td>
 								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.name}</a></td>

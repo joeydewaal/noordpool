@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import { page } from "$app/state";
     import { auth } from "$lib/state/auth.svelte.ts";
     import { getGame } from "$lib/api/games.ts";
@@ -9,17 +8,42 @@
         deleteGameEvent,
     } from "$lib/api/events.ts";
     import { getPlayers } from "$lib/api/players.ts";
-    import type { Game, GameEvent, Player, EventType } from "$lib/api/types.ts";
+    import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
+    import type { EventType, CreateGameEventRequest } from "$lib/api/types.ts";
 
-    let game: Game | null = $state(null);
-    let events: GameEvent[] = $state([]);
-    let players: Player[] = $state([]);
-
-    let newPlayerId = $state("");
-    let newEventType: EventType = $state("goal");
-    let newMinute = $state(1);
+    const id = page.params.id;
+    const queryClient = useQueryClient();
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
+
+    const gameQuery = createQuery({
+        queryKey: ['games', id],
+        queryFn: () => getGame(id),
+    });
+
+    const playersQuery = createQuery({
+        queryKey: ['players'],
+        queryFn: getPlayers,
+    });
+
+    const eventsQuery = createQuery({
+        queryKey: ['games', id, 'events'],
+        queryFn: () => getGameEvents(id),
+    });
+
+    const addEventMutation = createMutation({
+        mutationFn: (data: CreateGameEventRequest) => createGameEvent(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['games', id, 'events'] });
+        },
+    });
+
+    const deleteEventMutation = createMutation({
+        mutationFn: (eventId: string) => deleteGameEvent(id, eventId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['games', id, 'events'] });
+        },
+    });
 
     const eventLabels: Record<EventType, string> = {
         goal: "Doelpunt",
@@ -35,31 +59,30 @@
         red_card: "\uD83D\uDFE5",
     };
 
+    let newPlayerId = $state("");
+    let newEventType: EventType = $state("goal");
+    let newMinute = $state(1);
+
     function playerName(playerId: string): string {
-        return players.find((p) => p.id === playerId)?.name ?? "Onbekend";
+        return playersQuery.data?.find((p) => p.id === playerId)?.name ?? "Onbekend";
     }
 
-    async function reloadEvents() {
-        if (game) events = await getGameEvents(game.id);
+    function handleAddEvent() {
+        if (!newPlayerId) return;
+        addEventMutation.mutate(
+            { playerId: newPlayerId, eventType: newEventType, minute: newMinute },
+            {
+                onSuccess: () => {
+                    newPlayerId = "";
+                    newEventType = "goal";
+                    newMinute = 1;
+                },
+            }
+        );
     }
 
-    async function handleAddEvent() {
-        if (!game || !newPlayerId) return;
-        await createGameEvent(game.id, {
-            playerId: newPlayerId,
-            eventType: newEventType,
-            minute: newMinute,
-        });
-        await reloadEvents();
-        newPlayerId = "";
-        newEventType = "goal";
-        newMinute = 1;
-    }
-
-    async function handleDeleteEvent(eventId: string) {
-        if (!game) return;
-        await deleteGameEvent(game.id, eventId);
-        await reloadEvents();
+    function handleDeleteEvent(eventId: string) {
+        deleteEventMutation.mutate(eventId);
     }
 
     function formatDate(dateTime: string): string {
@@ -72,17 +95,9 @@
             minute: "2-digit",
         });
     }
-
-    onMount(async () => {
-        [game, players] = await Promise.all([
-            getGame(page.params.id),
-            getPlayers(),
-        ]);
-        if (game) events = await getGameEvents(game.id);
-    });
 </script>
 
-{#if game}
+{#if gameQuery.data}
     <div class="max-w-lg">
         <a
             href="/games"
@@ -92,77 +107,77 @@
         <div class="card p-6">
             <div class="flex items-center justify-between mb-2">
                 <h1 class="text-2xl font-bold">
-                    vs {game.opponent}
+                    vs {gameQuery.data.opponent}
                 </h1>
                 <span
-                    class="chip {game.homeAway === 'home'
+                    class="chip {gameQuery.data.homeAway === 'home'
                         ? 'preset-filled-success-500'
                         : 'preset-filled-secondary-500'}"
                 >
-                    {game.homeAway === "home" ? "thuis" : "uit"}
+                    {gameQuery.data.homeAway === "home" ? "thuis" : "uit"}
                 </span>
             </div>
 
             <div class="text-sm text-surface-400 space-y-1 mb-4">
-                <div>{formatDate(game.dateTime)}</div>
-                <div>{game.location}</div>
+                <div>{formatDate(gameQuery.data.dateTime)}</div>
+                <div>{gameQuery.data.location}</div>
                 <div>
                     Status:
                     <span
-                        class="font-medium {game.status === 'completed'
+                        class="font-medium {gameQuery.data.status === 'completed'
                             ? 'text-success-500'
-                            : game.status === 'cancelled'
+                            : gameQuery.data.status === 'cancelled'
                               ? 'text-error-500'
                               : 'text-primary-500'}"
                     >
-                        {game.status === "scheduled"
+                        {gameQuery.data.status === "scheduled"
                             ? "gepland"
-                            : game.status === "completed"
+                            : gameQuery.data.status === "completed"
                               ? "gespeeld"
                               : "afgelast"}
                     </span>
                 </div>
             </div>
 
-            {#if game.status === "completed" && game.homeScore !== null}
+            {#if gameQuery.data.status === "completed" && gameQuery.data.homeScore !== null}
                 <div class="card preset-tonal-surface p-4 text-center">
-                    {#if game.homeAway === "home"}
+                    {#if gameQuery.data.homeAway === "home"}
                         <div class="text-lg">
                             <span class="font-bold"
-                                >Noordpool {game.homeScore}</span
+                                >Noordpool {gameQuery.data.homeScore}</span
                             >
                             <span class="text-surface-500 mx-2">-</span>
                             <span class="font-bold"
-                                >{game.awayScore} {game.opponent}</span
+                                >{gameQuery.data.awayScore} {gameQuery.data.opponent}</span
                             >
                         </div>
                     {:else}
                         <div class="text-lg">
                             <span class="font-bold"
-                                >{game.opponent} {game.homeScore}</span
+                                >{gameQuery.data.opponent} {gameQuery.data.homeScore}</span
                             >
                             <span class="text-surface-500 mx-2">-</span>
                             <span class="font-bold"
-                                >{game.awayScore} Noordpool</span
+                                >{gameQuery.data.awayScore} Noordpool</span
                             >
                         </div>
                     {/if}
                 </div>
             {/if}
 
-            {#if game.status === "completed"}
+            {#if gameQuery.data.status === "completed"}
                 <div class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800">
                     <h2 class="text-lg font-bold mb-3">
                         Wedstrijdverloop
                     </h2>
 
-                    {#if events.length === 0}
+                    {#if !eventsQuery.data || eventsQuery.data.length === 0}
                         <p class="text-sm text-surface-400">
                             Geen gebeurtenissen geregistreerd.
                         </p>
                     {:else}
                         <div class="space-y-2">
-                            {#each events as event}
+                            {#each eventsQuery.data as event}
                                 <div class="flex items-center gap-3 text-sm">
                                     <span
                                         class="inline-flex items-center justify-center w-10 h-6 preset-tonal-surface font-mono text-xs rounded"
@@ -208,7 +223,7 @@
                                     class="select flex-1 min-w-[140px]"
                                 >
                                     <option value="">Speler...</option>
-                                    {#each players.filter((p) => p.active) as p}
+                                    {#each (playersQuery.data ?? []).filter((p) => p.active) as p}
                                         <option value={p.id}>{p.name}</option>
                                     {/each}
                                 </select>
@@ -247,7 +262,7 @@
             {#if canManage}
                 <div class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800">
                     <a
-                        href="/games/{game.id}/edit"
+                        href="/games/{gameQuery.data.id}/edit"
                         class="btn btn-sm preset-filled-primary-500"
                     >
                         Bewerken
@@ -256,6 +271,6 @@
             {/if}
         </div>
     </div>
-{:else}
+{:else if gameQuery.isError}
     <p class="text-surface-400">Wedstrijd niet gevonden.</p>
 {/if}

@@ -1,11 +1,18 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { auth } from '$lib/state/auth.svelte.ts';
-	import { getUpcomingGames, getRecentResults } from '$lib/api/games.ts';
-	import type { Game } from '$lib/api/types.ts';
+	import { createQuery } from '@tanstack/svelte-query';
+	import { auth } from '$lib/state/auth.svelte';
+	import { getUpcomingGames, getRecentResults } from '$lib/api/games';
+	import type { Game } from '$lib/api/types';
 
-	let upcoming: Game[] = $state([]);
-	let results: Game[] = $state([]);
+	const upcomingQuery = createQuery({
+		queryKey: ['games', 'upcoming'],
+		queryFn: () => getUpcomingGames(3),
+	});
+
+	const recentQuery = createQuery({
+		queryKey: ['games', 'recent'],
+		queryFn: () => getRecentResults(3),
+	});
 
 	function formatDate(dateTime: string): string {
 		return new Date(dateTime).toLocaleDateString('nl-NL', {
@@ -21,13 +28,6 @@
 		if (game.homeScore === null || (game.status === 'scheduled' && game.homeScore === 0)) return '';
 		return `${game.homeScore} - ${game.awayScore}`;
 	}
-
-	onMount(async () => {
-		[upcoming, results] = await Promise.all([
-			getUpcomingGames(3),
-			getRecentResults(3)
-		]);
-	});
 </script>
 
 {#if auth.isAuthenticated}
@@ -39,11 +39,11 @@
 					<h2 class="text-lg font-semibold">Komende wedstrijden</h2>
 					<a href="/games" class="text-sm text-primary-500 hover:underline">Bekijk alles</a>
 				</div>
-				{#if upcoming.length === 0}
+				{#if !upcomingQuery.data || upcomingQuery.data.length === 0}
 					<p class="text-surface-400 text-sm">Geen komende wedstrijden.</p>
 				{:else}
 					<div class="space-y-3">
-						{#each upcoming as game}
+						{#each upcomingQuery.data as game}
 							<a href="/games/{game.id}" class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1">
 								<div class="flex items-center justify-between">
 									<div class="font-medium text-sm">vs {game.opponent}</div>
@@ -62,11 +62,11 @@
 					<h2 class="text-lg font-semibold">Recente uitslagen</h2>
 					<a href="/games" class="text-sm text-primary-500 hover:underline">Bekijk alles</a>
 				</div>
-				{#if results.length === 0}
+				{#if !recentQuery.data || recentQuery.data.length === 0}
 					<p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
 				{:else}
 					<div class="space-y-3">
-						{#each results as game}
+						{#each recentQuery.data as game}
 							<a href="/games/{game.id}" class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1">
 								<div class="flex items-center justify-between">
 									<div class="font-medium text-sm">vs {game.opponent}</div>
@@ -102,11 +102,11 @@
 				<h2 class="text-lg font-semibold">Komende wedstrijden</h2>
 				<a href="/games" class="text-sm text-primary-500 hover:underline">Bekijk alles</a>
 			</div>
-			{#if upcoming.length === 0}
+			{#if !upcomingQuery.data || upcomingQuery.data.length === 0}
 				<p class="text-surface-400 text-sm">Geen komende wedstrijden.</p>
 			{:else}
 				<div class="space-y-3">
-					{#each upcoming as game}
+					{#each upcomingQuery.data as game}
 						<a href="/games/{game.id}" class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1">
 							<div class="flex items-center justify-between">
 								<div class="font-medium text-sm">vs {game.opponent}</div>
@@ -125,11 +125,11 @@
 				<h2 class="text-lg font-semibold">Recente uitslagen</h2>
 				<a href="/games" class="text-sm text-primary-500 hover:underline">Bekijk alles</a>
 			</div>
-			{#if results.length === 0}
+			{#if !recentQuery.data || recentQuery.data.length === 0}
 				<p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
 			{:else}
 				<div class="space-y-3">
-					{#each results as game}
+					{#each recentQuery.data as game}
 						<a href="/games/{game.id}" class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1">
 							<div class="flex items-center justify-between">
 								<div class="font-medium text-sm">vs {game.opponent}</div>

@@ -1,17 +1,21 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { createQuery } from '@tanstack/svelte-query';
     import { auth } from "$lib/state/auth.svelte.ts";
     import { getUpcomingGames, getRecentResults } from "$lib/api/games.ts";
     import type { Game } from "$lib/api/types.ts";
     import { Tabs } from "@skeletonlabs/skeleton-svelte";
 
-    let upcoming: Game[] = $state([]);
-    let results: Game[] = $state([]);
-
-    let error: string | null = $state(null);
-    let loading = $state(true);
-
     const canManage = $derived(auth.isAdmin || auth.isModerator);
+
+    const upcomingQuery = createQuery({
+        queryKey: ['games', 'upcoming'],
+        queryFn: () => getUpcomingGames(),
+    });
+
+    const recentQuery = createQuery({
+        queryKey: ['games', 'recent'],
+        queryFn: () => getRecentResults(),
+    });
 
     function formatDate(dateTime: string): string {
         return new Date(dateTime).toLocaleDateString("nl-NL", {
@@ -32,22 +36,6 @@
             return "";
         return `${game.homeScore} - ${game.awayScore}`;
     }
-
-    onMount(async () => {
-        try {
-            const [fetched_upcoming, fetched_results] = await Promise.all([
-                getUpcomingGames(),
-                getRecentResults(),
-            ]);
-            upcoming = fetched_upcoming;
-            results = fetched_results;
-        } catch (e) {
-            error =
-                e instanceof Error ? e.message : "Kon wedstrijden niet laden";
-        } finally {
-            loading = false;
-        }
-    });
 </script>
 
 <div class="flex items-center justify-between mb-6">
@@ -59,10 +47,10 @@
     {/if}
 </div>
 
-{#if loading}
+{#if upcomingQuery.isPending && recentQuery.isPending}
     <p class="text-surface-400 text-sm">Laden...</p>
-{:else if error}
-    <p class="text-red-500 text-sm">{error}</p>
+{:else if upcomingQuery.isError || recentQuery.isError}
+    <p class="text-red-500 text-sm">Kon wedstrijden niet laden</p>
 {:else}
     <Tabs defaultValue="upcoming">
         <Tabs.List class="mb-6">
@@ -70,13 +58,13 @@
             <Tabs.Trigger value="results">Uitslagen</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="upcoming">
-            {#if upcoming.length === 0}
+            {#if !upcomingQuery.data || upcomingQuery.data.length === 0}
                 <p class="text-surface-400 text-sm">
                     Geen komende wedstrijden gepland.
                 </p>
             {:else}
                 <div class="space-y-3">
-                    {#each upcoming as game}
+                    {#each upcomingQuery.data as game}
                         <a
                             href="/games/{game.id}"
                             class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"
@@ -104,11 +92,11 @@
             {/if}
         </Tabs.Content>
         <Tabs.Content value="results">
-            {#if results.length === 0}
+            {#if !recentQuery.data || recentQuery.data.length === 0}
                 <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
             {:else}
                 <div class="space-y-3">
-                    {#each results as game}
+                    {#each recentQuery.data as game}
                         <a
                             href="/games/{game.id}"
                             class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"

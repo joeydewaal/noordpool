@@ -1,54 +1,70 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { auth } from "$lib/state/auth.svelte.ts";
     import { getGame, updateGame } from "$lib/api/games.ts";
-    import type { Game } from "$lib/api/types.ts";
+    import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
+    import type { Game, UpdateGameRequest } from "$lib/api/types.ts";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
+    const id = page.params.id;
+    const queryClient = useQueryClient();
+
+    const gameQuery = createQuery({
+        queryKey: ['games', id],
+        queryFn: () => getGame(id),
+    });
+
+    const updateMutation = createMutation({
+        mutationFn: (data: UpdateGameRequest) => updateGame(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['games'] });
+            goto(`/games/${id}`);
+        },
+    });
 
     let game_state: Game | null = $state(null);
-    let loaded = $state(false);
 
-    async function handleSubmit(e: Event) {
+    $effect(() => {
+        const data = gameQuery.data;
+        if (data && !game_state) {
+            game_state = { ...data };
+        }
+    });
+
+    function handleSubmit(e: Event) {
         e.preventDefault();
-        await updateGame(page.params.id, {
-            opponent: game_state?.opponent,
-            location: game_state?.location,
-            dateTime: game_state?.location,
-            homeAway: game_state?.homeAway,
-            status: game_state?.status,
+        if (!game_state) return;
+        updateMutation.mutate({
+            opponent: game_state.opponent,
+            location: game_state.location,
+            dateTime: game_state.location,
+            homeAway: game_state.homeAway,
+            status: game_state.status,
             homeScore:
-                game_state?.status === "completed"
+                game_state.status === "completed"
                     ? game_state.homeScore
                     : null,
             awayScore:
-                game_state?.status === "completed"
+                game_state.status === "completed"
                     ? game_state.awayScore
                     : null,
         });
-        goto(`/games/${page.params.id}`);
     }
-
-    onMount(async () => {
-        const game = await getGame(page.params.id);
-        if (game) {
-            loaded = true;
-        }
-    });
 </script>
 
 {#if !canManage}
     <p class="text-error-500 font-medium">
         Geen toegang. Admin- of moderatorrol vereist.
     </p>
-{:else if !loaded}
+{:else if gameQuery.isPending}
+    <p class="text-surface-400">Laden...</p>
+{:else if !gameQuery.data}
     <p class="text-surface-400">Wedstrijd niet gevonden.</p>
 {:else if game_state != null}
     <div class="max-w-lg">
         <a
-            href="/games/{page.params.id}"
+            href="/games/{id}"
             class="text-sm text-primary-500 hover:underline mb-4 inline-block"
             >&larr; Terug naar wedstrijd</a
         >

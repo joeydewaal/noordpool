@@ -5,8 +5,11 @@
     import { registerSW } from "virtual:pwa-register";
     import { pwa } from "$lib/state/pwa.svelte.ts";
     import { theme } from "$lib/state/theme.svelte.ts";
+    import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
 
     let { children } = $props();
+
+    const queryClient = new QueryClient();
 
     onMount(() => {
         theme.init();
@@ -23,9 +26,11 @@
     });
 </script>
 
-<div class="min-h-screen flex">
-    <Header />
-    <main class="flex-1 max-w-5xl w-full px-4 py-8 md:px-8 pb-24 md:pb-8">
-        {@render children()}
-    </main>
-</div>
+<QueryClientProvider client={queryClient}>
+    <div class="min-h-screen flex">
+        <Header />
+        <main class="flex-1 max-w-5xl w-full px-4 py-8 md:px-8 pb-24 md:pb-8">
+            {@render children()}
+        </main>
+    </div>
+</QueryClientProvider>
