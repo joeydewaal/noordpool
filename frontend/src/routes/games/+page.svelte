@@ -7,7 +7,7 @@
 
     let upcoming: Game[] = $state([]);
     let results: Game[] = $state([]);
-    let activeTab = $state("upcoming");
+
     let error: string | null = $state(null);
     let loading = $state(true);
 
@@ -42,7 +42,8 @@
             upcoming = fetched_upcoming;
             results = fetched_results;
         } catch (e) {
-            error = e instanceof Error ? e.message : "Kon wedstrijden niet laden";
+            error =
+                e instanceof Error ? e.message : "Kon wedstrijden niet laden";
         } finally {
             loading = false;
         }
@@ -63,68 +64,32 @@
 {:else if error}
     <p class="text-red-500 text-sm">{error}</p>
 {:else}
-<Tabs.Root value={activeTab} onValueChange={(v) => (activeTab = v)}>
-    <Tabs.List class="mb-6">
-        <Tabs.Trigger value="upcoming">Komend</Tabs.Trigger>
-        <Tabs.Trigger value="results">Uitslagen</Tabs.Trigger>
-    </Tabs.List>
-    <Tabs.Content value="upcoming">
-        {#if upcoming.length === 0}
-            <p class="text-surface-400 text-sm">
-                Geen komende wedstrijden gepland.
-            </p>
-        {:else}
-            <div class="space-y-3">
-                {#each upcoming as game}
-                    <a
-                        href="/games/{game.id}"
-                        class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"
-                    >
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="font-semibold">
-                                    vs {game.opponent}
+    <Tabs defaultValue="upcoming">
+        <Tabs.List class="mb-6">
+            <Tabs.Trigger value="upcoming">Komend</Tabs.Trigger>
+            <Tabs.Trigger value="results">Uitslagen</Tabs.Trigger>
+        </Tabs.List>
+        <Tabs.Content value="upcoming">
+            {#if upcoming.length === 0}
+                <p class="text-surface-400 text-sm">
+                    Geen komende wedstrijden gepland.
+                </p>
+            {:else}
+                <div class="space-y-3">
+                    {#each upcoming as game}
+                        <a
+                            href="/games/{game.id}"
+                            class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-semibold">
+                                        vs {game.opponent}
+                                    </div>
+                                    <div class="text-sm text-surface-400 mt-1">
+                                        {formatDate(game.dateTime)}
+                                    </div>
                                 </div>
-                                <div class="text-sm text-surface-400 mt-1">
-                                    {formatDate(game.dateTime)}
-                                </div>
-                            </div>
-                            <span
-                                class="chip {game.homeAway === 'home'
-                                    ? 'preset-filled-success-500'
-                                    : 'preset-filled-secondary-500'}"
-                            >
-                                {game.homeAway === "home" ? "thuis" : "uit"}
-                            </span>
-                        </div>
-                    </a>
-                {/each}
-            </div>
-        {/if}
-    </Tabs.Content>
-    <Tabs.Content value="results">
-        {#if results.length === 0}
-            <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
-        {:else}
-            <div class="space-y-3">
-                {#each results as game}
-                    <a
-                        href="/games/{game.id}"
-                        class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"
-                    >
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="font-semibold">
-                                    vs {game.opponent}
-                                </div>
-                                <div class="text-sm text-surface-400 mt-1">
-                                    {formatDate(game.dateTime)}
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="font-bold"
-                                    >{formatScore(game)}</span
-                                >
                                 <span
                                     class="chip {game.homeAway === 'home'
                                         ? 'preset-filled-success-500'
@@ -133,11 +98,49 @@
                                     {game.homeAway === "home" ? "thuis" : "uit"}
                                 </span>
                             </div>
-                        </div>
-                    </a>
-                {/each}
-            </div>
-        {/if}
-    </Tabs.Content>
-</Tabs.Root>
+                        </a>
+                    {/each}
+                </div>
+            {/if}
+        </Tabs.Content>
+        <Tabs.Content value="results">
+            {#if results.length === 0}
+                <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
+            {:else}
+                <div class="space-y-3">
+                    {#each results as game}
+                        <a
+                            href="/games/{game.id}"
+                            class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-semibold">
+                                        vs {game.opponent}
+                                    </div>
+                                    <div class="text-sm text-surface-400 mt-1">
+                                        {formatDate(game.dateTime)}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="font-bold"
+                                        >{formatScore(game)}</span
+                                    >
+                                    <span
+                                        class="chip {game.homeAway === 'home'
+                                            ? 'preset-filled-success-500'
+                                            : 'preset-filled-secondary-500'}"
+                                    >
+                                        {game.homeAway === "home"
+                                            ? "thuis"
+                                            : "uit"}
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    {/each}
+                </div>
+            {/if}
+        </Tabs.Content>
+    </Tabs>
 {/if}
