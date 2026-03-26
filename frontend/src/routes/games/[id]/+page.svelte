@@ -63,8 +63,8 @@
     let newEventType: EventType = $state("goal");
     let newMinute = $state(1);
 
-    function playerName(playerId: string): string {
-        return playersQuery.data?.find((p) => p.id === playerId)?.name ?? "Onbekend";
+    function playerName(event: { user?: { name: string } }): string {
+        return event.user?.name ?? "Onbekend";
     }
 
     function handleAddEvent() {
@@ -188,7 +188,7 @@
                                         >{eventIcons[event.eventType]}</span
                                     >
                                     <span class="font-medium"
-                                        >{playerName(event.playerId)}</span
+                                        >{playerName(event)}</span
                                     >
                                     <span class="text-surface-400"
                                         >{eventLabels[event.eventType]}</span

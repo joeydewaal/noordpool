@@ -86,6 +86,7 @@ export interface GameEvent {
     id: string;
     gameId: string;
     playerId: string;
+    user?: { id: string; name: string };
     eventType: EventType;
     minute: number;
 }
