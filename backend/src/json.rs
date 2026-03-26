@@ -2,7 +2,7 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::{EventType, GameStatus, HomeAway, Position, User};
+use crate::models::{EventType, Game, GameStatus, HomeAway, Position, User};
 
 #[derive(Serialize)]
 pub struct AuthResponse {
@@ -31,6 +31,14 @@ pub struct UpdatePlayerRequest {
 }
 
 // ── Games ──
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GamesSummaryResponse {
+    pub upcoming: Vec<Game>,
+    pub recent: Vec<Game>,
+}
+
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]

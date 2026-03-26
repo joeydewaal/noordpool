@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    json::{CreateGameRequest, UpdateGameRequest},
+    json::{CreateGameRequest, GamesSummaryResponse, UpdateGameRequest},
     models::{Game, Role},
 };
 
@@ -35,7 +35,10 @@ pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Game>, AppError> {
-    let game = Game::get_by_id(&mut state.db, &id).await?;
+    let game = Game::filter_by_id(id)
+        .include(Game::fields().events().user())
+        .get(&mut state.db)
+        .await?;
     tracing::debug!("response:\n{:#?}", game);
     Ok(Json(game))
 }
@@ -78,6 +81,31 @@ pub async fn recent(
     let games = game_query.exec(&mut db).await?;
     tracing::debug!("response:\n{:#?}", games);
     Ok(Json(games))
+}
+
+#[tracing::instrument(skip(state, query))]
+pub async fn summary(
+    State(state): State<AppState>,
+    Query(query): Query<LimitQuery>,
+) -> Result<Json<GamesSummaryResponse>, AppError> {
+    let mut db = state.db;
+    let limit = query.limit.unwrap_or(3);
+
+    let upcoming = Game::all()
+        .filter(Game::fields().status().is_scheduled())
+        .order_by(Game::fields().date_time().desc())
+        .limit(limit)
+        .exec(&mut db)
+        .await?;
+
+    let recent = Game::all()
+        .filter(Game::fields().status().is_completed())
+        .order_by(Game::fields().date_time().desc())
+        .limit(limit)
+        .exec(&mut db)
+        .await?;
+
+    Ok(Json(GamesSummaryResponse { upcoming, recent }))
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use axum::{Json, extract::State};
 
@@ -6,17 +6,8 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{LeaderboardEntryResponse, LeaderboardResponse},
-    models::{EventType, GameEvent, GameStatus, User},
+    models::{EventType, GameStatus, User},
 };
-
-#[derive(Default)]
-struct PlayerStats {
-    goals: i32,
-    assists: i32,
-    yellow_cards: i32,
-    red_cards: i32,
-    game_ids: HashSet<uuid::Uuid>,
-}
 
 #[tracing::instrument(skip(state))]
 pub async fn leaderboard(
@@ -24,69 +15,48 @@ pub async fn leaderboard(
 ) -> Result<Json<LeaderboardResponse>, AppError> {
     let db = &mut state.db;
 
-    // Get all events
-    let events = GameEvent::all()
-        .include(GameEvent::fields().game())
+    // Load all active players with their events and each event's game in one query
+    let players = User::all_active()
+        .include(User::fields().game_events().game())
         .exec(db)
         .await?;
 
-    // Aggregate stats per player (only for events in completed games)
-    let mut stats_map: HashMap<uuid::Uuid, PlayerStats> = HashMap::new();
-
-    for event in &events {
-        if event.game.get().status != GameStatus::Completed {
-            continue;
-        }
-
-        let entry = stats_map.entry(event.user_id).or_default();
-        entry.game_ids.insert(event.game_id);
-        match event.event_type {
-            EventType::Goal => entry.goals += 1,
-            EventType::Assist => entry.assists += 1,
-            EventType::YellowCard => entry.yellow_cards += 1,
-            EventType::RedCard => entry.red_cards += 1,
-        }
-    }
-
-    // Get active players
-    let players = User::all_active().exec(db).await?;
-    let player_map: HashMap<uuid::Uuid, &User> = players.iter().map(|p| (p.id, p)).collect();
-
-    // Build entries
-    let mut entries: Vec<LeaderboardEntryResponse> = stats_map
+    // Build one leaderboard entry per player
+    let entries: Vec<LeaderboardEntryResponse> = players
         .iter()
-        .filter_map(|(player_id, ps)| {
-            let player = player_map.get(player_id)?;
-            Some(LeaderboardEntryResponse {
-                player_id: player_id.to_string(),
-                name: player.name.clone(),
-                shirt_number: player.shirt_number,
-                appearances: ps.game_ids.len() as i32,
-                goals: ps.goals,
-                assists: ps.assists,
-                yellow_cards: ps.yellow_cards,
-                red_cards: ps.red_cards,
-                total_cards: ps.yellow_cards + ps.red_cards,
-            })
-        })
-        .collect();
+        .map(|player| {
+            let mut goals = 0i32;
+            let mut assists = 0i32;
+            let mut yellow_cards = 0i32;
+            let mut red_cards = 0i32;
+            let mut game_ids: HashSet<uuid::Uuid> = HashSet::new();
 
-    // Also include active players with no events
-    for player in &players {
-        if player.active && !stats_map.contains_key(&player.id) {
-            entries.push(LeaderboardEntryResponse {
+            for event in player.game_events.get() {
+                if event.game.get().status != GameStatus::Completed {
+                    continue;
+                }
+                game_ids.insert(event.game_id);
+                match event.event_type {
+                    EventType::Goal => goals += 1,
+                    EventType::Assist => assists += 1,
+                    EventType::YellowCard => yellow_cards += 1,
+                    EventType::RedCard => red_cards += 1,
+                }
+            }
+
+            LeaderboardEntryResponse {
                 player_id: player.id.to_string(),
                 name: player.name.clone(),
                 shirt_number: player.shirt_number,
-                appearances: 0,
-                goals: 0,
-                assists: 0,
-                yellow_cards: 0,
-                red_cards: 0,
-                total_cards: 0,
-            });
-        }
-    }
+                appearances: game_ids.len() as i32,
+                goals,
+                assists,
+                yellow_cards,
+                red_cards,
+                total_cards: yellow_cards + red_cards,
+            }
+        })
+        .collect();
 
     let mut top_scorers = entries.clone();
     top_scorers.sort_by(|a, b| b.goals.cmp(&a.goals));
