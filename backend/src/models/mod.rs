@@ -8,6 +8,8 @@ pub mod team;
 pub mod user;
 pub mod user_role;
 
+use std::error::Error;
+
 pub use event_type::EventType;
 pub use game::Game;
 pub use game_event::GameEvent;
@@ -18,7 +20,7 @@ use toasty::{Db, create, db::Builder};
 pub use user::User;
 pub use user_role::{Role, UserRole};
 
-use crate::{auth::password, models::team::Team};
+use crate::{auth::password, import::parse_voetbal_csv, models::team::Team};
 
 pub fn build_db() -> Builder {
     let mut builder = Db::builder();
@@ -37,12 +39,17 @@ pub fn build_db() -> Builder {
     builder
 }
 
-pub async fn init_db(db: &mut Db) {
+pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
     let password = password::hash_password("Admin123")
         .await
         .expect("Couldn't hash password");
 
-    let _ = create!(User {
+    let (spelers, teams) = parse_voetbal_csv("../data/voetbal.csv").unwrap();
+
+    dbg!(&spelers);
+    dbg!(&teams);
+
+    let res = create!(User {
         name: "admin",
         email: "admin@noordpool.be",
         password_hash: password,
@@ -51,9 +58,15 @@ pub async fn init_db(db: &mut Db) {
     .exec(db)
     .await;
 
-    let _ = create!(Team {
+    if res.is_err() {
+        return Ok(());
+    }
+
+    create!(Team {
         name: "De Noordpool"
     })
     .exec(db)
-    .await;
+    .await?;
+
+    Ok(())
 }

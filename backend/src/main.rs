@@ -4,6 +4,7 @@ mod config;
 mod error;
 mod events;
 mod games;
+mod import;
 mod json;
 mod models;
 mod players;
@@ -30,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut db = build_db().connect(&config.database_url).await?;
     let _ = db.push_schema().await;
-    models::init_db(&mut db).await;
+    models::init_db(&mut db).await?;
 
     let db = {
         let fresh = db.clone();
