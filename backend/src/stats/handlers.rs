@@ -18,6 +18,7 @@ struct PlayerStats {
     game_ids: HashSet<uuid::Uuid>,
 }
 
+#[tracing::instrument(skip(state))]
 pub async fn leaderboard(
     State(mut state): State<AppState>,
 ) -> Result<Json<LeaderboardResponse>, AppError> {
@@ -96,9 +97,11 @@ pub async fn leaderboard(
     let mut most_carded = entries;
     most_carded.sort_by(|a, b| b.total_cards.cmp(&a.total_cards));
 
-    Ok(Json(LeaderboardResponse {
+    let response = LeaderboardResponse {
         top_scorers,
         top_assisters,
         most_carded,
-    }))
+    };
+    tracing::debug!("response:\n{:#?}", response);
+    Ok(Json(response))
 }

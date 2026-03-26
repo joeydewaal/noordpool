@@ -15,16 +15,20 @@ use crate::{
     models::{EventType, GameStatus, Role, User},
 };
 
+#[tracing::instrument(skip(state))]
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {
     let players = User::all_active().exec(&mut state.db).await?;
+    tracing::debug!("response:\n{:#?}", players);
     Ok(Json(players))
 }
 
+#[tracing::instrument(skip(state), fields(player_id = %id))]
 pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<User>, AppError> {
     let player = User::get_by_id(&mut state.db, &id).await?;
+    tracing::debug!("response:\n{:#?}", player);
     Ok(Json(player))
 }
 
@@ -33,6 +37,7 @@ pub async fn create(
     State(mut state): State<AppState>,
     Json(body): Json<CreatePlayerRequest>,
 ) -> Result<Json<User>, AppError> {
+    tracing::info!("players::create");
     let mut user = toasty::create!(
         User {
                 name: body.name,
@@ -47,6 +52,7 @@ pub async fn create(
     .await?;
 
     user.roles.unload();
+    tracing::debug!("response:\n{:#?}", user);
     Ok(Json(user))
 }
 
@@ -56,6 +62,7 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdatePlayerRequest>,
 ) -> Result<Json<User>, AppError> {
+    tracing::info!(player_id = %id, "players::update");
     let mut user = User::get_by_id(&mut state.db, id).await?;
     let mut user_update = user.update();
 
@@ -74,6 +81,7 @@ pub async fn update(
     }
 
     user_update.exec(&mut state.db).await?;
+    tracing::debug!("response:\n{:#?}", user);
     Ok(Json(user))
 }
 
@@ -82,6 +90,7 @@ pub async fn delete(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AppError> {
+    tracing::info!(player_id = %id, "players::delete");
     let db = &mut state.db;
 
     let mut player = User::get_by_id(db, &id).await?;
@@ -93,6 +102,7 @@ pub async fn delete(
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
 
+#[tracing::instrument(skip(state), fields(player_id = %id))]
 pub async fn stats(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -128,12 +138,14 @@ pub async fn stats(
         }
     }
 
-    Ok(Json(PlayerStatsResponse {
+    let response = PlayerStatsResponse {
         player_id: id.to_string(),
         appearances: game_ids.len(),
         goals,
         assists,
         yellow_cards,
         red_cards,
-    }))
+    };
+    tracing::debug!("response:\n{:#?}", response);
+    Ok(Json(response))
 }

@@ -13,6 +13,7 @@ use crate::{
     models::{GameEvent, Role},
 };
 
+#[tracing::instrument(skip(state), fields(game_id = %game_id))]
 pub async fn list(
     State(state): State<AppState>,
     Path(game_id): Path<Uuid>,
@@ -24,6 +25,7 @@ pub async fn list(
         .include(GameEvent::fields().user())
         .exec(&mut db)
         .await?;
+    tracing::debug!("response:\n{:#?}", events);
     Ok(Json(events))
 }
 
@@ -33,6 +35,7 @@ pub async fn create(
     Path(game_id): Path<Uuid>,
     Json(body): Json<CreateGameEventRequest>,
 ) -> Result<Json<GameEvent>, AppError> {
+    tracing::info!(game_id = %game_id, "events::create");
     let mut db = state.db;
 
     let event = GameEvent::create()
@@ -43,6 +46,7 @@ pub async fn create(
         .exec(&mut db)
         .await?;
 
+    tracing::debug!("response:\n{:#?}", event);
     Ok(Json(event))
 }
 
@@ -51,6 +55,7 @@ pub async fn delete(
     State(state): State<AppState>,
     Path((game_id, event_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, AppError> {
+    tracing::info!(game_id = %game_id, event_id = %event_id, "events::delete");
     let mut db = state.db;
 
     GameEvent::filter_by_id(event_id)

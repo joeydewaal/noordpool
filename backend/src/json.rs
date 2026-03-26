@@ -65,7 +65,7 @@ pub struct CreateGameEventRequest {
 
 // ── Stats ──
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerStatsResponse {
     pub player_id: String,
@@ -76,7 +76,7 @@ pub struct PlayerStatsResponse {
     pub red_cards: i32,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LeaderboardEntryResponse {
     pub player_id: String,
@@ -90,7 +90,7 @@ pub struct LeaderboardEntryResponse {
     pub total_cards: i32,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LeaderboardResponse {
     pub top_scorers: Vec<LeaderboardEntryResponse>,

@@ -18,6 +18,7 @@ pub struct LimitQuery {
     pub limit: Option<usize>,
 }
 
+#[tracing::instrument(skip(state))]
 pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db;
 
@@ -25,17 +26,21 @@ pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<Game>>, AppE
         .order_by(Game::fields().date_time().asc())
         .exec(&mut db)
         .await?;
+    tracing::debug!("response:\n{:#?}", games);
     Ok(Json(games))
 }
 
+#[tracing::instrument(skip(state), fields(game_id = %id))]
 pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Game>, AppError> {
     let game = Game::get_by_id(&mut state.db, &id).await?;
+    tracing::debug!("response:\n{:#?}", game);
     Ok(Json(game))
 }
 
+#[tracing::instrument(skip(state, query))]
 pub async fn upcoming(
     State(state): State<AppState>,
     Query(query): Query<LimitQuery>,
@@ -51,9 +56,11 @@ pub async fn upcoming(
     }
 
     let games = game_query.exec(&mut db).await?;
+    tracing::debug!("response:\n{:#?}", games);
     Ok(Json(games))
 }
 
+#[tracing::instrument(skip(state, query))]
 pub async fn recent(
     State(state): State<AppState>,
     Query(query): Query<LimitQuery>,
@@ -69,6 +76,7 @@ pub async fn recent(
     }
 
     let games = game_query.exec(&mut db).await?;
+    tracing::debug!("response:\n{:#?}", games);
     Ok(Json(games))
 }
 
@@ -77,6 +85,7 @@ pub async fn create(
     State(mut state): State<AppState>,
     Json(body): Json<CreateGameRequest>,
 ) -> Result<Json<Game>, AppError> {
+    tracing::info!("games::create");
     let db = &mut state.db;
 
     let game = toasty::create!(Game {
@@ -87,6 +96,7 @@ pub async fn create(
     })
     .exec(db)
     .await?;
+    tracing::debug!("response:\n{:#?}", game);
     Ok(Json(game))
 }
 
@@ -96,6 +106,7 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateGameRequest>,
 ) -> Result<Json<Game>, AppError> {
+    tracing::info!(game_id = %id, "games::update");
     let mut db = state.db;
 
     let mut game = Game::get_by_id(&mut db, id).await?;
@@ -126,6 +137,7 @@ pub async fn update(
     }
 
     update.exec(&mut db).await?;
+    tracing::debug!("response:\n{:#?}", game);
     Ok(Json(game))
 }
 
@@ -134,6 +146,7 @@ pub async fn delete(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<axum::http::StatusCode, AppError> {
+    tracing::info!(game_id = %id, "games::delete");
     let mut db = state.db;
 
     // Verify match exists

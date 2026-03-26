@@ -24,6 +24,7 @@ pub struct LoginRequest {
     password: String,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn register(
     State(state): State<AppState>,
     Json(body): Json<RegisterRequest>,
@@ -57,6 +58,7 @@ pub async fn register(
     Ok(Json(AuthResponse { user, token }))
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
@@ -87,6 +89,7 @@ pub async fn login(
     Ok(Json(AuthResponse { user, token }))
 }
 
+#[tracing::instrument(skip(state), fields(user_id = %claims.sub))]
 pub async fn me(
     State(mut state): State<AppState>,
     Jwt(claims): Jwt<Claims>,
@@ -95,6 +98,7 @@ pub async fn me(
         .include(User::fields().roles())
         .get(&mut state.db)
         .await?;
+    tracing::debug!("response:\n{:#?}", user);
     Ok(Json(user))
 }
 
