@@ -8,7 +8,7 @@ use crate::models::Role;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: Uuid,
-    pub email: String,
+    pub email: Option<String>,
     pub name: String,
     pub roles: Vec<Role>,
     #[serde(with = "jiff::fmt::serde::timestamp::second::required")]

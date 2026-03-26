@@ -32,7 +32,8 @@ pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Game>, AppError> {
-    Ok(Json(Game::get_by_id(&mut state.db, &id).await?))
+    let game = Game::get_by_id(&mut state.db, &id).await?;
+    Ok(Json(game))
 }
 
 pub async fn upcoming(

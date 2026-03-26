@@ -15,7 +15,7 @@ pub struct User {
     pub id: Uuid,
 
     #[unique]
-    pub email: String,
+    pub email: Option<String>,
 
     #[serde(skip)]
     pub password_hash: Option<String>,
