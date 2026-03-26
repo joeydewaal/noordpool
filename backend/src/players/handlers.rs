@@ -6,7 +6,6 @@ use axum::{
     http::StatusCode,
 };
 use axum_security::rbac::{requires, requires_any};
-use toasty::Executor;
 use uuid::Uuid;
 
 use crate::{
@@ -57,7 +56,8 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdatePlayerRequest>,
 ) -> Result<Json<User>, AppError> {
-    let mut user_update = User::update_by_id(id);
+    let mut user = User::get_by_id(&mut state.db, id).await?;
+    let mut user_update = user.update();
 
     if let Some(name) = body.name {
         user_update.set_name(name);
@@ -73,13 +73,8 @@ pub async fn update(
         user_update.set_active(active);
     }
 
-    let mut tx = state.db.transaction().await?;
-
-    user_update.exec(&mut tx).await?;
-    let player = User::get_by_id(&mut tx, &id).await?;
-
-    tx.commit().await?;
-    Ok(Json(player))
+    user_update.exec(&mut state.db).await?;
+    Ok(Json(user))
 }
 
 #[requires(Role::Admin)]

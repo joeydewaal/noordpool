@@ -1,9 +1,9 @@
 use jiff::Timestamp;
 use serde::Serialize;
-use toasty::{HasMany, Model};
+use toasty::{BelongsTo, HasMany, Model};
 use uuid::Uuid;
 
-use crate::models::{GameEvent, Position, Role};
+use crate::models::{GameEvent, Position, Role, team::Team};
 
 use super::UserRole;
 
@@ -21,9 +21,6 @@ pub struct User {
     pub password_hash: Option<String>,
     pub name: String,
 
-    #[default(Timestamp::now())]
-    pub created_at: Timestamp,
-
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]
     pub roles: HasMany<UserRole>,
@@ -34,12 +31,23 @@ pub struct User {
     #[default(Position::Goalkeeper)]
     pub position: Position,
 
-    #[default(true)]
-    pub active: bool,
-
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]
     pub game_events: HasMany<GameEvent>,
+
+    #[index]
+    #[serde(skip)]
+    pub team_id: Option<Uuid>,
+
+    #[belongs_to(key = team_id, references = id)]
+    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
+    pub team: BelongsTo<Option<Team>>,
+
+    #[default(Timestamp::now())]
+    pub created_at: Timestamp,
+
+    #[default(true)]
+    pub active: bool,
 }
 
 impl User {
