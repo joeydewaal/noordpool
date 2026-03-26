@@ -70,11 +70,27 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
     .exec(&mut tx)
     .await?;
 
-    // Create players one-by-one to capture shirt_number → User mapping
+    // Create the global Gastspeler user (referenced whenever a guest player scores)
     let mut shirt_to_user: HashMap<i32, User> = HashMap::new();
+    let gastspeler = create!(User {
+        name: "Gastspeler",
+        shirt_number: 20,
+        active: false,
+        roles: [{ role: Role::Player }],
+        team: noordpool.clone()
+    })
+    .exec(&mut tx)
+    .await?;
+    shirt_to_user.insert(20, gastspeler);
+
+    // Create regular players one-by-one to capture shirt_number → User mapping
     for p in &spelers {
+        if !p.active {
+            continue;
+        }
+        let name = format!("{} {}", p.first_name, p.last_name);
         let user = create!(User {
-                name: format!("{} {}", p.first_name, p.last_name),
+                name: name,
                 shirt_number: p.shirt_number,
                 roles: [{ role: Role::Player }],
                 team: noordpool.clone()

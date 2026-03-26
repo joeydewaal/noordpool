@@ -96,8 +96,12 @@ pub async fn me(
 ) -> Result<Json<User>, AppError> {
     let user = User::filter_by_id(claims.sub)
         .include(User::fields().roles())
-        .get(&mut state.db)
+        .first()
+        .exec(&mut state.db)
         .await?;
+    let Some(user) = user else {
+        return Err(AppError::unauthorized("User not found"));
+    };
     tracing::debug!("response:\n{:#?}", user);
     Ok(Json(user))
 }

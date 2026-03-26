@@ -6,6 +6,7 @@ pub struct ParsedPlayer {
     pub first_name: String,
     pub last_name: String,
     pub goals_per_match: Vec<(usize, u32)>, // (col_index, goal_count), only goals > 0
+    pub active: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -219,7 +220,6 @@ fn parse_player_row(record: &csv::StringRecord) -> Option<ParsedPlayer> {
 
     let name_lower = name_str.to_lowercase();
     if name_str.is_empty()
-        || name_lower == "gastspeler(s)"
         || name_lower == "own goal tegenpartij"
         || name_lower == "totaal"
     {
@@ -227,7 +227,6 @@ fn parse_player_row(record: &csv::StringRecord) -> Option<ParsedPlayer> {
     }
 
     let shirt_number: i32 = shirt_str.parse().ok()?;
-    let (last_name, first_name) = parse_name(name_str)?;
 
     let goals_per_match: Vec<(usize, u32)> = record
         .iter()
@@ -239,11 +238,24 @@ fn parse_player_row(record: &csv::StringRecord) -> Option<ParsedPlayer> {
         })
         .collect();
 
+    if name_lower == "gastspeler(s)" {
+        return Some(ParsedPlayer {
+            shirt_number,
+            first_name: "Gastspeler(s)".to_string(),
+            last_name: "".to_string(),
+            goals_per_match,
+            active: false,
+        });
+    }
+
+    let (last_name, first_name) = parse_name(name_str)?;
+
     Some(ParsedPlayer {
         shirt_number,
         first_name,
         last_name,
         goals_per_match,
+        active: true,
     })
 }
 
