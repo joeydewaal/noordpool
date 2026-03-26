@@ -66,7 +66,8 @@ pub async fn login(
     let user = User::filter_by_email(body.email)
         .filter(User::fields().password_hash().is_some())
         .include(User::fields().roles())
-        .first(&mut db)
+        .first()
+        .exec(&mut db)
         .await?;
 
     let Some(user) = user else {

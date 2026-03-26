@@ -130,14 +130,14 @@ pub async fn update(
 
 #[requires(Role::Admin)]
 pub async fn delete(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<axum::http::StatusCode, AppError> {
-    let db = &mut state.db;
+    let mut db = state.db;
 
     // Verify match exists
-    let game = Game::get_by_id(db, &id).await?;
+    let game = Game::get_by_id(&mut db, &id).await?;
 
-    game.delete().exec(db).await?;
+    game.delete().exec(&mut db).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }

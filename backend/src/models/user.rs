@@ -1,6 +1,6 @@
 use jiff::Timestamp;
 use serde::Serialize;
-use toasty::{BelongsTo, HasMany, Model};
+use toasty::{BelongsTo, HasMany, schema::Model};
 use uuid::Uuid;
 
 use crate::models::{GameEvent, Position, Role, team::Team};

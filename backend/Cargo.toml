@@ -18,6 +18,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 jiff = { version = "0.2", features = ["serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+csv = "1"
 
 [dev-dependencies]
 insta = { version = "1", features = ["json", "redactions"] }

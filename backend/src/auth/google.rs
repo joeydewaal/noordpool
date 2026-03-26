@@ -37,7 +37,8 @@ impl OidcHandler for GoogleHandler {
         // Try to find existing user by email
         let (user, roles) = match User::filter_by_email(&email)
             .include(User::fields().roles())
-            .first(&mut db)
+            .first()
+            .exec(&mut db)
             .await
         {
             Ok(Some(user)) => {
