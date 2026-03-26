@@ -45,7 +45,7 @@ pub fn parse_voetbal_csv(path: &str) -> Result<(Vec<ParsedPlayer>, Vec<ParsedTea
 }
 
 // Team names that refer to De Noordpool itself
-const NP_ALIASES: &[&str] = &["np", "de nok", "de noordpool"];
+const NP_ALIASES: &[&str] = &["np", "de noordpool"];
 
 fn extract_teams(record: &csv::StringRecord) -> Vec<ParsedTeam> {
     // En-dash separator used in match headers
