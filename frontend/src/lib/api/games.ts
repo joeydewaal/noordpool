@@ -23,6 +23,10 @@ export async function getRecentResults(limit?: number): Promise<Game[]> {
     return (await api.get<Game[]>('/games/recent', { params })).data;
 }
 
+export async function getGamesSummary(limit = 3): Promise<{ upcoming: Game[]; recent: Game[] }> {
+    return (await api.get('/games/summary', { params: { limit } })).data;
+}
+
 export async function createGame(data: CreateGameRequest): Promise<Game> {
     return (await api.post<Game>('/games', data)).data;
 }

@@ -61,6 +61,7 @@ export interface Game {
     homeScore: number | null;
     awayScore: number | null;
     createdAt: string;
+    events?: GameEvent[];
 }
 
 export interface CreateGameRequest {

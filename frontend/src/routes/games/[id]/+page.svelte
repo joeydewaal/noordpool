@@ -2,11 +2,7 @@
     import { page } from "$app/state";
     import { auth } from "$lib/state/auth.svelte.ts";
     import { getGame } from "$lib/api/games.ts";
-    import {
-        getGameEvents,
-        createGameEvent,
-        deleteGameEvent,
-    } from "$lib/api/events.ts";
+    import { createGameEvent, deleteGameEvent } from "$lib/api/events.ts";
     import { getPlayers } from "$lib/api/players.ts";
     import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
     import type { EventType, CreateGameEventRequest } from "$lib/api/types.ts";
@@ -24,24 +20,20 @@
     const playersQuery = createQuery(() => ({
         queryKey: ['players'],
         queryFn: getPlayers,
-    }));
-
-    const eventsQuery = createQuery(() => ({
-        queryKey: ['games', id, 'events'],
-        queryFn: () => getGameEvents(id),
+        enabled: canManage,
     }));
 
     const addEventMutation = createMutation(() => ({
         mutationFn: (data: CreateGameEventRequest) => createGameEvent(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['games', id, 'events'] });
+            queryClient.invalidateQueries({ queryKey: ['games', id] });
         },
     }));
 
     const deleteEventMutation = createMutation(() => ({
         mutationFn: (eventId: string) => deleteGameEvent(id, eventId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['games', id, 'events'] });
+            queryClient.invalidateQueries({ queryKey: ['games', id] });
         },
     }));
 
@@ -171,13 +163,13 @@
                         Wedstrijdverloop
                     </h2>
 
-                    {#if !eventsQuery.data || eventsQuery.data.length === 0}
+                    {#if !gameQuery.data?.events || gameQuery.data.events.length === 0}
                         <p class="text-sm text-surface-400">
                             Geen gebeurtenissen geregistreerd.
                         </p>
                     {:else}
                         <div class="space-y-2">
-                            {#each eventsQuery.data as event}
+                            {#each gameQuery.data.events as event}
                                 <div class="flex items-center gap-3 text-sm">
                                     <span
                                         class="inline-flex items-center justify-center w-10 h-6 preset-tonal-surface font-mono text-xs rounded"

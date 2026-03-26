@@ -1,17 +1,12 @@
 <script lang="ts">
     import { createQuery } from "@tanstack/svelte-query";
     import { auth } from "$lib/state/auth.svelte";
-    import { getUpcomingGames, getRecentResults } from "$lib/api/games";
+    import { getGamesSummary } from "$lib/api/games";
     import type { Game } from "$lib/api/types";
 
-    const upcomingQuery = createQuery(() => ({
-        queryKey: ["games", "upcoming"],
-        queryFn: () => getUpcomingGames(3),
-    }));
-
-    const recentQuery = createQuery(() => ({
-        queryKey: ["games", "recent"],
-        queryFn: () => getRecentResults(3),
+    const summaryQuery = createQuery(() => ({
+        queryKey: ["games", "summary"],
+        queryFn: () => getGamesSummary(3),
     }));
 
     function formatDate(dateTime: string): string {
@@ -49,13 +44,13 @@
                         >Bekijk alles</a
                     >
                 </div>
-                {#if !upcomingQuery.data || upcomingQuery.data.length === 0}
+                {#if !summaryQuery.data?.upcoming || summaryQuery.data.upcoming.length === 0}
                     <p class="text-surface-400 text-sm">
                         Geen komende wedstrijden.
                     </p>
                 {:else}
                     <div class="space-y-3">
-                        {#each upcomingQuery.data as game}
+                        {#each summaryQuery.data.upcoming as game}
                             <a
                                 href="/games/{game.id}"
                                 class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1"
@@ -91,11 +86,11 @@
                         >Bekijk alles</a
                     >
                 </div>
-                {#if !recentQuery.data || recentQuery.data.length === 0}
+                {#if !summaryQuery.data?.recent || summaryQuery.data.recent.length === 0}
                     <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
                 {:else}
                     <div class="space-y-3">
-                        {#each recentQuery.data as game}
+                        {#each summaryQuery.data.recent as game}
                             <a
                                 href="/games/{game.id}"
                                 class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1"
@@ -150,13 +145,13 @@
                     >Bekijk alles</a
                 >
             </div>
-            {#if !upcomingQuery.data || upcomingQuery.data.length === 0}
+            {#if !summaryQuery.data?.upcoming || summaryQuery.data.upcoming.length === 0}
                 <p class="text-surface-400 text-sm">
                     Geen komende wedstrijden.
                 </p>
             {:else}
                 <div class="space-y-3">
-                    {#each upcomingQuery.data as game}
+                    {#each summaryQuery.data.upcoming as game}
                         <a
                             href="/games/{game.id}"
                             class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1"
@@ -190,11 +185,11 @@
                     >Bekijk alles</a
                 >
             </div>
-            {#if !recentQuery.data || recentQuery.data.length === 0}
+            {#if !summaryQuery.data?.recent || summaryQuery.data.recent.length === 0}
                 <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
             {:else}
                 <div class="space-y-3">
-                    {#each recentQuery.data as game}
+                    {#each summaryQuery.data.recent as game}
                         <a
                             href="/games/{game.id}"
                             class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1"
