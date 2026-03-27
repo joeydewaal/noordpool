@@ -6,6 +6,7 @@ expression: body
   "awayScore": 0,
   "createdAt": "[timestamp]",
   "dateTime": "[dateTime]",
+  "events": [],
   "homeAway": "home",
   "homeScore": 0,
   "id": "[uuid]",

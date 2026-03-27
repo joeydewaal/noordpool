@@ -1,4 +1,8 @@
-use axum::{Json, extract::{Query, State}, http::StatusCode};
+use axum::{
+    Json,
+    extract::{Query, State},
+    http::StatusCode,
+};
 use axum_security::jwt::{Jwt, JwtContext};
 use jiff::{Timestamp, ToSpan as _};
 use serde::Deserialize;
@@ -95,11 +99,14 @@ pub async fn find_player(
     Query(query): Query<FindPlayerQuery>,
 ) -> Result<Json<Vec<PlayerMatchResponse>>, AppError> {
     let name = query.name.to_lowercase();
-    let all = User::all_active().exec(&mut state.db).await?;
+    let all = User::all_active()
+        .filter(User::fields().email().is_none())
+        .exec(&mut state.db)
+        .await?;
 
     let matches = all
         .into_iter()
-        .filter(|u| u.email.is_none() && u.name.to_lowercase().contains(&name))
+        .filter(|u| u.name.to_lowercase().contains(&name))
         .map(|u| PlayerMatchResponse {
             id: u.id,
             name: u.name,

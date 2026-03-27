@@ -46,10 +46,7 @@ async fn find_player_excludes_players_with_email() {
         }))
         .await;
 
-    let res = app
-        .get("/api/auth/find-player?name=linked")
-        .send()
-        .await;
+    let res = app.get("/api/auth/find-player?name=linked").send().await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     assert_eq!(body.as_array().unwrap().len(), 0);
@@ -110,10 +107,7 @@ async fn find_player_excludes_inactive_players() {
         .send()
         .await;
 
-    let res = app
-        .get("/api/auth/find-player?name=inactive")
-        .send()
-        .await;
+    let res = app.get("/api/auth/find-player?name=inactive").send().await;
     assert_eq!(res.status(), 200);
     assert_eq!(res.json_value().await.as_array().unwrap().len(), 0);
 }
@@ -276,11 +270,17 @@ async fn register_linked_player_no_longer_appears_in_find_player() {
         .await;
 
     // Confirm the player shows up before linking
-    let res = app.get("/api/auth/find-player?name=Nu%20Gelinkt").send().await;
+    let res = app
+        .get("/api/auth/find-player?name=Nu%20Gelinkt")
+        .send()
+        .await;
     assert_eq!(res.json_value().await.as_array().unwrap().len(), 1);
 
     // Register and link
-    let find_res = app.get("/api/auth/find-player?name=Nu%20Gelinkt").send().await;
+    let find_res = app
+        .get("/api/auth/find-player?name=Nu%20Gelinkt")
+        .send()
+        .await;
     let player_id = find_res.json_value().await[0]["id"]
         .as_str()
         .unwrap()
@@ -296,6 +296,9 @@ async fn register_linked_player_no_longer_appears_in_find_player() {
         .await;
 
     // Should no longer appear (now has email)
-    let res = app.get("/api/auth/find-player?name=Nu%20Gelinkt").send().await;
+    let res = app
+        .get("/api/auth/find-player?name=Nu%20Gelinkt")
+        .send()
+        .await;
     assert_eq!(res.json_value().await.as_array().unwrap().len(), 0);
 }

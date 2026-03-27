@@ -50,7 +50,6 @@ pub struct GamesSummaryResponse {
     pub recent: Vec<Game>,
 }
 
-
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateGameRequest {

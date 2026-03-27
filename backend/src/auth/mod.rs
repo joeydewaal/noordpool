@@ -8,7 +8,6 @@ use axum::{
     routing::{get, post},
 };
 
-
 use crate::app_state::AppState;
 
 pub fn router() -> Router<AppState> {
