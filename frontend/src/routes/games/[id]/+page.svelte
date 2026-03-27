@@ -91,10 +91,10 @@
 
 {#if gameQuery.data}
     <div class="max-w-lg">
-        <a
-            href="/games"
+        <button
+            onclick={() => history.back()}
             class="text-sm text-primary-500 hover:underline mb-4 inline-block"
-            >&larr; Alle wedstrijden</a
+            >&larr; Alle wedstrijden</button
         >
         <div class="card p-6">
             <div class="flex items-center justify-between mb-2">

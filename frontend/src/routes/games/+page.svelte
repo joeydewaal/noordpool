@@ -32,6 +32,10 @@
 
     let activeTab = $state(page.url.searchParams.get('tab') ?? 'upcoming');
 
+    $effect(() => {
+        activeTab = page.url.searchParams.get('tab') ?? 'upcoming';
+    });
+
     function onTabChange(details: { value: string }) {
         activeTab = details.value;
         const url = new URL(page.url);
