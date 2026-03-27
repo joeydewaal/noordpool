@@ -1,13 +1,18 @@
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{
+    Json,
+    extract::{Query, State},
+    http::StatusCode,
+};
 use axum_security::jwt::{Jwt, JwtContext};
 use jiff::{Timestamp, ToSpan as _};
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     auth::{claims::Claims, password},
     error::AppError,
-    json::AuthResponse,
+    json::{AuthResponse, PlayerMatchResponse},
     models::{Role, User},
 };
 
@@ -16,6 +21,12 @@ pub struct RegisterRequest {
     name: String,
     email: String,
     password: String,
+    player_id: Option<Uuid>,
+}
+
+#[derive(Deserialize)]
+pub struct FindPlayerQuery {
+    name: String,
 }
 
 #[derive(Deserialize)]
@@ -33,29 +44,78 @@ pub async fn register(
 
     let password_hash = password::hash_password(&body.password).await?;
 
-    let user = toasty::create!(
-        User {
-            name: body.name,
-            email: body.email,
-            password_hash: password_hash,
-            roles: [{ role: Role::Player }]
+    let user = if let Some(player_id) = body.player_id {
+        // Link to existing player (created by admin, no email yet)
+        let mut player = User::filter_by_id(player_id)
+            .include(User::fields().roles())
+            .first()
+            .exec(&mut db)
+            .await?
+            .ok_or_else(|| AppError::not_found("Player not found"))?;
+
+        if player.email.is_some() {
+            return Err(AppError::conflict("Player already has an account"));
         }
-    )
-    .exec(&mut db)
-    .await
-    .map_err(|e| {
-        let msg = e.to_string();
-        if msg.contains("unique") || msg.contains("duplicate") || msg.contains("UNIQUE") {
-            AppError::conflict("Email already registered")
-        } else {
-            AppError::internal(msg)
-        }
-    })?;
+
+        let mut update = player.update();
+        update.set_email(Some(body.email.clone()));
+        update.set_password_hash(Some(password_hash));
+        update.exec(&mut db).await?;
+
+        // Set updated fields on the local struct for token encoding / response
+        player.email = Some(body.email);
+
+        player
+    } else {
+        toasty::create!(
+            User {
+                name: body.name,
+                email: body.email,
+                password_hash: password_hash,
+                roles: [{ role: Role::Player }]
+            }
+        )
+        .exec(&mut db)
+        .await
+        .map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("unique") || msg.contains("duplicate") || msg.contains("UNIQUE") {
+                AppError::conflict("Email already registered")
+            } else {
+                AppError::internal(msg)
+            }
+        })?
+    };
 
     let roles = vec![Role::Player];
     let token = encode_token(&state.jwt, &user, &roles)?;
 
     Ok(Json(AuthResponse { user, token }))
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn find_player(
+    State(mut state): State<AppState>,
+    Query(query): Query<FindPlayerQuery>,
+) -> Result<Json<Vec<PlayerMatchResponse>>, AppError> {
+    let name = query.name.to_lowercase();
+    let all = User::all_active()
+        .filter(User::fields().email().is_none())
+        .exec(&mut state.db)
+        .await?;
+
+    let matches = all
+        .into_iter()
+        .filter(|u| u.name.to_lowercase().contains(&name))
+        .map(|u| PlayerMatchResponse {
+            id: u.id,
+            name: u.name,
+            shirt_number: u.shirt_number,
+            position: u.position,
+        })
+        .collect();
+
+    Ok(Json(matches))
 }
 
 #[tracing::instrument(skip_all)]

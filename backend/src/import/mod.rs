@@ -114,10 +114,7 @@ fn extract_teams(record: &csv::StringRecord) -> Vec<ParsedTeam> {
     teams
 }
 
-fn extract_matches(
-    header: &csv::StringRecord,
-    scores_row: &csv::StringRecord,
-) -> Vec<ParsedMatch> {
+fn extract_matches(header: &csv::StringRecord, scores_row: &csv::StringRecord) -> Vec<ParsedMatch> {
     const EN_DASH: &str = " \u{2013} ";
 
     let mut matches = Vec::new();
@@ -219,10 +216,7 @@ fn parse_player_row(record: &csv::StringRecord) -> Option<ParsedPlayer> {
     let name_str = record.get(1)?.trim();
 
     let name_lower = name_str.to_lowercase();
-    if name_str.is_empty()
-        || name_lower == "own goal tegenpartij"
-        || name_lower == "totaal"
-    {
+    if name_str.is_empty() || name_lower == "own goal tegenpartij" || name_lower == "totaal" {
         return None;
     }
 
@@ -234,7 +228,11 @@ fn parse_player_row(record: &csv::StringRecord) -> Option<ParsedPlayer> {
         .skip(2)
         .filter_map(|(col_index, val)| {
             let count: u32 = val.trim().parse().ok()?;
-            if count > 0 { Some((col_index, count)) } else { None }
+            if count > 0 {
+                Some((col_index, count))
+            } else {
+                None
+            }
         })
         .collect();
 

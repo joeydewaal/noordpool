@@ -17,6 +17,14 @@ export interface RegisterRequest {
     name: string;
     email: string;
     password: string;
+    playerId?: string;
+}
+
+export interface PlayerMatch {
+    id: string;
+    name: string;
+    shirtNumber: number;
+    position: Position;
 }
 
 export interface AuthResponse {

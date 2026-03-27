@@ -176,7 +176,7 @@ impl TestApp {
         // Encode a JWT with the elevated roles — RBAC checks the token, not the DB
         let claims = Claims {
             sub: user_id,
-            email: email.to_string(),
+            email: Some(email.to_string()),
             name: format!("Test {:?}", role),
             roles: vec![Role::Player, role],
             exp: Timestamp::now() + 24.hour(),
