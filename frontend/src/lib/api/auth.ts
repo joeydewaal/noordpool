@@ -1,4 +1,4 @@
-import type { AuthResponse, LoginRequest, RegisterRequest, User } from './types';
+import type { AuthResponse, LoginRequest, PlayerMatch, RegisterRequest, User } from './types';
 import { api, setToken, getToken, removeToken } from './client';
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
@@ -22,6 +22,11 @@ export async function me(): Promise<User | null> {
 		if (e.response?.status === 401) return null;
 		throw e;
 	}
+}
+
+export async function findPlayer(name: string): Promise<PlayerMatch[]> {
+	const response = await api.get<PlayerMatch[]>('/auth/find-player', { params: { name } });
+	return response.data;
 }
 
 export function logout(): void {

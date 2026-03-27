@@ -1,0 +1,301 @@
+mod common;
+
+use common::TestApp;
+use serde_json::json;
+
+// ── find-player ──────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn find_player_returns_unlinked_match() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    // Admin creates a player without email
+    app.post("/api/players")
+        .token(&token)
+        .json(json!({
+            "name": "Piet Paulsen",
+            "shirtNumber": 9,
+            "position": "forward"
+        }))
+        .await;
+
+    let res = app.get("/api/auth/find-player?name=piet").send().await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    let matches = body.as_array().unwrap();
+    assert_eq!(matches.len(), 1);
+    assert_eq!(matches[0]["name"], "Piet Paulsen");
+    assert_eq!(matches[0]["shirtNumber"], 9);
+    assert_eq!(matches[0]["position"], "forward");
+}
+
+#[tokio::test]
+async fn find_player_excludes_players_with_email() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    // Admin creates a player WITH an email (already linked)
+    app.post("/api/players")
+        .token(&token)
+        .json(json!({
+            "name": "Linked Speler",
+            "email": "linked@example.com",
+            "shirtNumber": 5,
+            "position": "midfielder"
+        }))
+        .await;
+
+    let res = app
+        .get("/api/auth/find-player?name=linked")
+        .send()
+        .await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    assert_eq!(body.as_array().unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn find_player_is_case_insensitive() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    app.post("/api/players")
+        .token(&token)
+        .json(json!({
+            "name": "Karel Karelse",
+            "shirtNumber": 3,
+            "position": "defender"
+        }))
+        .await;
+
+    // Search with uppercase
+    let res = app.get("/api/auth/find-player?name=KAREL").send().await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    assert_eq!(body.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn find_player_returns_empty_for_no_match() {
+    let mut app = TestApp::new().await;
+
+    let res = app
+        .get("/api/auth/find-player?name=doesnotexist")
+        .send()
+        .await;
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json_value().await.as_array().unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn find_player_excludes_inactive_players() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    let res = app
+        .post("/api/players")
+        .token(&token)
+        .json(json!({
+            "name": "Inactive Ivo",
+            "shirtNumber": 11,
+            "position": "goalkeeper"
+        }))
+        .await;
+    let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+    // Soft-delete the player
+    app.delete(format!("/api/players/{player_id}"))
+        .token(&token)
+        .send()
+        .await;
+
+    let res = app
+        .get("/api/auth/find-player?name=inactive")
+        .send()
+        .await;
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json_value().await.as_array().unwrap().len(), 0);
+}
+
+// ── register with player linking ─────────────────────────────────────────────
+
+#[tokio::test]
+async fn register_links_to_existing_player() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    // Admin creates a player without email
+    let res = app
+        .post("/api/players")
+        .token(&token)
+        .json(json!({
+            "name": "Sjaak Swart",
+            "shirtNumber": 11,
+            "position": "forward"
+        }))
+        .await;
+    let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+    // User registers and links to that player
+    let res = app
+        .post("/api/auth/register")
+        .json(json!({
+            "name": "Sjaak Swart",
+            "email": "sjaak@example.com",
+            "password": "geheim123",
+            "player_id": player_id
+        }))
+        .await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+
+    // The returned user should be the existing player (same ID)
+    assert_eq!(body["user"]["id"], player_id);
+    assert_eq!(body["user"]["name"], "Sjaak Swart");
+    assert_eq!(body["user"]["shirtNumber"], 11);
+    assert!(body["token"].as_str().is_some());
+}
+
+#[tokio::test]
+async fn register_linked_player_can_login() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    let res = app
+        .post("/api/players")
+        .token(&token)
+        .json(json!({
+            "name": "Klaas Klaasen",
+            "shirtNumber": 6,
+            "position": "midfielder"
+        }))
+        .await;
+    let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+    // Register with link
+    app.post("/api/auth/register")
+        .json(json!({
+            "name": "Klaas Klaasen",
+            "email": "klaas@example.com",
+            "password": "wachtwoord",
+            "player_id": player_id
+        }))
+        .await;
+
+    // Should now be able to login
+    let res = app
+        .post("/api/auth/login")
+        .json(json!({
+            "email": "klaas@example.com",
+            "password": "wachtwoord"
+        }))
+        .await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    assert_eq!(body["user"]["id"], player_id);
+}
+
+#[tokio::test]
+async fn register_link_fails_if_player_already_has_email() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    // Create a player that already has an email
+    let res = app
+        .post("/api/players")
+        .token(&token)
+        .json(json!({
+            "name": "Heeft Al Email",
+            "email": "al@example.com",
+            "shirtNumber": 1,
+            "position": "goalkeeper"
+        }))
+        .await;
+    let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+    // Try to link to it — should conflict
+    let res = app
+        .post("/api/auth/register")
+        .json(json!({
+            "name": "Iemand Anders",
+            "email": "anders@example.com",
+            "password": "test123",
+            "player_id": player_id
+        }))
+        .await;
+    assert_eq!(res.status(), 409);
+}
+
+#[tokio::test]
+async fn register_link_fails_if_player_not_found() {
+    let mut app = TestApp::new().await;
+
+    let res = app
+        .post("/api/auth/register")
+        .json(json!({
+            "name": "Iemand",
+            "email": "iemand@example.com",
+            "password": "test123",
+            "player_id": "00000000-0000-0000-0000-000000000000"
+        }))
+        .await;
+    assert_eq!(res.status(), 404);
+}
+
+#[tokio::test]
+async fn register_without_player_id_still_works() {
+    let mut app = TestApp::new().await;
+
+    let res = app
+        .post("/api/auth/register")
+        .json(json!({
+            "name": "Nieuw Iemand",
+            "email": "nieuw@example.com",
+            "password": "test123"
+        }))
+        .await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    assert_eq!(body["user"]["name"], "Nieuw Iemand");
+    assert!(body["token"].as_str().is_some());
+}
+
+#[tokio::test]
+async fn register_linked_player_no_longer_appears_in_find_player() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    app.post("/api/players")
+        .token(&token)
+        .json(json!({
+            "name": "Nu Gelinkt",
+            "shirtNumber": 7,
+            "position": "defender"
+        }))
+        .await;
+
+    // Confirm the player shows up before linking
+    let res = app.get("/api/auth/find-player?name=Nu%20Gelinkt").send().await;
+    assert_eq!(res.json_value().await.as_array().unwrap().len(), 1);
+
+    // Register and link
+    let find_res = app.get("/api/auth/find-player?name=Nu%20Gelinkt").send().await;
+    let player_id = find_res.json_value().await[0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    app.post("/api/auth/register")
+        .json(json!({
+            "name": "Nu Gelinkt",
+            "email": "gelinkt@example.com",
+            "password": "test123",
+            "player_id": player_id
+        }))
+        .await;
+
+    // Should no longer appear (now has email)
+    let res = app.get("/api/auth/find-player?name=Nu%20Gelinkt").send().await;
+    assert_eq!(res.json_value().await.as_array().unwrap().len(), 0);
+}

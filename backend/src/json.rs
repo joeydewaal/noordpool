@@ -10,13 +10,24 @@ pub struct AuthResponse {
     pub token: String,
 }
 
+// ── Auth ──
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerMatchResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub shirt_number: i32,
+    pub position: Position,
+}
+
 // ── Players ──
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePlayerRequest {
     pub name: String,
-    pub email: String,
+    pub email: Option<String>,
     pub shirt_number: i32,
     pub position: Position,
 }

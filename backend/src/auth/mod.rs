@@ -8,6 +8,7 @@ use axum::{
     routing::{get, post},
 };
 
+
 use crate::app_state::AppState;
 
 pub fn router() -> Router<AppState> {
@@ -16,4 +17,5 @@ pub fn router() -> Router<AppState> {
         .route("/login", post(handlers::login))
         .route("/logout", post(handlers::logout))
         .route("/me", get(handlers::me))
+        .route("/find-player", get(handlers::find_player))
 }
