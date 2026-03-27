@@ -1,5 +1,7 @@
 <script lang="ts">
     import { createQuery } from '@tanstack/svelte-query';
+    import { page } from "$app/state";
+    import { replaceState } from "$app/navigation";
     import { auth } from "$lib/state/auth.svelte.ts";
     import { getUpcomingGames, getRecentResults } from "$lib/api/games.ts";
     import type { Game } from "$lib/api/types.ts";
@@ -28,6 +30,15 @@
         });
     }
 
+    let activeTab = $state(page.url.searchParams.get('tab') ?? 'upcoming');
+
+    function onTabChange(details: { value: string }) {
+        activeTab = details.value;
+        const url = new URL(page.url);
+        url.searchParams.set('tab', details.value);
+        replaceState(url, {});
+    }
+
     function formatScore(game: Game): string {
         if (
             game.homeScore === null ||
@@ -52,7 +63,7 @@
 {:else if upcomingQuery.isError || recentQuery.isError}
     <p class="text-red-500 text-sm">Kon wedstrijden niet laden</p>
 {:else}
-    <Tabs defaultValue="upcoming">
+    <Tabs value={activeTab} onValueChange={onTabChange}>
         <Tabs.List class="mb-6">
             <Tabs.Trigger value="upcoming">Komend</Tabs.Trigger>
             <Tabs.Trigger value="results">Uitslagen</Tabs.Trigger>
