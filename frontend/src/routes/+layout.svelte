@@ -1,3 +1,8 @@
+<script module lang="ts">
+    import { QueryClient } from '@tanstack/svelte-query';
+    const queryClient = new QueryClient();
+</script>
+
 <script lang="ts">
     import "../app.css";
     import Header from "$lib/components/Header.svelte";
@@ -5,11 +10,9 @@
     import { registerSW } from "virtual:pwa-register";
     import { pwa } from "$lib/state/pwa.svelte.ts";
     import { theme } from "$lib/state/theme.svelte.ts";
-    import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
+    import { QueryClientProvider } from '@tanstack/svelte-query';
 
     let { children } = $props();
-
-    const queryClient = new QueryClient();
 
     onMount(() => {
         theme.init();

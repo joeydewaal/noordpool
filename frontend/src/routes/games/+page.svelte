@@ -62,9 +62,7 @@
     {/if}
 </div>
 
-{#if upcomingQuery.isPending && recentQuery.isPending}
-    <p class="text-surface-400 text-sm">Laden...</p>
-{:else if upcomingQuery.isError || recentQuery.isError}
+{#if upcomingQuery.isError || recentQuery.isError}
     <p class="text-red-500 text-sm">Kon wedstrijden niet laden</p>
 {:else}
     <Tabs value={activeTab} onValueChange={onTabChange}>
@@ -73,7 +71,9 @@
             <Tabs.Trigger value="results">Uitslagen</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="upcoming">
-            {#if !upcomingQuery.data || upcomingQuery.data.length === 0}
+            {#if upcomingQuery.isPending}
+                <p class="text-surface-400 text-sm">Laden...</p>
+            {:else if !upcomingQuery.data || upcomingQuery.data.length === 0}
                 <p class="text-surface-400 text-sm">
                     Geen komende wedstrijden gepland.
                 </p>
@@ -107,7 +107,9 @@
             {/if}
         </Tabs.Content>
         <Tabs.Content value="results">
-            {#if !recentQuery.data || recentQuery.data.length === 0}
+            {#if recentQuery.isPending}
+                <p class="text-surface-400 text-sm">Laden...</p>
+            {:else if !recentQuery.data || recentQuery.data.length === 0}
                 <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
             {:else}
                 <div class="space-y-3">
