@@ -26,7 +26,6 @@ pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<Game>>, AppE
         .order_by(Game::fields().date_time().asc())
         .exec(&mut db)
         .await?;
-    tracing::debug!("response:\n{:#?}", games);
     Ok(Json(games))
 }
 
@@ -35,11 +34,13 @@ pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Game>, AppError> {
+    // Use get_by_id first so a missing record produces a proper 404.
+    // filter_by_id().include().get() fails to propagate RecordNotFound correctly.
+    Game::get_by_id(&mut state.db, &id).await?;
     let game = Game::filter_by_id(id)
         .include(Game::fields().events().user())
         .get(&mut state.db)
         .await?;
-    tracing::debug!("response:\n{:#?}", game);
     Ok(Json(game))
 }
 
@@ -59,7 +60,6 @@ pub async fn upcoming(
     }
 
     let games = game_query.exec(&mut db).await?;
-    tracing::debug!("response:\n{:#?}", games);
     Ok(Json(games))
 }
 
@@ -79,7 +79,6 @@ pub async fn recent(
     }
 
     let games = game_query.exec(&mut db).await?;
-    tracing::debug!("response:\n{:#?}", games);
     Ok(Json(games))
 }
 
@@ -124,7 +123,6 @@ pub async fn create(
     })
     .exec(db)
     .await?;
-    tracing::debug!("response:\n{:#?}", game);
     Ok(Json(game))
 }
 
@@ -165,7 +163,6 @@ pub async fn update(
     }
 
     update.exec(&mut db).await?;
-    tracing::debug!("response:\n{:#?}", game);
     Ok(Json(game))
 }
 

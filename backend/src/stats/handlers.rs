@@ -72,6 +72,5 @@ pub async fn leaderboard(
         top_assisters,
         most_carded,
     };
-    tracing::debug!("response:\n{:#?}", response);
     Ok(Json(response))
 }

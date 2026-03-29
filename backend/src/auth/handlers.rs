@@ -162,7 +162,6 @@ pub async fn me(
     let Some(user) = user else {
         return Err(AppError::unauthorized("User not found"));
     };
-    tracing::debug!("response:\n{:#?}", user);
     Ok(Json(user))
 }
 

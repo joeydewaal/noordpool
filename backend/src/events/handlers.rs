@@ -25,7 +25,6 @@ pub async fn list(
         .include(GameEvent::fields().user())
         .exec(&mut db)
         .await?;
-    tracing::debug!("response:\n{:#?}", events);
     Ok(Json(events))
 }
 
@@ -46,7 +45,6 @@ pub async fn create(
         .exec(&mut db)
         .await?;
 
-    tracing::debug!("response:\n{:#?}", event);
     Ok(Json(event))
 }
 

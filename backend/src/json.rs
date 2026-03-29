@@ -4,6 +4,21 @@ use uuid::Uuid;
 
 use crate::models::{EventType, Game, GameStatus, HomeAway, Position, User};
 
+// ── Player goal matches ──
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerGoalMatchResponse {
+    pub game_id: String,
+    pub opponent: String,
+    pub date_time: Timestamp,
+    pub home_away: HomeAway,
+    pub home_score: i32,
+    pub away_score: i32,
+    pub status: GameStatus,
+    pub minutes: Vec<i32>,
+}
+
 #[derive(Serialize)]
 pub struct AuthResponse {
     pub user: User,
@@ -92,6 +107,7 @@ pub struct PlayerStatsResponse {
     pub assists: i32,
     pub yellow_cards: i32,
     pub red_cards: i32,
+    pub goal_matches: Vec<PlayerGoalMatchResponse>,
 }
 
 #[derive(Clone, Debug, Serialize)]

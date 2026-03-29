@@ -11,14 +11,15 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    json::{CreatePlayerRequest, PlayerStatsResponse, UpdatePlayerRequest},
+    json::{
+        CreatePlayerRequest, PlayerGoalMatchResponse, PlayerStatsResponse, UpdatePlayerRequest,
+    },
     models::{EventType, GameStatus, Role, User},
 };
 
 #[tracing::instrument(skip(state))]
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {
     let players = User::all_active().exec(&mut state.db).await?;
-    tracing::debug!("response:\n{:#?}", players);
     Ok(Json(players))
 }
 
@@ -28,7 +29,6 @@ pub async fn get_one(
     Path(id): Path<Uuid>,
 ) -> Result<Json<User>, AppError> {
     let player = User::get_by_id(&mut state.db, &id).await?;
-    tracing::debug!("response:\n{:#?}", player);
     Ok(Json(player))
 }
 
@@ -52,7 +52,6 @@ pub async fn create(
     .await?;
 
     user.roles.unload();
-    tracing::debug!("response:\n{:#?}", user);
     Ok(Json(user))
 }
 
@@ -81,7 +80,6 @@ pub async fn update(
     }
 
     user_update.exec(&mut state.db).await?;
-    tracing::debug!("response:\n{:#?}", user);
     Ok(Json(user))
 }
 
@@ -129,14 +127,43 @@ pub async fn stats(
     let mut assists = 0i32;
     let mut yellow_cards = 0i32;
     let mut red_cards = 0i32;
+    // Group goal minutes by game_id for goal_matches
+    let mut goal_map: std::collections::HashMap<Uuid, (Vec<i32>, &crate::models::Game)> =
+        std::collections::HashMap::new();
     for event in events {
         match event.event_type {
-            EventType::Goal => goals += 1,
+            EventType::Goal => {
+                goals += 1;
+                let game = event.game.get();
+                goal_map
+                    .entry(event.game_id)
+                    .or_insert_with(|| (Vec::new(), game))
+                    .0
+                    .push(event.minute);
+            }
             EventType::Assist => assists += 1,
             EventType::YellowCard => yellow_cards += 1,
             EventType::RedCard => red_cards += 1,
         }
     }
+
+    let mut goal_matches: Vec<PlayerGoalMatchResponse> = goal_map
+        .into_values()
+        .map(|(mut minutes, game)| {
+            minutes.sort_unstable();
+            PlayerGoalMatchResponse {
+                game_id: game.id.to_string(),
+                opponent: game.opponent.clone(),
+                date_time: game.date_time,
+                home_away: game.home_away.clone(),
+                home_score: game.home_score,
+                away_score: game.away_score,
+                status: game.status.clone(),
+                minutes,
+            }
+        })
+        .collect();
+    goal_matches.sort_by(|a, b| b.date_time.cmp(&a.date_time));
 
     let response = PlayerStatsResponse {
         player_id: id.to_string(),
@@ -145,7 +172,7 @@ pub async fn stats(
         assists,
         yellow_cards,
         red_cards,
+        goal_matches,
     };
-    tracing::debug!("response:\n{:#?}", response);
     Ok(Json(response))
 }
