@@ -52,12 +52,6 @@
 					</svg>
 					<Navigation.TriggerText>Statistieken</Navigation.TriggerText>
 				</Navigation.TriggerAnchor>
-				<Navigation.TriggerAnchor href="/profile">
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-					</svg>
-					<Navigation.TriggerText>Profiel</Navigation.TriggerText>
-				</Navigation.TriggerAnchor>
 			</Navigation.Group>
 		</Navigation.Menu>
 		<Navigation.Footer class="mt-auto flex flex-col gap-2">
@@ -71,6 +65,12 @@
 			{/if}
 			{#if auth.isAuthenticated}
 				<div class="text-sm text-surface-400 px-2">{auth.user?.name}</div>
+                <Navigation.TriggerAnchor href="/profile">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <Navigation.TriggerText>Profiel</Navigation.TriggerText>
+                </Navigation.TriggerAnchor>
 				<Navigation.Trigger onclick={handleLogout}>
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
