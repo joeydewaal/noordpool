@@ -14,8 +14,8 @@
 </script>
 
 <!-- Desktop sidebar -->
-<div class="hidden md:flex">
-	<Navigation layout="sidebar" class="border-r border-surface-200 dark:border-surface-700">
+<div class="hidden md:flex h-screen sticky top-0">
+	<Navigation layout="sidebar" class="h-full flex flex-col border-r border-surface-200 dark:border-surface-700">
 		<Navigation.Header class="flex items-center gap-3 mb-4">
 			<a href="/" class="flex items-center gap-3">
 				<img
@@ -69,19 +69,6 @@
 					<Navigation.TriggerText>Installeer</Navigation.TriggerText>
 				</Navigation.Trigger>
 			{/if}
-			<Navigation.Trigger onclick={() => theme.toggle()}>
-				{#if theme.isDark}
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h-1M4 12H3m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-					</svg>
-					<Navigation.TriggerText>Licht thema</Navigation.TriggerText>
-				{:else}
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
-					</svg>
-					<Navigation.TriggerText>Donker thema</Navigation.TriggerText>
-				{/if}
-			</Navigation.Trigger>
 			{#if auth.isAuthenticated}
 				<div class="text-sm text-surface-400 px-2">{auth.user?.name}</div>
 				<Navigation.Trigger onclick={handleLogout}>
