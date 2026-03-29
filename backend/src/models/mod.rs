@@ -21,7 +21,7 @@ use toasty::{Db, Executor, create, db::Builder, stmt::CreateMany};
 pub use user::User;
 pub use user_role::{Role, UserRole};
 
-use crate::{auth::password, import::parse_voetbal_csv, models::team::Team};
+use crate::{auth::password, import, models::team::Team};
 
 pub fn build_db() -> Builder {
     let mut builder = Db::builder();
@@ -60,9 +60,9 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
 
     let mut tx = db.transaction().await?;
 
-    let (spelers, teams, matches) = parse_voetbal_csv("../data/voetbal.csv").unwrap();
-
-    dbg!(&spelers, &teams, &matches);
+    let spelers = import::PLAYERS;
+    let teams = import::TEAMS;
+    let matches = import::MATCHES;
 
     let noordpool = create!(Team {
         name: "De Noordpool"
@@ -84,7 +84,7 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
     shirt_to_user.insert(20, gastspeler);
 
     // Create regular players one-by-one to capture shirt_number → User mapping
-    for p in &spelers {
+    for p in spelers {
         if !p.active {
             continue;
         }
@@ -101,16 +101,16 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
     }
 
     let create_teams: CreateMany<Team> = teams
-        .into_iter()
+        .iter()
         .map(|t| create!(Team { name: t.name }))
         .collect();
     create_teams.exec(&mut tx).await?;
 
     // Create games one-by-one to capture col_index → Game mapping
     let mut col_to_game: HashMap<usize, Game> = HashMap::new();
-    for m in &matches {
+    for m in matches {
         let game = create!(Game {
-            opponent: m.opponent.clone(),
+            opponent: m.opponent,
             location: "",
             date_time: jiff::Timestamp::UNIX_EPOCH,
             home_away: if m.is_home {
@@ -128,7 +128,7 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
     }
 
     // Create GameEvents for each goal scored
-    for p in &spelers {
+    for p in spelers {
         if p.goals_per_match.is_empty() {
             continue;
         }
@@ -136,7 +136,7 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
             Some(u) => u,
             None => continue,
         };
-        for (col_index, goal_count) in &p.goals_per_match {
+        for (col_index, goal_count) in p.goals_per_match {
             let game = match col_to_game.get(col_index) {
                 Some(g) => g,
                 None => continue,

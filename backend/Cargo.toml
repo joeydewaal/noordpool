@@ -21,6 +21,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 csv = "1"
 
+[build-dependencies]
+csv = "1"
+
 [dev-dependencies]
 insta = { version = "1", features = ["json", "redactions"] }
 http-body-util = "0.1"
