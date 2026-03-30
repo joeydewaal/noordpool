@@ -23,16 +23,18 @@
         },
     }));
 
-    let name = $state("");
+    let firstName = $state("");
+    let lastName = $state("");
     let shirtNumber = $state(0);
-    let position: Position = $state("central_midfielder");
+    let position: Position = $state("Centrale middenvelder");
     let active = $state(true);
     let initialized = $state(false);
 
     $effect(() => {
         const player = playerQuery.data;
         if (player && !initialized) {
-            name = player.name;
+            firstName = player.firstName;
+            lastName = player.lastName;
             shirtNumber = player.shirtNumber;
             position = player.position;
             active = player.active;
@@ -42,7 +44,7 @@
 
     function handleSubmit(e: Event) {
         e.preventDefault();
-        updateMutation.mutate({ name, shirtNumber, position, active });
+        updateMutation.mutate({ firstName, lastName, shirtNumber, position, active });
     }
 </script>
 
@@ -67,11 +69,21 @@
             class="card p-6 space-y-4"
         >
             <div>
-                <label for="name" class="label-text">Naam</label>
+                <label for="firstName" class="label-text">Voornaam</label>
                 <input
-                    id="name"
+                    id="firstName"
                     type="text"
-                    bind:value={name}
+                    bind:value={firstName}
+                    required
+                    class="input"
+                />
+            </div>
+            <div>
+                <label for="lastName" class="label-text">Achternaam</label>
+                <input
+                    id="lastName"
+                    type="text"
+                    bind:value={lastName}
                     required
                     class="input"
                 />
@@ -95,16 +107,16 @@
                     bind:value={position}
                     class="select"
                 >
-                    <option value="goalkeeper">Keeper</option>
-                    <option value="centre_back">Centrale verdediger</option>
-                    <option value="left_back">Linksback</option>
-                    <option value="right_back">Rechtsback</option>
-                    <option value="defensive_midfielder">Defensieve middenvelder</option>
-                    <option value="central_midfielder">Centrale middenvelder</option>
-                    <option value="attacking_midfielder">Aanvallende middenvelder</option>
-                    <option value="left_winger">Linksvleugel</option>
-                    <option value="right_winger">Rechtsvleugel</option>
-                    <option value="striker">Spits</option>
+                    <option value="Keeper">Keeper</option>
+                    <option value="Centrale verdediger">Centrale verdediger</option>
+                    <option value="Linksback">Linksback</option>
+                    <option value="Rechtsback">Rechtsback</option>
+                    <option value="Defensieve middenvelder">Defensieve middenvelder</option>
+                    <option value="Centrale middenvelder">Centrale middenvelder</option>
+                    <option value="Aanvallende middenvelder">Aanvallende middenvelder</option>
+                    <option value="Linksvleugel">Linksvleugel</option>
+                    <option value="Rechtsvleugel">Rechtsvleugel</option>
+                    <option value="Spits">Spits</option>
                 </select>
             </div>
             <div class="flex items-center gap-2">

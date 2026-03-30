@@ -27,14 +27,17 @@ pub struct AuthResponse {
 #[serde(rename_all = "camelCase")]
 pub struct PlayerMatchResponse {
     pub id: Uuid,
-    pub name: String,
+    pub first_name: String,
+    pub last_name: String,
     pub shirt_number: i32,
     pub position: Position,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RegisterRequest {
-    name: String,
+    first_name: String,
+    last_name: String,
     email: String,
     password: String,
 }
@@ -66,7 +69,8 @@ pub async fn register(
 
     let user = toasty::create!(
         User {
-            name: body.name,
+            first_name: body.first_name,
+            last_name: body.last_name,
             email: body.email,
             password_hash: password_hash,
             roles: [{ role: Role::Player }]
@@ -140,10 +144,16 @@ pub async fn find_player(
 
     let matches = all
         .into_iter()
-        .filter(|p| p.name.to_lowercase().contains(&name))
+        .filter(|p| {
+            let full = format!("{} {}", p.first_name, p.last_name).to_lowercase();
+            p.first_name.to_lowercase().contains(&name)
+                || p.last_name.to_lowercase().contains(&name)
+                || full.contains(&name)
+        })
         .map(|p| PlayerMatchResponse {
             id: p.id,
-            name: p.name,
+            first_name: p.first_name,
+            last_name: p.last_name,
             shirt_number: p.shirt_number,
             position: p.position,
         })
@@ -224,7 +234,8 @@ fn encode_token(
         sub: user.id,
         player_id,
         email: user.email.clone(),
-        name: user.name.clone(),
+        first_name: user.first_name.clone(),
+        last_name: user.last_name.clone(),
         roles: roles.to_vec(),
         exp: Timestamp::now() + 24.hours(),
     };

@@ -4,7 +4,8 @@
 	import { goto } from '$app/navigation';
 	import GoogleOAuthButton from '$lib/components/GoogleOAuthButton.svelte';
 
-	let name = $state('');
+	let firstName = $state('');
+	let lastName = $state('');
 	let email = $state('');
 	let password = $state('');
 	let confirmPassword = $state('');
@@ -20,9 +21,9 @@
 		}
 
 		try {
-			const res = await register({ name, email, password });
+			const res = await register({ firstName, lastName, email, password });
 			auth.setUser(res.user);
-			goto(`/auth/link-player?name=${encodeURIComponent(name)}`);
+			goto(`/auth/link-player?name=${encodeURIComponent(`${firstName} ${lastName}`)}`);
 		} catch (err) {
 			error = 'Registratie mislukt. Probeer het opnieuw.';
 		}
@@ -38,8 +39,12 @@
 
 	<form onsubmit={handleSubmit} class="space-y-4">
 		<div>
-			<label for="name" class="label-text">Naam</label>
-			<input id="name" type="text" bind:value={name} required class="input" />
+			<label for="firstName" class="label-text">Voornaam</label>
+			<input id="firstName" type="text" bind:value={firstName} required class="input" />
+		</div>
+		<div>
+			<label for="lastName" class="label-text">Achternaam</label>
+			<input id="lastName" type="text" bind:value={lastName} required class="input" />
 		</div>
 		<div>
 			<label for="email" class="label-text">E-mail</label>

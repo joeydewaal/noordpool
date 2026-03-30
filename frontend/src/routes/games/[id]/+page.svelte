@@ -55,8 +55,9 @@
     let newEventType: EventType = $state("goal");
     let newMinute = $state(1);
 
-    function playerName(event: { user?: { name: string } }): string {
-        return event.user?.name ?? "Onbekend";
+    function playerName(event: { user?: { firstName: string; lastName: string } }): string {
+        if (!event.user) return "Onbekend";
+        return `${event.user.firstName} ${event.user.lastName}`.trim();
     }
 
     function handleAddEvent() {

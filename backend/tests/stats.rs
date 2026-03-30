@@ -25,7 +25,8 @@ fn redact_settings() -> Settings {
 async fn create_player(
     app: &mut TestApp,
     token: &str,
-    name: &str,
+    first_name: &str,
+    last_name: &str,
     number: i32,
     position: &str,
 ) -> String {
@@ -33,8 +34,8 @@ async fn create_player(
         .post("/api/players")
         .token(token)
         .json(json!({
-            "name": name,
-            "email": format!("{name}@test.be"),
+            "firstName": first_name,
+            "lastName": last_name,
             "shirtNumber": number,
             "position": position
         }))
@@ -110,9 +111,9 @@ async fn leaderboard_with_data() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
-    let striker = create_player(&mut app, &token, "Striker", 9, "striker").await;
-    let midfield = create_player(&mut app, &token, "Playmaker", 10, "central_midfielder").await;
-    let defender = create_player(&mut app, &token, "Tough Guy", 4, "centre_back").await;
+    let striker = create_player(&mut app, &token, "Striker", "", 9, "Spits").await;
+    let midfield = create_player(&mut app, &token, "Playmaker", "", 10, "Centrale middenvelder").await;
+    let defender = create_player(&mut app, &token, "Tough", "Guy", 4, "Centrale verdediger").await;
 
     let game1 = create_game_and_complete(&mut app, &token, "FC Alpha", 3, 0).await;
     let game2 = create_game_and_complete(&mut app, &token, "FC Beta", 2, 1).await;
@@ -137,15 +138,15 @@ async fn leaderboard_with_data() {
 
     // Verify structure
     let top_scorers = body["topScorers"].as_array().unwrap();
-    assert_eq!(top_scorers[0]["name"], "Striker");
+    assert_eq!(top_scorers[0]["firstName"], "Striker");
     assert_eq!(top_scorers[0]["goals"], 3);
 
     let top_assisters = body["topAssisters"].as_array().unwrap();
-    assert_eq!(top_assisters[0]["name"], "Playmaker");
+    assert_eq!(top_assisters[0]["firstName"], "Playmaker");
     assert_eq!(top_assisters[0]["assists"], 3);
 
     let most_carded = body["mostCarded"].as_array().unwrap();
-    assert_eq!(most_carded[0]["name"], "Tough Guy");
+    assert_eq!(most_carded[0]["firstName"], "Tough");
     assert_eq!(most_carded[0]["totalCards"], 3);
 }
 
@@ -154,7 +155,7 @@ async fn player_stats_with_events() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
-    let player = create_player(&mut app, &token, "Star Player", 7, "striker").await;
+    let player = create_player(&mut app, &token, "Star", "Player", 7, "Spits").await;
     let game = create_game_and_complete(&mut app, &token, "FC Rival", 2, 0).await;
 
     add_event(&mut app, &token, &game, &player, "goal", 10).await;
@@ -179,7 +180,7 @@ async fn stats_ignore_scheduled_game_events() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
-    let player = create_player(&mut app, &token, "Player", 11, "striker").await;
+    let player = create_player(&mut app, &token, "Player", "", 11, "Spits").await;
 
     // Create a scheduled (not completed) match
     let res = app

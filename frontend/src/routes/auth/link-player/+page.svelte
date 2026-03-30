@@ -44,7 +44,7 @@
 			<p class="text-sm font-medium">We vonden de volgende spelers. Ben jij dit?</p>
 			{#each playerMatches as match}
 				<div class="flex items-center justify-between">
-					<span class="text-sm"><strong>{match.name}</strong> (#{match.shirtNumber}, {match.position})</span>
+					<span class="text-sm"><strong>{match.firstName} {match.lastName}</strong> (#{match.shirtNumber}, {match.position})</span>
 					<button type="button" onclick={() => confirmLink(match)} class="btn btn-sm preset-filled-primary-500 ml-3">
 						Ja, dat ben ik
 					</button>

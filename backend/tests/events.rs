@@ -18,14 +18,15 @@ fn redact_settings() -> Settings {
     settings
 }
 
-async fn create_player(app: &mut TestApp, token: &str, name: &str, number: i32) -> String {
+async fn create_player(app: &mut TestApp, token: &str, first_name: &str, number: i32) -> String {
     let res = app
         .post("/api/players")
         .token(token)
         .json(json!({
-            "name": name,
+            "firstName": first_name,
+            "lastName": "",
             "shirtNumber": number,
-            "position": "striker"
+            "position": "Spits"
         }))
         .await;
 

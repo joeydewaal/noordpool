@@ -19,7 +19,9 @@ pub struct User {
     #[serde(skip)]
     pub password_hash: Option<String>,
 
-    pub name: String,
+    pub first_name: String,
+
+    pub last_name: String,
 
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]

@@ -143,7 +143,8 @@ impl TestApp {
         let res = self
             .post("/api/auth/register")
             .json(json!({
-                "name": "Test User",
+                "firstName": "Test",
+                "lastName": "User",
                 "email": "test@example.com",
                 "password": "password123"
             }))
@@ -156,7 +157,8 @@ impl TestApp {
         let res = self
             .post("/api/auth/register")
             .json(json!({
-                "name": format!("Test {:?}", role),
+                "firstName": format!("Test {:?}", role),
+                "lastName": "",
                 "email": email,
                 "password": "password123"
             }))
@@ -169,7 +171,8 @@ impl TestApp {
             sub: user_id,
             player_id: None,
             email: email.to_string(),
-            name: format!("Test {:?}", role),
+            first_name: format!("Test {:?}", role),
+            last_name: String::new(),
             roles: vec![Role::Player, role],
             exp: Timestamp::now() + 24.hour(),
         };

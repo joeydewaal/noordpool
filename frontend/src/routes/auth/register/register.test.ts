@@ -16,7 +16,7 @@ import { goto } from '$app/navigation';
 beforeEach(() => {
 	vi.clearAllMocks();
 	vi.mocked(register).mockResolvedValue({
-		user: { id: 'user-1', email: 'test@example.com', name: 'Test', avatarUrl: null, roles: ['player'] },
+		user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: '', avatarUrl: null, roles: ['player'] },
 		token: 'mock-token',
 	});
 });
@@ -24,14 +24,16 @@ beforeEach(() => {
 describe('register form submission', () => {
 	it('submits without playerId', async () => {
 		render(Page);
-		await fireEvent.input(screen.getByLabelText(/naam/i), { target: { value: 'Jan de Vries' } });
+		await fireEvent.input(screen.getByLabelText(/voornaam/i), { target: { value: 'Jan' } });
+		await fireEvent.input(screen.getByLabelText(/achternaam/i), { target: { value: 'de Vries' } });
 		await fireEvent.input(screen.getByLabelText(/^e-mail/i), { target: { value: 'jan@example.com' } });
 		await fireEvent.input(screen.getByLabelText(/^wachtwoord$/i), { target: { value: 'geheim123' } });
 		await fireEvent.input(screen.getByLabelText(/bevestig wachtwoord/i), { target: { value: 'geheim123' } });
 		await fireEvent.submit(screen.getByRole('button', { name: /registreren/i }));
 
 		await waitFor(() => expect(register).toHaveBeenCalledWith({
-			name: 'Jan de Vries',
+			firstName: 'Jan',
+			lastName: 'de Vries',
 			email: 'jan@example.com',
 			password: 'geheim123',
 		}));
@@ -39,7 +41,8 @@ describe('register form submission', () => {
 
 	it('navigates to link-player page with name after successful registration', async () => {
 		render(Page);
-		await fireEvent.input(screen.getByLabelText(/naam/i), { target: { value: 'Jan de Vries' } });
+		await fireEvent.input(screen.getByLabelText(/voornaam/i), { target: { value: 'Jan' } });
+		await fireEvent.input(screen.getByLabelText(/achternaam/i), { target: { value: 'de Vries' } });
 		await fireEvent.input(screen.getByLabelText(/^e-mail/i), { target: { value: 'jan@example.com' } });
 		await fireEvent.input(screen.getByLabelText(/^wachtwoord$/i), { target: { value: 'geheim123' } });
 		await fireEvent.input(screen.getByLabelText(/bevestig wachtwoord/i), { target: { value: 'geheim123' } });
@@ -60,7 +63,8 @@ describe('register form submission', () => {
 	it('shows error on registration failure', async () => {
 		vi.mocked(register).mockRejectedValue(new Error('conflict'));
 		render(Page);
-		await fireEvent.input(screen.getByLabelText(/naam/i), { target: { value: 'Test' } });
+		await fireEvent.input(screen.getByLabelText(/voornaam/i), { target: { value: 'Test' } });
+		await fireEvent.input(screen.getByLabelText(/achternaam/i), { target: { value: '' } });
 		await fireEvent.input(screen.getByLabelText(/^e-mail/i), { target: { value: 'test@example.com' } });
 		await fireEvent.input(screen.getByLabelText(/^wachtwoord$/i), { target: { value: 'test123' } });
 		await fireEvent.input(screen.getByLabelText(/bevestig wachtwoord/i), { target: { value: 'test123' } });
@@ -71,9 +75,9 @@ describe('register form submission', () => {
 	it('does not call findPlayer on name blur', async () => {
 		const findPlayer = vi.fn();
 		render(Page);
-		const nameInput = screen.getByLabelText(/naam/i);
-		await fireEvent.input(nameInput, { target: { value: 'Jan' } });
-		await fireEvent.blur(nameInput);
+		const firstNameInput = screen.getByLabelText(/voornaam/i);
+		await fireEvent.input(firstNameInput, { target: { value: 'Jan' } });
+		await fireEvent.blur(firstNameInput);
 		expect(findPlayer).not.toHaveBeenCalled();
 	});
 });

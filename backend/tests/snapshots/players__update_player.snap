@@ -5,8 +5,9 @@ expression: body
 {
   "active": true,
   "createdAt": "[createdAt]",
+  "firstName": "Jan",
   "id": "[uuid]",
-  "name": "Jan de Boer",
-  "position": "striker",
+  "lastName": "de Boer",
+  "position": "Spits",
   "shirtNumber": 7
 }

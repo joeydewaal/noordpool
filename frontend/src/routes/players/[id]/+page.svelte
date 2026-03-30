@@ -29,16 +29,16 @@
 	}));
 
 	const positionColor: Record<string, string> = {
-		goalkeeper: 'preset-filled-warning-500',
-		centre_back: 'preset-filled-secondary-500',
-		left_back: 'preset-filled-secondary-500',
-		right_back: 'preset-filled-secondary-500',
-		defensive_midfielder: 'preset-filled-primary-500',
-		central_midfielder: 'preset-filled-primary-500',
-		attacking_midfielder: 'preset-filled-primary-500',
-		left_winger: 'preset-filled-error-500',
-		right_winger: 'preset-filled-error-500',
-		striker: 'preset-filled-error-500'
+		'Keeper': 'preset-filled-warning-500',
+		'Centrale verdediger': 'preset-filled-secondary-500',
+		'Linksback': 'preset-filled-secondary-500',
+		'Rechtsback': 'preset-filled-secondary-500',
+		'Defensieve middenvelder': 'preset-filled-primary-500',
+		'Centrale middenvelder': 'preset-filled-primary-500',
+		'Aanvallende middenvelder': 'preset-filled-primary-500',
+		'Linksvleugel': 'preset-filled-error-500',
+		'Rechtsvleugel': 'preset-filled-error-500',
+		'Spits': 'preset-filled-error-500'
 	};
 
 	function toggleActive() {
@@ -55,7 +55,7 @@
 			<div class="flex items-center gap-4 mb-4">
 				<div class="text-4xl font-bold text-primary-500">{playerQuery.data.shirtNumber}</div>
 				<div>
-					<h1 class="text-2xl font-bold">{playerQuery.data.name}</h1>
+					<h1 class="text-2xl font-bold">{playerQuery.data.firstName} {playerQuery.data.lastName}</h1>
 					<span class="chip mt-1 {positionColor[playerQuery.data.position]}">
 						{playerQuery.data.position}
 					</span>

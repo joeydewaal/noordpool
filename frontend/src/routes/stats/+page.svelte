@@ -30,7 +30,7 @@
 						{#each leaderboardQuery.data.topScorers as player, i}
 							<tr>
 								<td class="text-surface-400">{i + 1}</td>
-								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.name}</a></td>
+								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.firstName} {player.lastName}</a></td>
 								<td class="text-center text-surface-400">{player.shirtNumber}</td>
 								<td class="text-center font-bold">{player.goals}</td>
 							</tr>
@@ -60,7 +60,7 @@
 						{#each leaderboardQuery.data.topAssisters as player, i}
 							<tr>
 								<td class="text-surface-400">{i + 1}</td>
-								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.name}</a></td>
+								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.firstName} {player.lastName}</a></td>
 								<td class="text-center text-surface-400">{player.shirtNumber}</td>
 								<td class="text-center font-bold">{player.assists}</td>
 							</tr>
@@ -92,7 +92,7 @@
 						{#each leaderboardQuery.data.mostCarded as player, i}
 							<tr>
 								<td class="text-surface-400">{i + 1}</td>
-								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.name}</a></td>
+								<td><a href="/players/{player.playerId}" class="text-primary-500 hover:underline font-medium">{player.firstName} {player.lastName}</a></td>
 								<td class="text-center text-surface-400">{player.shirtNumber}</td>
 								<td class="text-center">{player.yellowCards}</td>
 								<td class="text-center">{player.redCards}</td>

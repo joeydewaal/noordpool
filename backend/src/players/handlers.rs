@@ -19,7 +19,8 @@ use crate::{
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePlayerRequest {
-    pub name: String,
+    pub first_name: String,
+    pub last_name: String,
     pub shirt_number: i32,
     pub position: Position,
 }
@@ -27,7 +28,8 @@ pub struct CreatePlayerRequest {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdatePlayerRequest {
-    pub name: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
     pub shirt_number: Option<i32>,
     pub position: Option<Position>,
     pub active: Option<bool>,
@@ -80,7 +82,8 @@ pub async fn create(
 ) -> Result<Json<Player>, AppError> {
     tracing::info!("players::create");
     let player = toasty::create!(Player {
-        name: body.name,
+        first_name: body.first_name,
+        last_name: body.last_name,
         shirt_number: body.shirt_number,
         position: body.position,
     })
@@ -100,8 +103,11 @@ pub async fn update(
     let mut player = Player::get_by_id(&mut state.db, id).await?;
     let mut player_update = player.update();
 
-    if let Some(name) = body.name {
-        player_update.set_name(name);
+    if let Some(first_name) = body.first_name {
+        player_update.set_first_name(first_name);
+    }
+    if let Some(last_name) = body.last_name {
+        player_update.set_last_name(last_name);
     }
     if let Some(shirt_number) = body.shirt_number {
         player_update.set_shirt_number(shirt_number);

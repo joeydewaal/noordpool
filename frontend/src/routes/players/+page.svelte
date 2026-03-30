@@ -19,16 +19,16 @@
     );
 
     const positionColor: Record<string, string> = {
-        goalkeeper: "preset-filled-warning-500",
-        centre_back: "preset-filled-secondary-500",
-        left_back: "preset-filled-secondary-500",
-        right_back: "preset-filled-secondary-500",
-        defensive_midfielder: "preset-filled-primary-500",
-        central_midfielder: "preset-filled-primary-500",
-        attacking_midfielder: "preset-filled-primary-500",
-        left_winger: "preset-filled-error-500",
-        right_winger: "preset-filled-error-500",
-        striker: "preset-filled-error-500",
+        "Keeper": "preset-filled-warning-500",
+        "Centrale verdediger": "preset-filled-secondary-500",
+        "Linksback": "preset-filled-secondary-500",
+        "Rechtsback": "preset-filled-secondary-500",
+        "Defensieve middenvelder": "preset-filled-primary-500",
+        "Centrale middenvelder": "preset-filled-primary-500",
+        "Aanvallende middenvelder": "preset-filled-primary-500",
+        "Linksvleugel": "preset-filled-error-500",
+        "Rechtsvleugel": "preset-filled-error-500",
+        "Spits": "preset-filled-error-500",
     };
 </script>
 
@@ -67,7 +67,7 @@
             </div>
             <div class="flex-1 min-w-0">
                 <div class="font-semibold truncate">
-                    {player.name}
+                    {player.firstName} {player.lastName}
                 </div>
                 <span
                     class="chip mt-1 {positionColor[player.position]}"

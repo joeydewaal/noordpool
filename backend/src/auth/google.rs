@@ -26,11 +26,15 @@ impl OidcHandler for GoogleHandler {
             None => return Redirect::to(&format!("{}?error=no_email", self.frontend_url)),
         };
 
-        let name = token_res
+        let full_name = token_res
             .claims
             .name
             .map(|n| n.to_string())
             .unwrap_or_else(|| email.clone());
+        let (first_name, last_name) = match full_name.find(' ') {
+            Some(idx) => (full_name[..idx].to_string(), full_name[idx + 1..].to_string()),
+            None => (full_name, String::new()),
+        };
 
         let mut db = self.db.clone();
 
@@ -47,7 +51,8 @@ impl OidcHandler for GoogleHandler {
             }
             Ok(None) => {
                 let user = match toasty::create!(User {
-                    name: name.clone(),
+                    first_name: first_name.clone(),
+                    last_name: last_name.clone(),
                     email: email.clone(),
                     roles: [{ role: Role::Player }]
                 })
@@ -79,7 +84,8 @@ impl OidcHandler for GoogleHandler {
             sub: user.id,
             player_id,
             email: user.email.clone(),
-            name: user.name.clone(),
+            first_name: user.first_name.clone(),
+            last_name: user.last_name.clone(),
             roles: roles.clone(),
             exp: Timestamp::now() + 24.days(),
         };

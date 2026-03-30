@@ -16,7 +16,9 @@ pub struct Player {
     #[serde(skip)]
     pub user_id: Option<Uuid>,
 
-    pub name: String,
+    pub first_name: String,
+
+    pub last_name: String,
 
     pub shirt_number: i32,
 

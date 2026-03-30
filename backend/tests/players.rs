@@ -26,9 +26,10 @@ async fn create_player_requires_auth() {
     let res = app
         .post("/api/players")
         .json(json!({
-            "name": "Jan de Boer",
+            "firstName": "Jan",
+            "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     assert_eq!(res.status(), 401);
@@ -43,9 +44,10 @@ async fn create_player_forbidden_for_player_role() {
         .post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Jan de Boer",
+            "firstName": "Jan",
+            "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     assert_eq!(res.status(), 403);
@@ -60,9 +62,10 @@ async fn create_and_get_player() {
         .post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Jan de Boer",
+            "firstName": "Jan",
+            "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     assert_eq!(res.status(), 200);
@@ -90,9 +93,10 @@ async fn update_player() {
         .post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Jan de Boer",
+            "firstName": "Jan",
+            "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     let created = res.json_value().await;
@@ -103,7 +107,7 @@ async fn update_player() {
         .token(&token)
         .json(json!({
             "shirtNumber": 7,
-            "position": "striker"
+            "position": "Spits"
         }))
         .await;
     assert_eq!(res.status(), 200);
@@ -133,9 +137,10 @@ async fn player_stats_empty() {
         .post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Jan de Boer",
+            "firstName": "Jan",
+            "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     let created = res.json_value().await;
@@ -163,9 +168,10 @@ async fn delete_player_soft_deletes() {
         .post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Jan de Boer",
+            "firstName": "Jan",
+            "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     let created = res.json_value().await;
@@ -186,9 +192,9 @@ async fn delete_player_soft_deletes() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|p| p["name"].as_str().unwrap())
+        .map(|p| p["firstName"].as_str().unwrap())
         .collect();
-    assert!(!names.contains(&"Jan de Boer"));
+    assert!(!names.contains(&"Jan"));
 
     // But get by ID should still work
     let res = app.get(format!("/api/players/{player_id}")).send().await;
@@ -208,9 +214,10 @@ async fn delete_player_forbidden_for_moderator() {
         .post("/api/players")
         .token(&admin_token)
         .json(json!({
-            "name": "Jan de Boer",
+            "firstName": "Jan",
+            "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     let created = res.json_value().await;

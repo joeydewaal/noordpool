@@ -22,17 +22,17 @@
 			{#if auth.user?.avatarUrl}
 				<img
 					src={auth.user.avatarUrl}
-					alt={auth.user.name}
+					alt="{auth.user.firstName} {auth.user.lastName}"
 					class="w-20 h-20 rounded-full object-cover"
 				/>
 			{:else}
 				<div class="w-20 h-20 rounded-full bg-surface-500 flex items-center justify-center text-3xl font-bold text-white">
-					{auth.user?.name?.charAt(0).toUpperCase()}
+					{auth.user?.firstName?.charAt(0).toUpperCase()}
 				</div>
 			{/if}
 
 			<div class="text-center">
-				<h1 class="text-xl font-bold">{auth.user?.name}</h1>
+				<h1 class="text-xl font-bold">{auth.user?.firstName} {auth.user?.lastName}</h1>
 				<p class="text-surface-400">{auth.user?.email}</p>
 			</div>
 

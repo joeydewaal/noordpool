@@ -13,7 +13,8 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 pub struct LeaderboardEntryResponse {
     pub player_id: String,
-    pub name: String,
+    pub first_name: String,
+    pub last_name: String,
     pub shirt_number: i32,
     pub appearances: i32,
     pub goals: i32,
@@ -68,7 +69,8 @@ pub async fn leaderboard(
 
             LeaderboardEntryResponse {
                 player_id: player.id.to_string(),
-                name: player.name.clone(),
+                first_name: player.first_name.clone(),
+                last_name: player.last_name.clone(),
                 shirt_number: player.shirt_number,
                 appearances: game_ids.len() as i32,
                 goals,

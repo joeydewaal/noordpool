@@ -51,7 +51,8 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
         .expect("Couldn't hash password");
 
     let res = create!(User {
-        name: "admin",
+        first_name: "Admin",
+        last_name: "",
         email: "admin@noordpool.be",
         password_hash: password,
         roles: [{ role: Role::Admin }]
@@ -76,7 +77,8 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
     let mut shirt_to_player: HashMap<i32, Player> = HashMap::new();
 
     let gastspeler = create!(Player {
-        name: "Gastspeler",
+        first_name: "Gastspeler",
+        last_name: "",
         shirt_number: 20,
         position: Position::CentralMidfielder,
         active: false,
@@ -90,9 +92,9 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
         if !p.active {
             continue;
         }
-        let name = format!("{} {}", p.first_name, p.last_name);
         let player = create!(Player {
-            name: name,
+            first_name: p.first_name,
+            last_name: p.last_name,
             shirt_number: p.shirt_number,
             position: p.position,
             team: noordpool.clone()

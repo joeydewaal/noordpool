@@ -3,7 +3,8 @@ export type Role = 'admin' | 'moderator' | 'player';
 export interface User {
     id: string;
     email: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     avatarUrl: string | null;
     roles: Role[];
 }
@@ -14,14 +15,16 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     password: string;
 }
 
 export interface PlayerMatch {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     shirtNumber: number;
     position: Position;
 }
@@ -33,34 +36,37 @@ export interface AuthResponse {
 }
 
 export type Position =
-    | 'goalkeeper'
-    | 'centre_back'
-    | 'left_back'
-    | 'right_back'
-    | 'defensive_midfielder'
-    | 'central_midfielder'
-    | 'attacking_midfielder'
-    | 'left_winger'
-    | 'right_winger'
-    | 'striker';
+    | 'Keeper'
+    | 'Centrale verdediger'
+    | 'Linksback'
+    | 'Rechtsback'
+    | 'Defensieve middenvelder'
+    | 'Centrale middenvelder'
+    | 'Aanvallende middenvelder'
+    | 'Linksvleugel'
+    | 'Rechtsvleugel'
+    | 'Spits';
 
 export interface Player {
     id: string;
     userId: string | null;
-    name: string;
+    firstName: string;
+    lastName: string;
     shirtNumber: number;
     position: Position;
     active: boolean;
 }
 
 export interface CreatePlayerRequest {
-    name: string;
+    firstName: string;
+    lastName: string;
     shirtNumber: number;
     position: Position;
 }
 
 export interface UpdatePlayerRequest {
-    name?: string;
+    firstName?: string;
+    lastName?: string;
     shirtNumber?: number;
     position?: Position;
     active?: boolean;
@@ -105,7 +111,7 @@ export interface GameEvent {
     id: string;
     gameId: string;
     playerId: string;
-    user?: { id: string; name: string };
+    user?: { id: string; firstName: string; lastName: string };
     eventType: EventType;
     minute: number;
 }
@@ -127,7 +133,8 @@ export interface PlayerStats {
 
 export interface LeaderboardEntry {
     playerId: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     shirtNumber: number;
     appearances: number;
     goals: number;

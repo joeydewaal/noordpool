@@ -14,9 +14,10 @@ async fn find_player_returns_unlinked_match() {
     app.post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Piet Paulsen",
+            "firstName": "Piet",
+            "lastName": "Paulsen",
             "shirtNumber": 9,
-            "position": "striker"
+            "position": "Spits"
         }))
         .await;
 
@@ -25,9 +26,10 @@ async fn find_player_returns_unlinked_match() {
     let body = res.json_value().await;
     let matches = body.as_array().unwrap();
     assert_eq!(matches.len(), 1);
-    assert_eq!(matches[0]["name"], "Piet Paulsen");
+    assert_eq!(matches[0]["firstName"], "Piet");
+    assert_eq!(matches[0]["lastName"], "Paulsen");
     assert_eq!(matches[0]["shirtNumber"], 9);
-    assert_eq!(matches[0]["position"], "striker");
+    assert_eq!(matches[0]["position"], "Spits");
 }
 
 #[tokio::test]
@@ -40,9 +42,10 @@ async fn find_player_excludes_linked_players() {
         .post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Linked Speler",
+            "firstName": "Linked",
+            "lastName": "Speler",
             "shirtNumber": 5,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -51,7 +54,8 @@ async fn find_player_excludes_linked_players() {
     let register_res = app
         .post("/api/auth/register")
         .json(json!({
-            "name": "Linked Speler",
+            "firstName": "Linked",
+            "lastName": "Speler",
             "email": "linked@example.com",
             "password": "test123"
         }))
@@ -80,9 +84,10 @@ async fn find_player_is_case_insensitive() {
     app.post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Karel Karelse",
+            "firstName": "Karel",
+            "lastName": "Karelse",
             "shirtNumber": 3,
-            "position": "centre_back"
+            "position": "Centrale verdediger"
         }))
         .await;
 
@@ -114,9 +119,10 @@ async fn find_player_excludes_inactive_players() {
         .post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Inactive Ivo",
+            "firstName": "Inactive",
+            "lastName": "Ivo",
             "shirtNumber": 11,
-            "position": "goalkeeper"
+            "position": "Keeper"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -141,14 +147,16 @@ async fn register_without_player_link_works() {
     let res = app
         .post("/api/auth/register")
         .json(json!({
-            "name": "Nieuw Iemand",
+            "firstName": "Nieuw",
+            "lastName": "Iemand",
             "email": "nieuw@example.com",
             "password": "test123"
         }))
         .await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
-    assert_eq!(body["user"]["name"], "Nieuw Iemand");
+    assert_eq!(body["user"]["firstName"], "Nieuw");
+    assert_eq!(body["user"]["lastName"], "Iemand");
     assert!(body["token"].as_str().is_some());
     assert!(body["playerId"].is_null());
 }
@@ -164,9 +172,10 @@ async fn link_player_links_to_existing_player() {
         .post("/api/players")
         .token(&admin)
         .json(json!({
-            "name": "Sjaak Swart",
+            "firstName": "Sjaak",
+            "lastName": "Swart",
             "shirtNumber": 11,
-            "position": "striker"
+            "position": "Spits"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -174,7 +183,8 @@ async fn link_player_links_to_existing_player() {
     let register_res = app
         .post("/api/auth/register")
         .json(json!({
-            "name": "Sjaak Swart",
+            "firstName": "Sjaak",
+            "lastName": "Swart",
             "email": "sjaak@example.com",
             "password": "geheim123"
         }))
@@ -192,7 +202,8 @@ async fn link_player_links_to_existing_player() {
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     assert_eq!(body["playerId"], player_id);
-    assert_eq!(body["user"]["name"], "Sjaak Swart");
+    assert_eq!(body["user"]["firstName"], "Sjaak");
+    assert_eq!(body["user"]["lastName"], "Swart");
     assert!(body["token"].as_str().is_some());
 }
 
@@ -205,9 +216,10 @@ async fn link_player_linked_user_has_player_id_in_login() {
         .post("/api/players")
         .token(&admin)
         .json(json!({
-            "name": "Klaas Klaasen",
+            "firstName": "Klaas",
+            "lastName": "Klaasen",
             "shirtNumber": 6,
-            "position": "central_midfielder"
+            "position": "Centrale middenvelder"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -215,7 +227,8 @@ async fn link_player_linked_user_has_player_id_in_login() {
     let register_res = app
         .post("/api/auth/register")
         .json(json!({
-            "name": "Klaas Klaasen",
+            "firstName": "Klaas",
+            "lastName": "Klaasen",
             "email": "klaas@example.com",
             "password": "wachtwoord"
         }))
@@ -251,9 +264,10 @@ async fn link_player_fails_if_player_already_linked() {
         .post("/api/players")
         .token(&admin)
         .json(json!({
-            "name": "Al Gelinkt",
+            "firstName": "Al",
+            "lastName": "Gelinkt",
             "shirtNumber": 1,
-            "position": "goalkeeper"
+            "position": "Keeper"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -262,7 +276,8 @@ async fn link_player_fails_if_player_already_linked() {
     let res1 = app
         .post("/api/auth/register")
         .json(json!({
-            "name": "Al Gelinkt",
+            "firstName": "Al",
+            "lastName": "Gelinkt",
             "email": "al@example.com",
             "password": "test123"
         }))
@@ -281,7 +296,8 @@ async fn link_player_fails_if_player_already_linked() {
     let res2 = app
         .post("/api/auth/register")
         .json(json!({
-            "name": "Iemand Anders",
+            "firstName": "Iemand",
+            "lastName": "Anders",
             "email": "anders@example.com",
             "password": "test123"
         }))
@@ -306,7 +322,8 @@ async fn link_player_fails_if_player_not_found() {
     let res = app
         .post("/api/auth/register")
         .json(json!({
-            "name": "Iemand",
+            "firstName": "Iemand",
+            "lastName": "",
             "email": "iemand@example.com",
             "password": "test123"
         }))
@@ -332,9 +349,10 @@ async fn link_player_no_longer_appears_in_find_player() {
     app.post("/api/players")
         .token(&admin)
         .json(json!({
-            "name": "Nu Gelinkt",
+            "firstName": "Nu",
+            "lastName": "Gelinkt",
             "shirtNumber": 7,
-            "position": "centre_back"
+            "position": "Centrale verdediger"
         }))
         .await;
 
@@ -357,7 +375,8 @@ async fn link_player_no_longer_appears_in_find_player() {
     let register_res = app
         .post("/api/auth/register")
         .json(json!({
-            "name": "Nu Gelinkt",
+            "firstName": "Nu",
+            "lastName": "Gelinkt",
             "email": "gelinkt@example.com",
             "password": "test123"
         }))
