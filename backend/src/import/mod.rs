@@ -198,6 +198,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 15,
         first_name: "Jeroen",
         last_name: "Renders",
+        position: Position::Goalkeeper,
         goals_per_match: &[(41usize, 15u32)],
         active: true,
     },
@@ -205,6 +206,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 16,
         first_name: "Thomas",
         last_name: "Robeyns",
+        position: Position::RightWinger,
         goals_per_match: &[
             (5usize, 4u32),
             (7usize, 1u32),
@@ -220,6 +222,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 17,
         first_name: "Itse",
         last_name: "Van Nijlen",
+        position: Position::RightBack,
         goals_per_match: &[
             (18usize, 1u32),
             (19usize, 1u32),
@@ -234,6 +237,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 18,
         first_name: "Kristof",
         last_name: "Willemse",
+        position: Position::CentreBack,
         goals_per_match: &[
             (14usize, 1u32),
             (38usize, 1u32),
@@ -246,6 +250,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 19,
         first_name: "Jani",
         last_name: "Breugelmans",
+        position: Position::RightWinger,
         goals_per_match: &[
             (3usize, 1u32),
             (38usize, 1u32),
@@ -258,6 +263,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 20,
         first_name: "Gastspeler(s)",
         last_name: "",
+        position: Position::CentralMidfielder,
         goals_per_match: &[
             (6usize, 1u32),
             (8usize, 1u32),
@@ -279,6 +285,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 22,
         first_name: "Werner",
         last_name: "Swaegers",
+        position: Position::CentreBack,
         goals_per_match: &[(41usize, 22u32)],
         active: true,
     },
@@ -286,6 +293,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 23,
         first_name: "Jan",
         last_name: "Jacobs",
+        position: Position::Goalkeeper,
         goals_per_match: &[(41usize, 23u32)],
         active: true,
     },
