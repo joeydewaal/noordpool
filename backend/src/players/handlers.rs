@@ -6,16 +6,57 @@ use axum::{
     http::StatusCode,
 };
 use axum_security::rbac::{requires, requires_any};
+use jiff::Timestamp;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     error::AppError,
-    json::{
-        CreatePlayerRequest, PlayerGoalMatchResponse, PlayerStatsResponse, UpdatePlayerRequest,
-    },
-    models::{EventType, GameStatus, Player, Role},
+    models::{EventType, GameStatus, HomeAway, Player, Position, Role},
 };
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatePlayerRequest {
+    pub name: String,
+    pub shirt_number: i32,
+    pub position: Position,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdatePlayerRequest {
+    pub name: Option<String>,
+    pub shirt_number: Option<i32>,
+    pub position: Option<Position>,
+    pub active: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerGoalMatchResponse {
+    pub game_id: String,
+    pub opponent: String,
+    pub date_time: Timestamp,
+    pub home_away: HomeAway,
+    pub home_score: i32,
+    pub away_score: i32,
+    pub status: GameStatus,
+    pub minutes: Vec<i32>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerStatsResponse {
+    pub player_id: String,
+    pub appearances: usize,
+    pub goals: i32,
+    pub assists: i32,
+    pub yellow_cards: i32,
+    pub red_cards: i32,
+    pub goal_matches: Vec<PlayerGoalMatchResponse>,
+}
 
 #[tracing::instrument(skip(state))]
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Player>>, AppError> {

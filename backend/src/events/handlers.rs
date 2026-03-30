@@ -4,14 +4,22 @@ use axum::{
     http::StatusCode,
 };
 use axum_security::rbac::requires_any;
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     error::AppError,
-    json::CreateGameEventRequest,
-    models::{GameEvent, Role},
+    models::{EventType, GameEvent, Role},
 };
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateGameEventRequest {
+    pub player_id: Uuid,
+    pub event_type: EventType,
+    pub minute: i32,
+}
 
 #[tracing::instrument(skip(state), fields(game_id = %game_id))]
 pub async fn list(

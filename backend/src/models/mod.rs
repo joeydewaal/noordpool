@@ -78,6 +78,7 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
     let gastspeler = create!(Player {
         name: "Gastspeler",
         shirt_number: 20,
+        position: Position::Midfielder,
         active: false,
         team: noordpool.clone()
     })

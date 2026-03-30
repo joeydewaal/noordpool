@@ -4,19 +4,47 @@ use axum::{
     http::StatusCode,
 };
 use axum_security::rbac::{requires, requires_any};
-use serde::Deserialize;
+use jiff::Timestamp;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     error::AppError,
-    json::{CreateGameRequest, GamesSummaryResponse, UpdateGameRequest},
-    models::{Game, Role},
+    models::{Game, GameStatus, HomeAway, Role},
 };
 
 #[derive(Deserialize)]
 pub struct LimitQuery {
     pub limit: Option<usize>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateGameRequest {
+    pub opponent: String,
+    pub location: String,
+    pub date_time: Timestamp,
+    pub home_away: HomeAway,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateGameRequest {
+    pub opponent: Option<String>,
+    pub location: Option<String>,
+    pub date_time: Option<Timestamp>,
+    pub home_away: Option<HomeAway>,
+    pub status: Option<GameStatus>,
+    pub home_score: Option<i32>,
+    pub away_score: Option<i32>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GamesSummaryResponse {
+    pub upcoming: Vec<Game>,
+    pub recent: Vec<Game>,
 }
 
 #[tracing::instrument(skip(state))]

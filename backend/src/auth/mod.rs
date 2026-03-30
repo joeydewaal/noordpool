@@ -17,4 +17,5 @@ pub fn router() -> Router<AppState> {
         .route("/logout", post(handlers::logout))
         .route("/me", get(handlers::me))
         .route("/find-player", get(handlers::find_player))
+        .route("/link-player", post(handlers::link_player))
 }

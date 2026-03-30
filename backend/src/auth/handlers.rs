@@ -5,23 +5,43 @@ use axum::{
 };
 use axum_security::jwt::{Jwt, JwtContext};
 use jiff::{Timestamp, ToSpan as _};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     auth::{claims::Claims, password},
     error::AppError,
-    json::{AuthResponse, PlayerMatchResponse},
-    models::{Player, Role, User},
+    models::{Player, Position, Role, User},
 };
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthResponse {
+    pub user: User,
+    pub player_id: Option<Uuid>,
+    pub token: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerMatchResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub shirt_number: i32,
+    pub position: Position,
+}
 
 #[derive(Deserialize)]
 pub struct RegisterRequest {
     name: String,
     email: String,
     password: String,
-    player_id: Option<Uuid>,
+}
+
+#[derive(Deserialize)]
+pub struct LinkPlayerRequest {
+    player_id: Uuid,
 }
 
 #[derive(Deserialize)]
@@ -43,47 +63,6 @@ pub async fn register(
     let mut db = state.db;
 
     let password_hash = password::hash_password(&body.password).await?;
-
-    if let Some(player_id) = body.player_id {
-        // Link to existing player that has no user account yet
-        let mut player = Player::filter_by_id(player_id)
-            .first()
-            .exec(&mut db)
-            .await?
-            .ok_or_else(|| AppError::not_found("Player not found"))?;
-
-        if player.user_id.is_some() {
-            return Err(AppError::conflict("Player already has an account"));
-        }
-
-        let user = toasty::create!(User {
-            name: body.name,
-            email: body.email,
-            password_hash: password_hash,
-            roles: [{ role: Role::Player }]
-        })
-        .exec(&mut db)
-        .await
-        .map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("unique") || msg.contains("duplicate") || msg.contains("UNIQUE") {
-                AppError::conflict("Email already registered")
-            } else {
-                AppError::internal(msg)
-            }
-        })?;
-
-        let mut player_update = player.update();
-        player_update.set_user_id(Some(user.id));
-        player_update.exec(&mut db).await?;
-
-        let token = encode_token(&state.jwt, &user, &[Role::Player], Some(player.id))?;
-        return Ok(Json(AuthResponse {
-            user,
-            player_id: Some(player.id),
-            token,
-        }));
-    }
 
     let user = toasty::create!(
         User {
@@ -108,6 +87,41 @@ pub async fn register(
     Ok(Json(AuthResponse {
         user,
         player_id: None,
+        token,
+    }))
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn link_player(
+    State(state): State<AppState>,
+    Jwt(claims): Jwt<Claims>,
+    Json(body): Json<LinkPlayerRequest>,
+) -> Result<Json<AuthResponse>, AppError> {
+    let mut db = state.db;
+
+    let mut player = Player::filter_by_id(body.player_id)
+        .get(&mut db)
+        .await?;
+
+    if player.user_id.is_some() {
+        return Err(AppError::conflict("Player already has an account"));
+    }
+
+    let mut player_update = player.update();
+    player_update.set_user_id(Some(claims.sub));
+    player_update.exec(&mut db).await?;
+
+    let user = User::filter_by_id(claims.sub)
+        .include(User::fields().roles())
+        .get(&mut db)
+        .await?;
+
+    let roles: Vec<Role> = user.get_roles();
+    let token = encode_token(&state.jwt, &user, &roles, Some(player.id))?;
+
+    Ok(Json(AuthResponse {
+        user,
+        player_id: Some(player.id),
         token,
     }))
 }

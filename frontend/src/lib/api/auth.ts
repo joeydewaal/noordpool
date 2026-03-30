@@ -13,6 +13,12 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 	return response.data;
 }
 
+export async function linkPlayer(playerId: string): Promise<AuthResponse> {
+	const response = await api.post<AuthResponse>('/auth/link-player', { player_id: playerId });
+	setToken(response.data.token);
+	return response.data;
+}
+
 export async function me(): Promise<User | null> {
 	if (!getToken()) return null;
 	try {

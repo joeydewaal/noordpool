@@ -5,7 +5,6 @@ pub mod error;
 pub mod events;
 pub mod games;
 pub mod import;
-pub mod json;
 pub mod models;
 pub mod players;
 pub mod routes;

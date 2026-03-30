@@ -1,13 +1,35 @@
 use std::collections::HashSet;
 
 use axum::{Json, extract::State};
+use serde::Serialize;
 
 use crate::{
     app_state::AppState,
     error::AppError,
-    json::{LeaderboardEntryResponse, LeaderboardResponse},
     models::{EventType, GameStatus, Player},
 };
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaderboardEntryResponse {
+    pub player_id: String,
+    pub name: String,
+    pub shirt_number: i32,
+    pub appearances: i32,
+    pub goals: i32,
+    pub assists: i32,
+    pub yellow_cards: i32,
+    pub red_cards: i32,
+    pub total_cards: i32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaderboardResponse {
+    pub top_scorers: Vec<LeaderboardEntryResponse>,
+    pub top_assisters: Vec<LeaderboardEntryResponse>,
+    pub most_carded: Vec<LeaderboardEntryResponse>,
+}
 
 #[tracing::instrument(skip(state))]
 pub async fn leaderboard(
