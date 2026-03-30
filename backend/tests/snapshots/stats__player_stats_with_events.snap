@@ -5,6 +5,21 @@ expression: body
 {
   "appearances": 1,
   "assists": 1,
+  "goalMatches": [
+    {
+      "awayScore": 0,
+      "dateTime": "2026-06-15T18:00:00Z",
+      "gameId": "[uuid]",
+      "homeAway": "home",
+      "homeScore": 2,
+      "minutes": [
+        10,
+        55
+      ],
+      "opponent": "FC Rival",
+      "status": "completed"
+    }
+  ],
   "goals": 2,
   "playerId": "[uuid]",
   "redCards": 0,

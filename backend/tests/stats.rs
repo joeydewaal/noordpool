@@ -169,6 +169,7 @@ async fn player_stats_with_events() {
     settings.bind(|| {
         assert_json_snapshot!("player_stats_with_events", body, {
             ".playerId" => "[uuid]",
+            ".goalMatches[].gameId" => "[uuid]",
         });
     });
 }

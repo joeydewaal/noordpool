@@ -6,19 +6,19 @@ use crate::{
     app_state::AppState,
     error::AppError,
     json::{LeaderboardEntryResponse, LeaderboardResponse},
-    models::{EventType, GameStatus, User},
+    models::{EventType, GameStatus, Player},
 };
 
 #[tracing::instrument(skip(state))]
 pub async fn leaderboard(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<LeaderboardResponse>, AppError> {
-    let db = &mut state.db;
+    let mut db = state.db;
 
     // Load all active players with their events and each event's game in one query
-    let players = User::all_active()
-        .include(User::fields().game_events().game())
-        .exec(db)
+    let players = Player::all_active()
+        .include(Player::fields().game_events().game())
+        .exec(&mut db)
         .await?;
 
     // Build one leaderboard entry per player

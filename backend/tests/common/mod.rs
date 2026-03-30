@@ -81,17 +81,8 @@ impl RequestBuilder<'_> {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let mut db = build_db().connect("sqlite::memory:").await.unwrap();
+        let db = build_db().connect("sqlite::memory:").await.unwrap();
         db.push_schema().await.unwrap();
-        // Release the cached connection back to the pool so handlers can use it.
-        // With max_connections=1 for in-memory SQLite, the pool only allows one
-        // connection. If we keep it cached here, handler clones will deadlock
-        // waiting for it.
-        let db = {
-            let fresh = db.clone();
-            drop(db);
-            fresh
-        };
 
         let jwt = JwtContext::builder()
             .jwt_secret("test-secret")
@@ -176,7 +167,8 @@ impl TestApp {
         // Encode a JWT with the elevated roles — RBAC checks the token, not the DB
         let claims = Claims {
             sub: user_id,
-            email: Some(email.to_string()),
+            player_id: None,
+            email: email.to_string(),
             name: format!("Test {:?}", role),
             roles: vec![Role::Player, role],
             exp: Timestamp::now() + 24.hour(),

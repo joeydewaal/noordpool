@@ -34,12 +34,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = db.push_schema().await;
     models::init_db(&mut db).await?;
 
-    let db = {
-        let fresh = db.clone();
-        drop(db);
-        fresh
-    };
-
     let jwt = JwtContext::builder()
         .jwt_secret(&config.jwt_secret)
         .build::<auth::claims::Claims>();

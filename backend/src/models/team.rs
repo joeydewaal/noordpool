@@ -2,7 +2,7 @@ use serde::Serialize;
 use toasty::HasMany;
 use uuid::Uuid;
 
-use crate::models::User;
+use crate::models::Player;
 
 #[derive(Debug, toasty::Model, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -16,5 +16,5 @@ pub struct Team {
 
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]
-    players: HasMany<User>,
+    players: HasMany<Player>,
 }

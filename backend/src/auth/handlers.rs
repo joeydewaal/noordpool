@@ -13,7 +13,7 @@ use crate::{
     auth::{claims::Claims, password},
     error::AppError,
     json::{AuthResponse, PlayerMatchResponse},
-    models::{Role, User},
+    models::{Player, Role, User},
 };
 
 #[derive(Deserialize)]
@@ -44,37 +44,24 @@ pub async fn register(
 
     let password_hash = password::hash_password(&body.password).await?;
 
-    let user = if let Some(player_id) = body.player_id {
-        // Link to existing player (created by admin, no email yet)
-        let mut player = User::filter_by_id(player_id)
-            .include(User::fields().roles())
+    if let Some(player_id) = body.player_id {
+        // Link to existing player that has no user account yet
+        let mut player = Player::filter_by_id(player_id)
             .first()
             .exec(&mut db)
             .await?
             .ok_or_else(|| AppError::not_found("Player not found"))?;
 
-        if player.email.is_some() {
+        if player.user_id.is_some() {
             return Err(AppError::conflict("Player already has an account"));
         }
 
-        let mut update = player.update();
-        update.set_email(Some(body.email.clone()));
-        update.set_password_hash(Some(password_hash));
-        update.exec(&mut db).await?;
-
-        // Set updated fields on the local struct for token encoding / response
-        player.email = Some(body.email);
-
-        player
-    } else {
-        toasty::create!(
-            User {
-                name: body.name,
-                email: body.email,
-                password_hash: password_hash,
-                roles: [{ role: Role::Player }]
-            }
-        )
+        let user = toasty::create!(User {
+            name: body.name,
+            email: body.email,
+            password_hash: password_hash,
+            roles: [{ role: Role::Player }]
+        })
         .exec(&mut db)
         .await
         .map_err(|e| {
@@ -84,13 +71,45 @@ pub async fn register(
             } else {
                 AppError::internal(msg)
             }
-        })?
-    };
+        })?;
 
-    let roles = vec![Role::Player];
-    let token = encode_token(&state.jwt, &user, &roles)?;
+        let mut player_update = player.update();
+        player_update.set_user_id(Some(user.id));
+        player_update.exec(&mut db).await?;
 
-    Ok(Json(AuthResponse { user, token }))
+        let token = encode_token(&state.jwt, &user, &[Role::Player], Some(player.id))?;
+        return Ok(Json(AuthResponse {
+            user,
+            player_id: Some(player.id),
+            token,
+        }));
+    }
+
+    let user = toasty::create!(
+        User {
+            name: body.name,
+            email: body.email,
+            password_hash: password_hash,
+            roles: [{ role: Role::Player }]
+        }
+    )
+    .exec(&mut db)
+    .await
+    .map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("unique") || msg.contains("duplicate") || msg.contains("UNIQUE") {
+            AppError::conflict("Email already registered")
+        } else {
+            AppError::internal(msg)
+        }
+    })?;
+
+    let token = encode_token(&state.jwt, &user, &[Role::Player], None)?;
+    Ok(Json(AuthResponse {
+        user,
+        player_id: None,
+        token,
+    }))
 }
 
 #[tracing::instrument(skip_all)]
@@ -99,19 +118,20 @@ pub async fn find_player(
     Query(query): Query<FindPlayerQuery>,
 ) -> Result<Json<Vec<PlayerMatchResponse>>, AppError> {
     let name = query.name.to_lowercase();
-    let all = User::all_active()
-        .filter(User::fields().email().is_none())
+
+    let all = Player::all_active()
+        .filter(Player::fields().user_id().is_none())
         .exec(&mut state.db)
         .await?;
 
     let matches = all
         .into_iter()
-        .filter(|u| u.name.to_lowercase().contains(&name))
-        .map(|u| PlayerMatchResponse {
-            id: u.id,
-            name: u.name,
-            shirt_number: u.shirt_number,
-            position: u.position,
+        .filter(|p| p.name.to_lowercase().contains(&name))
+        .map(|p| PlayerMatchResponse {
+            id: p.id,
+            name: p.name,
+            shirt_number: p.shirt_number,
+            position: p.position,
         })
         .collect();
 
@@ -145,8 +165,19 @@ pub async fn login(
     }
 
     let roles: Vec<Role> = user.get_roles();
-    let token = encode_token(&state.jwt, &user, &roles)?;
-    Ok(Json(AuthResponse { user, token }))
+
+    let player_id = Player::filter_by_user_id(user.id)
+        .first()
+        .exec(&mut db)
+        .await?
+        .map(|p| p.id);
+
+    let token = encode_token(&state.jwt, &user, &roles, player_id)?;
+    Ok(Json(AuthResponse {
+        user,
+        player_id,
+        token,
+    }))
 }
 
 #[tracing::instrument(skip(state), fields(user_id = %claims.sub))]
@@ -169,9 +200,15 @@ pub async fn logout() -> StatusCode {
     StatusCode::OK
 }
 
-fn encode_token(jwt: &JwtContext<Claims>, user: &User, roles: &[Role]) -> Result<String, AppError> {
+fn encode_token(
+    jwt: &JwtContext<Claims>,
+    user: &User,
+    roles: &[Role],
+    player_id: Option<uuid::Uuid>,
+) -> Result<String, AppError> {
     let claims = Claims {
         sub: user.id,
+        player_id,
         email: user.email.clone(),
         name: user.name.clone(),
         roles: roles.to_vec(),

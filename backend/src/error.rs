@@ -53,6 +53,7 @@ impl IntoResponse for AppError {
 
 impl From<toasty::Error> for AppError {
     fn from(value: toasty::Error) -> Self {
+        dbg!(&value);
         if value.is_record_not_found() {
             Self::NotFound("Record not found".into())
         } else {

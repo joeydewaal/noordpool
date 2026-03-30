@@ -1,6 +1,7 @@
 use axum::{
     Json,
     extract::{Path, Query, State},
+    http::StatusCode,
 };
 use axum_security::rbac::{requires, requires_any};
 use serde::Deserialize;
@@ -34,11 +35,8 @@ pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Game>, AppError> {
-    // Use get_by_id first so a missing record produces a proper 404.
-    // filter_by_id().include().get() fails to propagate RecordNotFound correctly.
-    Game::get_by_id(&mut state.db, &id).await?;
     let game = Game::filter_by_id(id)
-        .include(Game::fields().events().user())
+        .include(Game::fields().events().player())
         .get(&mut state.db)
         .await?;
     Ok(Json(game))
@@ -109,11 +107,11 @@ pub async fn summary(
 
 #[requires_any(Role::Admin, Role::Moderator)]
 pub async fn create(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
     Json(body): Json<CreateGameRequest>,
 ) -> Result<Json<Game>, AppError> {
     tracing::info!("games::create");
-    let db = &mut state.db;
+    let mut db = state.db;
 
     let game = toasty::create!(Game {
         opponent: body.opponent,
@@ -121,7 +119,7 @@ pub async fn create(
         date_time: body.date_time,
         home_away: body.home_away,
     })
-    .exec(db)
+    .exec(&mut db)
     .await?;
     Ok(Json(game))
 }
@@ -135,7 +133,7 @@ pub async fn update(
     tracing::info!(game_id = %id, "games::update");
     let mut db = state.db;
 
-    let mut game = Game::get_by_id(&mut db, id).await?;
+    let mut game = Game::filter_by_id(id).get(&mut db).await?;
 
     let mut update = game.update();
 
@@ -174,9 +172,8 @@ pub async fn delete(
     tracing::info!(game_id = %id, "games::delete");
     let mut db = state.db;
 
-    // Verify match exists
-    let game = Game::get_by_id(&mut db, &id).await?;
+    let game = Game::get_by_id(&mut db, id).await?;
 
     game.delete().exec(&mut db).await?;
-    Ok(axum::http::StatusCode::NO_CONTENT)
+    Ok(StatusCode::NO_CONTENT)
 }

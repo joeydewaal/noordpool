@@ -14,12 +14,12 @@ use crate::{
     json::{
         CreatePlayerRequest, PlayerGoalMatchResponse, PlayerStatsResponse, UpdatePlayerRequest,
     },
-    models::{EventType, GameStatus, Role, User},
+    models::{EventType, GameStatus, Player, Role},
 };
 
 #[tracing::instrument(skip(state))]
-pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {
-    let players = User::all_active().exec(&mut state.db).await?;
+pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Player>>, AppError> {
+    let players = Player::all_active().exec(&mut state.db).await?;
     Ok(Json(players))
 }
 
@@ -27,8 +27,8 @@ pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, 
 pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<Json<User>, AppError> {
-    let player = User::get_by_id(&mut state.db, &id).await?;
+) -> Result<Json<Player>, AppError> {
+    let player = Player::get_by_id(&mut state.db, id).await?;
     Ok(Json(player))
 }
 
@@ -36,23 +36,17 @@ pub async fn get_one(
 pub async fn create(
     State(mut state): State<AppState>,
     Json(body): Json<CreatePlayerRequest>,
-) -> Result<Json<User>, AppError> {
+) -> Result<Json<Player>, AppError> {
     tracing::info!("players::create");
-    let mut user = toasty::create!(
-        User {
-                name: body.name,
-                email: body.email,
-                shirt_number: body.shirt_number,
-                position: body.position,
-                roles: [{ role: Role::Player }]
-            }
-
-    )
+    let player = toasty::create!(Player {
+        name: body.name,
+        shirt_number: body.shirt_number,
+        position: body.position,
+    })
     .exec(&mut state.db)
     .await?;
 
-    user.roles.unload();
-    Ok(Json(user))
+    Ok(Json(player))
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]
@@ -60,42 +54,41 @@ pub async fn update(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdatePlayerRequest>,
-) -> Result<Json<User>, AppError> {
+) -> Result<Json<Player>, AppError> {
     tracing::info!(player_id = %id, "players::update");
-    let mut user = User::get_by_id(&mut state.db, id).await?;
-    let mut user_update = user.update();
+    let mut player = Player::get_by_id(&mut state.db, id).await?;
+    let mut player_update = player.update();
 
     if let Some(name) = body.name {
-        user_update.set_name(name);
+        player_update.set_name(name);
     }
-
     if let Some(shirt_number) = body.shirt_number {
-        user_update.set_shirt_number(shirt_number);
+        player_update.set_shirt_number(shirt_number);
     }
     if let Some(position) = body.position {
-        user_update.set_position(position);
+        player_update.set_position(position);
     }
     if let Some(active) = body.active {
-        user_update.set_active(active);
+        player_update.set_active(active);
     }
 
-    user_update.exec(&mut state.db).await?;
-    Ok(Json(user))
+    player_update.exec(&mut state.db).await?;
+    Ok(Json(player))
 }
 
 #[requires(Role::Admin)]
 pub async fn delete(
-    State(mut state): State<AppState>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AppError> {
     tracing::info!(player_id = %id, "players::delete");
-    let db = &mut state.db;
+    let mut db = state.db;
 
-    let mut player = User::get_by_id(db, &id).await?;
+    let mut player = Player::get_by_id(&mut db, id).await?;
 
     let mut update = player.update();
     update.set_active(false);
-    update.exec(db).await?;
+    update.exec(&mut db).await?;
 
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
@@ -107,14 +100,13 @@ pub async fn stats(
 ) -> Result<Json<PlayerStatsResponse>, AppError> {
     let db = &mut state.db;
 
-    let user = User::filter_by_id(id)
-        .include(User::fields().game_events().game())
+    let player = Player::filter_by_id(id)
+        .include(Player::fields().game_events().game())
         .get(db)
         .await?;
 
-    let events = user.game_events.get();
+    let events = player.game_events.get();
 
-    // Get completed game IDs for appearances
     let game_ids: Vec<Uuid> = events
         .iter()
         .filter(|e| e.game.get().status == GameStatus::Completed)
@@ -127,9 +119,9 @@ pub async fn stats(
     let mut assists = 0i32;
     let mut yellow_cards = 0i32;
     let mut red_cards = 0i32;
-    // Group goal minutes by game_id for goal_matches
     let mut goal_map: std::collections::HashMap<Uuid, (Vec<i32>, &crate::models::Game)> =
         std::collections::HashMap::new();
+
     for event in events {
         match event.event_type {
             EventType::Goal => {

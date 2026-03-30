@@ -20,8 +20,10 @@ pub struct PlayerGoalMatchResponse {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthResponse {
     pub user: User,
+    pub player_id: Option<Uuid>,
     pub token: String,
 }
 
@@ -42,7 +44,6 @@ pub struct PlayerMatchResponse {
 #[serde(rename_all = "camelCase")]
 pub struct CreatePlayerRequest {
     pub name: String,
-    pub email: Option<String>,
     pub shirt_number: i32,
     pub position: Position,
 }

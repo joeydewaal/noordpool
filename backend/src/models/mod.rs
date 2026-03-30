@@ -3,6 +3,7 @@ pub mod game;
 pub mod game_event;
 pub mod game_status;
 pub mod home_away;
+pub mod player;
 pub mod position;
 pub mod team;
 pub mod user;
@@ -16,8 +17,9 @@ pub use game::Game;
 pub use game_event::GameEvent;
 pub use game_status::GameStatus;
 pub use home_away::HomeAway;
+pub use player::Player;
 pub use position::Position;
-use toasty::{Db, Executor, create, db::Builder, stmt::CreateMany};
+use toasty::{Db, Executor, create, db::Builder};
 pub use user::User;
 pub use user_role::{Role, UserRole};
 
@@ -31,6 +33,7 @@ pub fn build_db() -> Builder {
         .register::<UserRole>()
         .register::<Role>()
         .register::<Position>()
+        .register::<Player>()
         .register::<Game>()
         .register::<GameStatus>()
         .register::<HomeAway>()
@@ -41,6 +44,8 @@ pub fn build_db() -> Builder {
 }
 
 pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
+    let mut tx = db.transaction().await?;
+
     let password = password::hash_password("Admin123")
         .await
         .expect("Couldn't hash password");
@@ -51,14 +56,12 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
         password_hash: password,
         roles: [{ role: Role::Admin }]
     })
-    .exec(db)
+    .exec(&mut tx)
     .await;
 
     if res.is_err() {
         return Ok(());
     }
-
-    let mut tx = db.transaction().await?;
 
     let spelers = import::PLAYERS;
     let teams = import::TEAMS;
@@ -70,43 +73,39 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
     .exec(&mut tx)
     .await?;
 
-    // Create the global Gastspeler user (referenced whenever a guest player scores)
-    let mut shirt_to_user: HashMap<i32, User> = HashMap::new();
-    let gastspeler = create!(User {
+    let mut shirt_to_player: HashMap<i32, Player> = HashMap::new();
+
+    let gastspeler = create!(Player {
         name: "Gastspeler",
         shirt_number: 20,
         active: false,
-        roles: [{ role: Role::Player }],
         team: noordpool.clone()
     })
     .exec(&mut tx)
     .await?;
-    shirt_to_user.insert(20, gastspeler);
+    shirt_to_player.insert(20, gastspeler);
 
-    // Create regular players one-by-one to capture shirt_number → User mapping
     for p in spelers {
         if !p.active {
             continue;
         }
         let name = format!("{} {}", p.first_name, p.last_name);
-        let user = create!(User {
-                name: name,
-                shirt_number: p.shirt_number,
-                roles: [{ role: Role::Player }],
-                team: noordpool.clone()
+        let player = create!(Player {
+            name: name,
+            shirt_number: p.shirt_number,
+            team: noordpool.clone()
         })
         .exec(&mut tx)
         .await?;
-        shirt_to_user.insert(p.shirt_number, user);
+        shirt_to_player.insert(p.shirt_number, player);
     }
 
-    let create_teams: CreateMany<Team> = teams
-        .iter()
-        .map(|t| create!(Team { name: t.name }))
-        .collect();
+    let mut create_teams = Team::create_many();
+    for t in teams {
+        create_teams = create_teams.item(create!(Team { name: t.name }));
+    }
     create_teams.exec(&mut tx).await?;
 
-    // Create games one-by-one to capture col_index → Game mapping
     let mut col_to_game: HashMap<usize, Game> = HashMap::new();
     for m in matches {
         let game = create!(Game {
@@ -127,13 +126,12 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
         col_to_game.insert(m.col_index, game);
     }
 
-    // Create GameEvents for each goal scored
     for p in spelers {
         if p.goals_per_match.is_empty() {
             continue;
         }
-        let user = match shirt_to_user.get(&p.shirt_number) {
-            Some(u) => u,
+        let player = match shirt_to_player.get(&p.shirt_number) {
+            Some(p) => p,
             None => continue,
         };
         for (col_index, goal_count) in p.goals_per_match {
@@ -144,7 +142,7 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
             for _ in 0..*goal_count {
                 create!(GameEvent {
                     game: game.clone(),
-                    user: user.clone(),
+                    player: player.clone(),
                     event_type: EventType::Goal,
                     minute: 0,
                 })

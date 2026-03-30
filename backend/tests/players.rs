@@ -44,7 +44,6 @@ async fn create_player_forbidden_for_player_role() {
         .token(&token)
         .json(json!({
             "name": "Jan de Boer",
-            "email": "jan.de.boer@example.com",
             "shirtNumber": 10,
             "position": "midfielder"
         }))
@@ -62,7 +61,6 @@ async fn create_and_get_player() {
         .token(&token)
         .json(json!({
             "name": "Jan de Boer",
-            "email": "jan.de.boer@example.com",
             "shirtNumber": 10,
             "position": "midfielder"
         }))
@@ -93,7 +91,6 @@ async fn update_player() {
         .token(&token)
         .json(json!({
             "name": "Jan de Boer",
-            "email": "jan@example.com",
             "shirtNumber": 10,
             "position": "midfielder"
         }))
@@ -137,7 +134,6 @@ async fn player_stats_empty() {
         .token(&token)
         .json(json!({
             "name": "Jan de Boer",
-            "email": "jan@example.com",
             "shirtNumber": 10,
             "position": "midfielder"
         }))
@@ -168,7 +164,6 @@ async fn delete_player_soft_deletes() {
         .token(&token)
         .json(json!({
             "name": "Jan de Boer",
-            "email": "jan@example.com",
             "shirtNumber": 10,
             "position": "midfielder"
         }))
@@ -214,7 +209,6 @@ async fn delete_player_forbidden_for_moderator() {
         .token(&admin_token)
         .json(json!({
             "name": "Jan de Boer",
-            "email": "jan@example.com",
             "shirtNumber": 10,
             "position": "midfielder"
         }))

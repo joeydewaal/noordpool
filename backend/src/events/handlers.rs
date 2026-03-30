@@ -22,7 +22,7 @@ pub async fn list(
 
     let events = GameEvent::filter_by_game_id(game_id)
         .order_by(GameEvent::fields().minute().asc())
-        .include(GameEvent::fields().user())
+        .include(GameEvent::fields().player())
         .exec(&mut db)
         .await?;
     Ok(Json(events))
@@ -39,7 +39,7 @@ pub async fn create(
 
     let event = GameEvent::create()
         .game_id(game_id)
-        .user_id(body.player_id)
+        .player_id(body.player_id)
         .event_type(body.event_type)
         .minute(body.minute)
         .exec(&mut db)

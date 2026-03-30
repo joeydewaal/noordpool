@@ -5,6 +5,7 @@ expression: body
 {
   "appearances": 0,
   "assists": 0,
+  "goalMatches": [],
   "goals": 0,
   "playerId": "[uuid]",
   "redCards": 0,

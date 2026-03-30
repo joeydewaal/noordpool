@@ -2,7 +2,7 @@ use serde::Serialize;
 use toasty::BelongsTo;
 use uuid::Uuid;
 
-use crate::models::User;
+use crate::models::Player;
 
 use super::{EventType, Game};
 
@@ -23,11 +23,11 @@ pub struct GameEvent {
 
     #[index]
     #[serde(skip)]
-    pub user_id: Uuid,
+    pub player_id: Uuid,
 
-    #[belongs_to(key = user_id, references = id)]
+    #[belongs_to(key = player_id, references = id)]
     #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub user: BelongsTo<User>,
+    pub player: BelongsTo<Player>,
 
     pub event_type: EventType,
 

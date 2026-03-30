@@ -31,18 +31,29 @@ async fn find_player_returns_unlinked_match() {
 }
 
 #[tokio::test]
-async fn find_player_excludes_players_with_email() {
+async fn find_player_excludes_linked_players() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
-    // Admin creates a player WITH an email (already linked)
-    app.post("/api/players")
+    // Admin creates a player
+    let res = app
+        .post("/api/players")
         .token(&token)
         .json(json!({
             "name": "Linked Speler",
-            "email": "linked@example.com",
             "shirtNumber": 5,
             "position": "midfielder"
+        }))
+        .await;
+    let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+    // Link the player by registering a user
+    app.post("/api/auth/register")
+        .json(json!({
+            "name": "Linked Speler",
+            "email": "linked@example.com",
+            "password": "test123",
+            "player_id": player_id
         }))
         .await;
 
@@ -144,10 +155,8 @@ async fn register_links_to_existing_player() {
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
 
-    // The returned user should be the existing player (same ID)
-    assert_eq!(body["user"]["id"], player_id);
+    assert_eq!(body["playerId"], player_id);
     assert_eq!(body["user"]["name"], "Sjaak Swart");
-    assert_eq!(body["user"]["shirtNumber"], 11);
     assert!(body["token"].as_str().is_some());
 }
 
@@ -187,28 +196,37 @@ async fn register_linked_player_can_login() {
         .await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
-    assert_eq!(body["user"]["id"], player_id);
+    assert_eq!(body["playerId"], player_id);
 }
 
 #[tokio::test]
-async fn register_link_fails_if_player_already_has_email() {
+async fn register_link_fails_if_player_already_linked() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
-    // Create a player that already has an email
+    // Create a player
     let res = app
         .post("/api/players")
         .token(&token)
         .json(json!({
-            "name": "Heeft Al Email",
-            "email": "al@example.com",
+            "name": "Al Gelinkt",
             "shirtNumber": 1,
             "position": "goalkeeper"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
 
-    // Try to link to it — should conflict
+    // Link the player to a user
+    app.post("/api/auth/register")
+        .json(json!({
+            "name": "Al Gelinkt",
+            "email": "al@example.com",
+            "password": "test123",
+            "player_id": player_id
+        }))
+        .await;
+
+    // Try to link the same player again — should conflict
     let res = app
         .post("/api/auth/register")
         .json(json!({
