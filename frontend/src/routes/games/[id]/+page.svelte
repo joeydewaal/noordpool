@@ -1,13 +1,13 @@
 <script lang="ts">
     import { page } from "$app/state";
-    import { auth } from "$lib/state/auth.svelte.ts";
-    import { getGame } from "$lib/api/games.ts";
-    import { createGameEvent, deleteGameEvent } from "$lib/api/events.ts";
-    import { getPlayers } from "$lib/api/players.ts";
+    import { auth } from "$lib/state/auth.svelte";
+    import { getGame } from "$lib/api/games";
+    import { createGameEvent, deleteGameEvent } from "$lib/api/events";
+    import { getPlayers } from "$lib/api/players";
     import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-    import type { EventType, CreateGameEventRequest } from "$lib/api/types.ts";
+    import type { EventType, CreateGameEventRequest } from "$lib/api/types";
 
-    const id = page.params.id;
+    const id = page.params.id!;
     const queryClient = useQueryClient();
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);

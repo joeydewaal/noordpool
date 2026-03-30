@@ -1,7 +1,7 @@
 <script lang="ts">
     import { createQuery } from '@tanstack/svelte-query';
-    import { auth } from "$lib/state/auth.svelte.ts";
-    import { getPlayers } from "$lib/api/players.ts";
+    import { auth } from "$lib/state/auth.svelte";
+    import { getPlayers } from "$lib/api/players";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
 
@@ -20,9 +20,15 @@
 
     const positionColor: Record<string, string> = {
         goalkeeper: "preset-filled-warning-500",
-        defender: "preset-filled-secondary-500",
-        midfielder: "preset-filled-primary-500",
-        forward: "preset-filled-error-500",
+        centre_back: "preset-filled-secondary-500",
+        left_back: "preset-filled-secondary-500",
+        right_back: "preset-filled-secondary-500",
+        defensive_midfielder: "preset-filled-primary-500",
+        central_midfielder: "preset-filled-primary-500",
+        attacking_midfielder: "preset-filled-primary-500",
+        left_winger: "preset-filled-error-500",
+        right_winger: "preset-filled-error-500",
+        striker: "preset-filled-error-500",
     };
 </script>
 

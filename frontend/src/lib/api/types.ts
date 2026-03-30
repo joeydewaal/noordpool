@@ -32,7 +32,17 @@ export interface AuthResponse {
     token: string;
 }
 
-export type Position = 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
+export type Position =
+    | 'goalkeeper'
+    | 'centre_back'
+    | 'left_back'
+    | 'right_back'
+    | 'defensive_midfielder'
+    | 'central_midfielder'
+    | 'attacking_midfielder'
+    | 'left_winger'
+    | 'right_winger'
+    | 'striker';
 
 export interface Player {
     id: string;

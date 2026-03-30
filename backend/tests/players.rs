@@ -28,7 +28,7 @@ async fn create_player_requires_auth() {
         .json(json!({
             "name": "Jan de Boer",
             "shirtNumber": 10,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     assert_eq!(res.status(), 401);
@@ -45,7 +45,7 @@ async fn create_player_forbidden_for_player_role() {
         .json(json!({
             "name": "Jan de Boer",
             "shirtNumber": 10,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     assert_eq!(res.status(), 403);
@@ -62,7 +62,7 @@ async fn create_and_get_player() {
         .json(json!({
             "name": "Jan de Boer",
             "shirtNumber": 10,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     assert_eq!(res.status(), 200);
@@ -92,7 +92,7 @@ async fn update_player() {
         .json(json!({
             "name": "Jan de Boer",
             "shirtNumber": 10,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     let created = res.json_value().await;
@@ -103,7 +103,7 @@ async fn update_player() {
         .token(&token)
         .json(json!({
             "shirtNumber": 7,
-            "position": "forward"
+            "position": "striker"
         }))
         .await;
     assert_eq!(res.status(), 200);
@@ -135,7 +135,7 @@ async fn player_stats_empty() {
         .json(json!({
             "name": "Jan de Boer",
             "shirtNumber": 10,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     let created = res.json_value().await;
@@ -165,7 +165,7 @@ async fn delete_player_soft_deletes() {
         .json(json!({
             "name": "Jan de Boer",
             "shirtNumber": 10,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     let created = res.json_value().await;
@@ -210,7 +210,7 @@ async fn delete_player_forbidden_for_moderator() {
         .json(json!({
             "name": "Jan de Boer",
             "shirtNumber": 10,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     let created = res.json_value().await;

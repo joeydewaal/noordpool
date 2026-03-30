@@ -1,9 +1,9 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { auth } from "$lib/state/auth.svelte.ts";
-    import { createGame } from "$lib/api/games.ts";
+    import { auth } from "$lib/state/auth.svelte";
+    import { createGame } from "$lib/api/games";
     import { createMutation, useQueryClient } from '@tanstack/svelte-query';
-    import type { HomeAway, CreateGameRequest } from "$lib/api/types.ts";
+    import type { HomeAway, CreateGameRequest } from "$lib/api/types";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
     const queryClient = useQueryClient();

@@ -10,7 +10,7 @@
 
 	let name = $state('');
 	let shirtNumber = $state(0);
-	let position: Position = $state('midfielder');
+	let position: Position = $state('central_midfielder');
 
 	const createMut = createMutation(() => ({
 		mutationFn: (data: CreatePlayerRequest) => createPlayer(data),
@@ -51,9 +51,15 @@
 				<label for="position" class="label-text">Positie</label>
 				<select id="position" bind:value={position} class="select">
 					<option value="goalkeeper">Keeper</option>
-					<option value="defender">Verdediger</option>
-					<option value="midfielder">Middenvelder</option>
-					<option value="forward">Aanvaller</option>
+					<option value="centre_back">Centrale verdediger</option>
+					<option value="left_back">Linksback</option>
+					<option value="right_back">Rechtsback</option>
+					<option value="defensive_midfielder">Defensieve middenvelder</option>
+					<option value="central_midfielder">Centrale middenvelder</option>
+					<option value="attacking_midfielder">Aanvallende middenvelder</option>
+					<option value="left_winger">Linksvleugel</option>
+					<option value="right_winger">Rechtsvleugel</option>
+					<option value="striker">Spits</option>
 				</select>
 			</div>
 			<button type="submit" class="btn w-full preset-filled-primary-500">

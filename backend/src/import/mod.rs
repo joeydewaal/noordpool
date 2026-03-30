@@ -1,6 +1,9 @@
+use crate::models::Position;
+
 #[derive(Debug, Clone)]
 pub struct ParsedPlayer {
     pub shirt_number: i32,
+    pub position: Position,
     pub first_name: &'static str,
     pub last_name: &'static str,
     pub goals_per_match: &'static [(usize, u32)],
@@ -26,6 +29,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 1,
         first_name: "Boris",
         last_name: "Bertens",
+        position: Position::DefensiveMidfielder,
         goals_per_match: &[
             (18usize, 1u32),
             (38usize, 1u32),
@@ -38,6 +42,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 2,
         first_name: "Gijs",
         last_name: "Bertens",
+        position: Position::Striker,
         goals_per_match: &[(41usize, 2u32)],
         active: true,
     },
@@ -45,6 +50,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 3,
         first_name: "Danny",
         last_name: "Borremans",
+        position: Position::LeftWinger,
         goals_per_match: &[
             (7usize, 1u32),
             (38usize, 1u32),
@@ -57,6 +63,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 4,
         first_name: "Stef",
         last_name: "Bosmans",
+        position: Position::AttackingMidfielder,
         goals_per_match: &[
             (6usize, 2u32),
             (38usize, 2u32),
@@ -69,6 +76,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 5,
         first_name: "Thiebe",
         last_name: "Breugelmans",
+        position: Position::CentreBack,
         goals_per_match: &[
             (6usize, 1u32),
             (7usize, 1u32),
@@ -83,6 +91,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 6,
         first_name: "Bart",
         last_name: "Cammaert",
+        position: Position::LeftWinger,
         goals_per_match: &[
             (7usize, 1u32),
             (18usize, 1u32),
@@ -96,6 +105,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 7,
         first_name: "Jelle",
         last_name: "Cammaert",
+        position: Position::RightWinger,
         goals_per_match: &[
             (2usize, 1u32),
             (4usize, 1u32),
@@ -113,6 +123,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 8,
         first_name: "Ronny",
         last_name: "Canters",
+        position: Position::DefensiveMidfielder,
         goals_per_match: &[
             (18usize, 1u32),
             (25usize, 1u32),
@@ -126,6 +137,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 9,
         first_name: "Pascal",
         last_name: "Cuylits",
+        position: Position::Striker,
         goals_per_match: &[(41usize, 9u32)],
         active: true,
     },
@@ -133,6 +145,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 10,
         first_name: "Bert",
         last_name: "De Backer",
+        position: Position::RightBack,
         goals_per_match: &[(41usize, 10u32)],
         active: true,
     },
@@ -140,6 +153,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 11,
         first_name: "Bram",
         last_name: "De Backer",
+        position: Position::Striker,
         goals_per_match: &[
             (4usize, 2u32),
             (5usize, 2u32),
@@ -160,6 +174,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 12,
         first_name: "Kjell",
         last_name: "Denissen",
+        position: Position::LeftBack,
         goals_per_match: &[(41usize, 12u32)],
         active: true,
     },
@@ -167,6 +182,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 13,
         first_name: "Joey",
         last_name: "De Waal",
+        position: Position::LeftBack,
         goals_per_match: &[(41usize, 13u32)],
         active: true,
     },
@@ -174,6 +190,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         shirt_number: 14,
         first_name: "Quinten",
         last_name: "Jacobs",
+        position: Position::CentreBack,
         goals_per_match: &[(41usize, 14u32)],
         active: true,
     },

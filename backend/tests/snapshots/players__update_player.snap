@@ -7,6 +7,6 @@ expression: body
   "createdAt": "[createdAt]",
   "id": "[uuid]",
   "name": "Jan de Boer",
-  "position": "forward",
+  "position": "striker",
   "shirtNumber": 7
 }

@@ -2,9 +2,9 @@
     import { createQuery } from '@tanstack/svelte-query';
     import { page } from "$app/state";
     import { replaceState } from "$app/navigation";
-    import { auth } from "$lib/state/auth.svelte.ts";
-    import { getUpcomingGames, getRecentResults } from "$lib/api/games.ts";
-    import type { Game } from "$lib/api/types.ts";
+    import { auth } from "$lib/state/auth.svelte";
+    import { getUpcomingGames, getRecentResults } from "$lib/api/games";
+    import type { Game } from "$lib/api/types";
     import { Tabs } from "@skeletonlabs/skeleton-svelte";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);

@@ -25,7 +25,7 @@ async fn create_player(app: &mut TestApp, token: &str, name: &str, number: i32) 
         .json(json!({
             "name": name,
             "shirtNumber": number,
-            "position": "forward"
+            "position": "striker"
         }))
         .await;
 

@@ -110,9 +110,9 @@ async fn leaderboard_with_data() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
-    let striker = create_player(&mut app, &token, "Striker", 9, "forward").await;
-    let midfield = create_player(&mut app, &token, "Playmaker", 10, "midfielder").await;
-    let defender = create_player(&mut app, &token, "Tough Guy", 4, "defender").await;
+    let striker = create_player(&mut app, &token, "Striker", 9, "striker").await;
+    let midfield = create_player(&mut app, &token, "Playmaker", 10, "central_midfielder").await;
+    let defender = create_player(&mut app, &token, "Tough Guy", 4, "centre_back").await;
 
     let game1 = create_game_and_complete(&mut app, &token, "FC Alpha", 3, 0).await;
     let game2 = create_game_and_complete(&mut app, &token, "FC Beta", 2, 1).await;
@@ -154,7 +154,7 @@ async fn player_stats_with_events() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
-    let player = create_player(&mut app, &token, "Star Player", 7, "forward").await;
+    let player = create_player(&mut app, &token, "Star Player", 7, "striker").await;
     let game = create_game_and_complete(&mut app, &token, "FC Rival", 2, 0).await;
 
     add_event(&mut app, &token, &game, &player, "goal", 10).await;
@@ -179,7 +179,7 @@ async fn stats_ignore_scheduled_game_events() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
 
-    let player = create_player(&mut app, &token, "Player", 11, "forward").await;
+    let player = create_player(&mut app, &token, "Player", 11, "striker").await;
 
     // Create a scheduled (not completed) match
     let res = app

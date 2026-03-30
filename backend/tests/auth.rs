@@ -16,7 +16,7 @@ async fn find_player_returns_unlinked_match() {
         .json(json!({
             "name": "Piet Paulsen",
             "shirtNumber": 9,
-            "position": "forward"
+            "position": "striker"
         }))
         .await;
 
@@ -27,7 +27,7 @@ async fn find_player_returns_unlinked_match() {
     assert_eq!(matches.len(), 1);
     assert_eq!(matches[0]["name"], "Piet Paulsen");
     assert_eq!(matches[0]["shirtNumber"], 9);
-    assert_eq!(matches[0]["position"], "forward");
+    assert_eq!(matches[0]["position"], "striker");
 }
 
 #[tokio::test]
@@ -42,7 +42,7 @@ async fn find_player_excludes_linked_players() {
         .json(json!({
             "name": "Linked Speler",
             "shirtNumber": 5,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -82,7 +82,7 @@ async fn find_player_is_case_insensitive() {
         .json(json!({
             "name": "Karel Karelse",
             "shirtNumber": 3,
-            "position": "defender"
+            "position": "centre_back"
         }))
         .await;
 
@@ -166,7 +166,7 @@ async fn link_player_links_to_existing_player() {
         .json(json!({
             "name": "Sjaak Swart",
             "shirtNumber": 11,
-            "position": "forward"
+            "position": "striker"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -207,7 +207,7 @@ async fn link_player_linked_user_has_player_id_in_login() {
         .json(json!({
             "name": "Klaas Klaasen",
             "shirtNumber": 6,
-            "position": "midfielder"
+            "position": "central_midfielder"
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -334,7 +334,7 @@ async fn link_player_no_longer_appears_in_find_player() {
         .json(json!({
             "name": "Nu Gelinkt",
             "shirtNumber": 7,
-            "position": "defender"
+            "position": "centre_back"
         }))
         .await;
 

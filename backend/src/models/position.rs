@@ -2,14 +2,26 @@ use serde::{Deserialize, Serialize};
 use toasty::Embed;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Embed)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum Position {
     #[column(variant = 1)]
     Goalkeeper,
     #[column(variant = 2)]
-    Defender,
+    CentreBack,
     #[column(variant = 3)]
-    Midfielder,
+    LeftBack,
     #[column(variant = 4)]
-    Forward,
+    RightBack,
+    #[column(variant = 5)]
+    DefensiveMidfielder,
+    #[column(variant = 6)]
+    CentralMidfielder,
+    #[column(variant = 7)]
+    AttackingMidfielder,
+    #[column(variant = 8)]
+    LeftWinger,
+    #[column(variant = 9)]
+    RightWinger,
+    #[column(variant = 10)]
+    Striker,
 }

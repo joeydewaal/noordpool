@@ -1,13 +1,13 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
-    import { auth } from "$lib/state/auth.svelte.ts";
-    import { getPlayer, updatePlayer } from "$lib/api/players.ts";
+    import { auth } from "$lib/state/auth.svelte";
+    import { getPlayer, updatePlayer } from "$lib/api/players";
     import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-    import type { Position, UpdatePlayerRequest } from "$lib/api/types.ts";
+    import type { Position, UpdatePlayerRequest } from "$lib/api/types";
 
     const canManage = $derived(auth.isAdmin || auth.isModerator);
-    const id = page.params.id;
+    const id = page.params.id!;
     const queryClient = useQueryClient();
 
     const playerQuery = createQuery(() => ({
@@ -25,7 +25,7 @@
 
     let name = $state("");
     let shirtNumber = $state(0);
-    let position: Position = $state("midfielder");
+    let position: Position = $state("central_midfielder");
     let active = $state(true);
     let initialized = $state(false);
 
@@ -96,9 +96,15 @@
                     class="select"
                 >
                     <option value="goalkeeper">Keeper</option>
-                    <option value="defender">Verdediger</option>
-                    <option value="midfielder">Middenvelder</option>
-                    <option value="forward">Aanvaller</option>
+                    <option value="centre_back">Centrale verdediger</option>
+                    <option value="left_back">Linksback</option>
+                    <option value="right_back">Rechtsback</option>
+                    <option value="defensive_midfielder">Defensieve middenvelder</option>
+                    <option value="central_midfielder">Centrale middenvelder</option>
+                    <option value="attacking_midfielder">Aanvallende middenvelder</option>
+                    <option value="left_winger">Linksvleugel</option>
+                    <option value="right_winger">Rechtsvleugel</option>
+                    <option value="striker">Spits</option>
                 </select>
             </div>
             <div class="flex items-center gap-2">

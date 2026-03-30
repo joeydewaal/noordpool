@@ -8,8 +8,8 @@
     import Header from "$lib/components/Header.svelte";
     import { onMount } from "svelte";
     import { registerSW } from "virtual:pwa-register";
-    import { pwa } from "$lib/state/pwa.svelte.ts";
-    import { theme } from "$lib/state/theme.svelte.ts";
+    import { pwa } from "$lib/state/pwa.svelte";
+    import { theme } from "$lib/state/theme.svelte";
     import { QueryClientProvider } from '@tanstack/svelte-query';
 
     let { children } = $props();
