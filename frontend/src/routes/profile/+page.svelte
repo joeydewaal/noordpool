@@ -2,11 +2,33 @@
 	import { auth } from '$lib/state/auth.svelte';
 	import { pwa } from '$lib/state/pwa.svelte';
 	import { theme } from '$lib/state/theme.svelte';
-	import { logout } from '$lib/api/auth';
+	import { logout, unlinkPlayer } from '$lib/api/auth';
+	import { getToken } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 
 	if (!auth.isAuthenticated) {
 		goto('/auth/login');
+	}
+
+	let hasPlayer = $state(false);
+
+	function checkPlayerLinked() {
+		const token = getToken();
+		if (!token) return;
+		try {
+			const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+			hasPlayer = !!payload.player_id;
+		} catch {
+			hasPlayer = false;
+		}
+	}
+
+	checkPlayerLinked();
+
+	async function handleUnlink() {
+		const res = await unlinkPlayer();
+		auth.setUser(res.user);
+		hasPlayer = false;
 	}
 
 	function handleLogout() {
@@ -44,6 +66,20 @@
 				</div>
 			{/if}
 		</div>
+
+		{#if hasPlayer}
+			<div class="card p-4 flex items-center justify-between">
+				<span class="font-medium">Gekoppelde speler</span>
+				<button class="btn btn-sm preset-filled-warning-500" onclick={handleUnlink}>
+					Ontkoppelen
+				</button>
+			</div>
+		{:else}
+			<a href="/auth/link-player?name={encodeURIComponent(`${auth.user?.firstName ?? ''} ${auth.user?.lastName ?? ''}`.trim())}" class="card p-4 flex items-center justify-between">
+				<span class="font-medium">Geen speler gekoppeld</span>
+				<span class="btn btn-sm preset-filled-primary-500">Koppelen</span>
+			</a>
+		{/if}
 
 		<div class="card p-4 flex items-center justify-between">
 			<span class="font-medium">Thema</span>

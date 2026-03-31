@@ -18,4 +18,5 @@ pub fn router() -> Router<AppState> {
         .route("/me", get(handlers::me))
         .route("/find-player", get(handlers::find_player))
         .route("/link-player", post(handlers::link_player))
+        .route("/unlink-player", post(handlers::unlink_player))
 }

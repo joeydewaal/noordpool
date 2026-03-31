@@ -409,3 +409,103 @@ async fn link_player_requires_authentication() {
         .await;
     assert_eq!(res.status(), 401);
 }
+
+// ── unlink-player ────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn unlink_player_removes_link() {
+    let mut app = TestApp::new().await;
+    let admin = app.admin_token().await;
+
+    let res = app
+        .post("/api/players")
+        .token(&admin)
+        .json(json!({
+            "firstName": "Henk",
+            "lastName": "Ontkoppeld",
+            "shirtNumber": 14,
+            "position": "Spits"
+        }))
+        .await;
+    let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+    let register_res = app
+        .post("/api/auth/register")
+        .json(json!({
+            "firstName": "Henk",
+            "lastName": "Ontkoppeld",
+            "email": "henk@example.com",
+            "password": "test123"
+        }))
+        .await;
+    let user_token = register_res.json_value().await["token"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Link
+    let link_res = app
+        .post("/api/auth/link-player")
+        .token(&user_token)
+        .json(json!({ "player_id": player_id }))
+        .await;
+    let linked_token = link_res.json_value().await["token"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Unlink
+    let res = app
+        .post("/api/auth/unlink-player")
+        .token(&linked_token)
+        .json(json!({}))
+        .await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    assert!(body["playerId"].is_null());
+    assert!(body["token"].as_str().is_some());
+
+    // Player should reappear in find-player
+    let res = app
+        .get("/api/auth/find-player?name=Henk%20Ontkoppeld")
+        .send()
+        .await;
+    assert_eq!(res.json_value().await.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn unlink_player_fails_if_not_linked() {
+    let mut app = TestApp::new().await;
+
+    let register_res = app
+        .post("/api/auth/register")
+        .json(json!({
+            "firstName": "Geen",
+            "lastName": "Speler",
+            "email": "geen@example.com",
+            "password": "test123"
+        }))
+        .await;
+    let user_token = register_res.json_value().await["token"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let res = app
+        .post("/api/auth/unlink-player")
+        .token(&user_token)
+        .json(json!({}))
+        .await;
+    assert_eq!(res.status(), 404);
+}
+
+#[tokio::test]
+async fn unlink_player_requires_authentication() {
+    let mut app = TestApp::new().await;
+
+    let res = app
+        .post("/api/auth/unlink-player")
+        .json(json!({}))
+        .await;
+    assert_eq!(res.status(), 401);
+}

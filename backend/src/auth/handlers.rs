@@ -123,6 +123,37 @@ pub async fn link_player(
 }
 
 #[tracing::instrument(skip_all)]
+pub async fn unlink_player(
+    State(state): State<AppState>,
+    Jwt(claims): Jwt<Claims>,
+) -> Result<Json<AuthResponse>, AppError> {
+    let mut db = state.db;
+
+    let player = Player::filter_by_user_id(claims.sub)
+        .first()
+        .exec(&mut db)
+        .await?;
+
+    let Some(mut player) = player else {
+        return Err(AppError::not_found("No player linked"));
+    };
+
+    let mut player_update = player.update();
+    player_update.set_user_id(None);
+    player_update.exec(&mut db).await?;
+
+    let user = User::filter_by_id(claims.sub).get(&mut db).await?;
+    let roles: Vec<Role> = user.get_roles();
+    let token = encode_token(&state.jwt, &user, &roles, None)?;
+
+    Ok(Json(AuthResponse {
+        user,
+        player_id: None,
+        token,
+    }))
+}
+
+#[tracing::instrument(skip_all)]
 pub async fn find_player(
     State(mut state): State<AppState>,
     Query(query): Query<FindPlayerQuery>,

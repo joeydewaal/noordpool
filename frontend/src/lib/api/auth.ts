@@ -19,6 +19,12 @@ export async function linkPlayer(playerId: string): Promise<AuthResponse> {
 	return response.data;
 }
 
+export async function unlinkPlayer(): Promise<AuthResponse> {
+	const response = await api.post<AuthResponse>('/auth/unlink-player');
+	setToken(response.data.token);
+	return response.data;
+}
+
 export async function me(): Promise<User | null> {
 	if (!getToken()) return null;
 	try {
