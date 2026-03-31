@@ -3,6 +3,9 @@ name = "noordpool-backend"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+prod = ["dep:lambda_http"]
+
 [dependencies]
 dotenvy = "0.15.7"
 axum = { version = "0.8.8", features = ["tokio"] }
@@ -20,6 +23,8 @@ jiff = { version = "0.2", features = ["serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 csv = "1"
+
+lambda_http = { version = "1.1.2", optional = true }
 
 [build-dependencies]
 csv = "1"

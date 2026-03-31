@@ -19,15 +19,19 @@ pub use game_status::GameStatus;
 pub use home_away::HomeAway;
 pub use player::Player;
 pub use position::Position;
-use toasty::{Db, Executor, create, db::Builder};
+use toasty::{Db, Executor, create};
 pub use user::User;
 pub use user_role::{Role, UserRole};
 
-use crate::{auth::password, import, models::team::Team};
+use crate::{
+    auth::password,
+    config::Config,
+    import,
+    models::{self, team::Team},
+};
 
-pub fn build_db() -> Builder {
-    let mut builder = Db::builder();
-    builder
+pub async fn build_db(config: &Config) -> Result<Db, Box<dyn Error>> {
+    let mut db = Db::builder()
         .register::<Team>()
         .register::<User>()
         .register::<UserRole>()
@@ -38,9 +42,16 @@ pub fn build_db() -> Builder {
         .register::<GameStatus>()
         .register::<HomeAway>()
         .register::<GameEvent>()
-        .register::<EventType>();
+        .register::<EventType>()
+        .connect(&config.database_url)
+        .await?;
 
-    builder
+    if !cfg!(feature = "prod") {
+        let _ = db.push_schema().await;
+        models::init_db(&mut db).await?;
+    }
+
+    Ok(db)
 }
 
 pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {

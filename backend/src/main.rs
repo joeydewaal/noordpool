@@ -13,7 +13,6 @@ mod stats;
 use app_state::AppState;
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use config::Config;
-use tokio::net::TcpListener;
 
 use crate::models::build_db;
 
@@ -29,9 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = Config::from_env();
 
-    let mut db = build_db().connect(&config.database_url).await?;
-    let _ = db.push_schema().await;
-    models::init_db(&mut db).await?;
+    let db = build_db(&config).await?;
 
     let jwt = JwtContext::builder()
         .jwt_secret(&config.jwt_secret)
@@ -74,9 +71,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         google_oidc,
     };
 
-    let listener = TcpListener::bind(("0.0.0.0", config.port)).await?;
-    tracing::info!("listening on {}", listener.local_addr()?);
-    axum::serve(listener, routes::app(state)).await?;
+    let app = routes::app(state);
+
+    #[cfg(feature = "prod")]
+    lambda_http::run(app).await.unwrap();
+
+    #[cfg(not(feature = "prod"))]
+    {
+        use tokio::net::TcpListener;
+
+        let listener = TcpListener::bind(("0.0.0.0", config.port)).await?;
+        tracing::info!("listening on {}", listener.local_addr()?);
+        axum::serve(listener, app).await?;
+    }
 
     Ok(())
 }

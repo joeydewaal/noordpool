@@ -32,7 +32,10 @@ impl OidcHandler for GoogleHandler {
             .map(|n| n.to_string())
             .unwrap_or_else(|| email.clone());
         let (first_name, last_name) = match full_name.find(' ') {
-            Some(idx) => (full_name[..idx].to_string(), full_name[idx + 1..].to_string()),
+            Some(idx) => (
+                full_name[..idx].to_string(),
+                full_name[idx + 1..].to_string(),
+            ),
             None => (full_name, String::new()),
         };
 

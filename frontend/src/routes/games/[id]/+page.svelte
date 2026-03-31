@@ -4,8 +4,16 @@
     import { getGame } from "$lib/api/games";
     import { createGameEvent, deleteGameEvent } from "$lib/api/events";
     import { getPlayers } from "$lib/api/players";
-    import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-    import type { EventType, CreateGameEventRequest } from "$lib/api/types";
+    import {
+        createQuery,
+        createMutation,
+        useQueryClient,
+    } from "@tanstack/svelte-query";
+    import type {
+        EventType,
+        CreateGameEventRequest,
+        Player,
+    } from "$lib/api/types";
 
     const id = page.params.id!;
     const queryClient = useQueryClient();
@@ -13,12 +21,12 @@
     const canManage = $derived(auth.isAdmin || auth.isModerator);
 
     const gameQuery = createQuery(() => ({
-        queryKey: ['games', id],
+        queryKey: ["games", id],
         queryFn: () => getGame(id),
     }));
 
     const playersQuery = createQuery(() => ({
-        queryKey: ['players'],
+        queryKey: ["players"],
         queryFn: getPlayers,
         enabled: canManage,
     }));
@@ -26,14 +34,14 @@
     const addEventMutation = createMutation(() => ({
         mutationFn: (data: CreateGameEventRequest) => createGameEvent(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['games', id] });
+            queryClient.invalidateQueries({ queryKey: ["games", id] });
         },
     }));
 
     const deleteEventMutation = createMutation(() => ({
         mutationFn: (eventId: string) => deleteGameEvent(id, eventId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['games', id] });
+            queryClient.invalidateQueries({ queryKey: ["games", id] });
         },
     }));
 
@@ -55,22 +63,25 @@
     let newEventType: EventType = $state("goal");
     let newMinute = $state(1);
 
-    function playerName(event: { user?: { firstName: string; lastName: string } }): string {
-        if (!event.user) return "Onbekend";
-        return `${event.user.firstName} ${event.user.lastName}`.trim();
+    function playerName(player: Player): string {
+        return `${player.firstName} ${player.lastName}`.trim();
     }
 
     function handleAddEvent() {
         if (!newPlayerId) return;
         addEventMutation.mutate(
-            { playerId: newPlayerId, eventType: newEventType, minute: newMinute },
+            {
+                playerId: newPlayerId,
+                eventType: newEventType,
+                minute: newMinute,
+            },
             {
                 onSuccess: () => {
                     newPlayerId = "";
                     newEventType = "goal";
                     newMinute = 1;
                 },
-            }
+            },
         );
     }
 
@@ -117,7 +128,8 @@
                 <div>
                     Status:
                     <span
-                        class="font-medium {gameQuery.data.status === 'completed'
+                        class="font-medium {gameQuery.data.status ===
+                        'completed'
                             ? 'text-success-500'
                             : gameQuery.data.status === 'cancelled'
                               ? 'text-error-500'
@@ -141,13 +153,15 @@
                             >
                             <span class="text-surface-500 mx-2">-</span>
                             <span class="font-bold"
-                                >{gameQuery.data.awayScore} {gameQuery.data.opponent}</span
+                                >{gameQuery.data.awayScore}
+                                {gameQuery.data.opponent}</span
                             >
                         </div>
                     {:else}
                         <div class="text-lg">
                             <span class="font-bold"
-                                >{gameQuery.data.opponent} {gameQuery.data.homeScore}</span
+                                >{gameQuery.data.opponent}
+                                {gameQuery.data.homeScore}</span
                             >
                             <span class="text-surface-500 mx-2">-</span>
                             <span class="font-bold"
@@ -159,10 +173,10 @@
             {/if}
 
             {#if gameQuery.data.status === "completed"}
-                <div class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800">
-                    <h2 class="text-lg font-bold mb-3">
-                        Wedstrijdverloop
-                    </h2>
+                <div
+                    class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800"
+                >
+                    <h2 class="text-lg font-bold mb-3">Wedstrijdverloop</h2>
 
                     {#if !gameQuery.data?.events || gameQuery.data.events.length === 0}
                         <p class="text-sm text-surface-400">
@@ -181,7 +195,7 @@
                                         >{eventIcons[event.eventType]}</span
                                     >
                                     <span class="font-medium"
-                                        >{playerName(event)}</span
+                                        >{playerName(event.player)}</span
                                     >
                                     <span class="text-surface-400"
                                         >{eventLabels[event.eventType]}</span
@@ -200,7 +214,9 @@
                     {/if}
 
                     {#if canManage}
-                        <div class="mt-4 pt-3 border-t border-surface-200 dark:border-surface-800">
+                        <div
+                            class="mt-4 pt-3 border-t border-surface-200 dark:border-surface-800"
+                        >
                             <h3 class="text-sm font-semibold mb-2">
                                 Gebeurtenis toevoegen
                             </h3>
@@ -253,7 +269,9 @@
             {/if}
 
             {#if canManage}
-                <div class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800">
+                <div
+                    class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800"
+                >
                     <a
                         href="/games/{gameQuery.data.id}/edit"
                         class="btn btn-sm preset-filled-primary-500"

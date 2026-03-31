@@ -107,11 +107,23 @@ export interface UpdateGameRequest {
 
 export type EventType = 'goal' | 'assist' | 'yellow_card' | 'red_card';
 
+export interface Player {
+    id: string,
+    first_name: string,
+    last_name: string,
+    shirt_number: number,
+    position: Position,
+    active: boolean,
+    created_at: Date
+}
+
+
+
 export interface GameEvent {
     id: string;
     gameId: string;
     playerId: string;
-    user?: { id: string; firstName: string; lastName: string };
+    player: Player,
     eventType: EventType;
     minute: number;
 }

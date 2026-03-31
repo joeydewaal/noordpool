@@ -103,9 +103,7 @@ pub async fn link_player(
 ) -> Result<Json<AuthResponse>, AppError> {
     let mut db = state.db;
 
-    let mut player = Player::filter_by_id(body.player_id)
-        .get(&mut db)
-        .await?;
+    let mut player = Player::get_by_id(&mut db, body.player_id).await?;
 
     if player.user_id.is_some() {
         return Err(AppError::conflict("Player already has an account"));

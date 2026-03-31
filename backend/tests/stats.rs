@@ -112,7 +112,15 @@ async fn leaderboard_with_data() {
     let token = app.admin_token().await;
 
     let striker = create_player(&mut app, &token, "Striker", "", 9, "Spits").await;
-    let midfield = create_player(&mut app, &token, "Playmaker", "", 10, "Centrale middenvelder").await;
+    let midfield = create_player(
+        &mut app,
+        &token,
+        "Playmaker",
+        "",
+        10,
+        "Centrale middenvelder",
+    )
+    .await;
     let defender = create_player(&mut app, &token, "Tough", "Guy", 4, "Centrale verdediger").await;
 
     let game1 = create_game_and_complete(&mut app, &token, "FC Alpha", 3, 0).await;

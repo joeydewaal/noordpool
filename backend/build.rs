@@ -281,7 +281,11 @@ fn parse_player_row(record: &csv::StringRecord) -> Option<Player> {
         .skip(2)
         .filter_map(|(col_index, val)| {
             let count: u32 = val.trim().parse().ok()?;
-            if count > 0 { Some((col_index, count)) } else { None }
+            if count > 0 {
+                Some((col_index, count))
+            } else {
+                None
+            }
         })
         .collect();
 

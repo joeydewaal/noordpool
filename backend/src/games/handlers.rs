@@ -161,7 +161,7 @@ pub async fn update(
     tracing::info!(game_id = %id, "games::update");
     let mut db = state.db;
 
-    let mut game = Game::filter_by_id(id).get(&mut db).await?;
+    let mut game = Game::get_by_id(&mut db, id).await?;
 
     let mut update = game.update();
 
