@@ -17,7 +17,7 @@ pub struct GameEvent {
     #[serde(skip)]
     pub game_id: Uuid,
 
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
     #[belongs_to(key = game_id, references = id)]
     pub game: BelongsTo<Game>,
 

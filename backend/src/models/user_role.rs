@@ -1,31 +1,5 @@
 use serde::{Deserialize, Serialize};
-use toasty::{BelongsTo, Embed};
-use uuid::Uuid;
-
-use super::User;
-
-#[derive(Debug, toasty::Model, Serialize, Clone)]
-#[serde(into = "Role")]
-pub struct UserRole {
-    #[key]
-    #[auto]
-    pub id: Uuid,
-
-    #[index]
-    pub user_id: Uuid,
-
-    #[belongs_to(key = user_id, references = id)]
-    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub user: BelongsTo<User>,
-
-    pub role: Role,
-}
-
-impl From<UserRole> for Role {
-    fn from(value: UserRole) -> Self {
-        value.role
-    }
-}
+use toasty::Embed;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Embed)]
 #[serde(rename_all = "snake_case")]

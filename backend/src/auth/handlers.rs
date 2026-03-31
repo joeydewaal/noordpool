@@ -67,15 +67,12 @@ pub async fn register(
 
     let password_hash = password::hash_password(&body.password).await?;
 
-    let user = toasty::create!(
-        User {
-            first_name: body.first_name,
-            last_name: body.last_name,
-            email: body.email,
-            password_hash: password_hash,
-            roles: [{ role: Role::Player }]
-        }
-    )
+    let user = toasty::create!(User {
+        first_name: body.first_name,
+        last_name: body.last_name,
+        email: body.email,
+        password_hash: password_hash,
+    })
     .exec(&mut db)
     .await
     .map_err(|e| {
@@ -113,10 +110,7 @@ pub async fn link_player(
     player_update.set_user_id(Some(claims.sub));
     player_update.exec(&mut db).await?;
 
-    let user = User::filter_by_id(claims.sub)
-        .include(User::fields().roles())
-        .get(&mut db)
-        .await?;
+    let user = User::filter_by_id(claims.sub).get(&mut db).await?;
 
     let roles: Vec<Role> = user.get_roles();
     let token = encode_token(&state.jwt, &user, &roles, Some(player.id))?;
@@ -169,7 +163,6 @@ pub async fn login(
 
     let user = User::filter_by_email(body.email)
         .filter(User::fields().password_hash().is_some())
-        .include(User::fields().roles())
         .first()
         .exec(&mut db)
         .await?;
@@ -208,10 +201,10 @@ pub async fn me(
     Jwt(claims): Jwt<Claims>,
 ) -> Result<Json<User>, AppError> {
     let user = User::filter_by_id(claims.sub)
-        .include(User::fields().roles())
         .first()
         .exec(&mut state.db)
         .await?;
+
     let Some(user) = user else {
         return Err(AppError::unauthorized("User not found"));
     };

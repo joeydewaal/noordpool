@@ -19,9 +19,9 @@ pub use game_status::GameStatus;
 pub use home_away::HomeAway;
 pub use player::Player;
 pub use position::Position;
-use toasty::{Db, Executor, create};
+use toasty::{Db, Executor, create, db::Builder};
 pub use user::User;
-pub use user_role::{Role, UserRole};
+pub use user_role::Role;
 
 use crate::{
     auth::password,
@@ -30,11 +30,11 @@ use crate::{
     models::{self, team::Team},
 };
 
-pub async fn build_db(config: &Config) -> Result<Db, Box<dyn Error>> {
-    let mut db = Db::builder()
+pub fn build_db() -> Builder {
+    let mut builder = Db::builder();
+    builder
         .register::<Team>()
         .register::<User>()
-        .register::<UserRole>()
         .register::<Role>()
         .register::<Position>()
         .register::<Player>()
@@ -42,9 +42,13 @@ pub async fn build_db(config: &Config) -> Result<Db, Box<dyn Error>> {
         .register::<GameStatus>()
         .register::<HomeAway>()
         .register::<GameEvent>()
-        .register::<EventType>()
-        .connect(&config.database_url)
-        .await?;
+        .register::<EventType>();
+
+    builder
+}
+
+pub async fn create_db(config: &Config) -> Result<Db, Box<dyn Error>> {
+    let mut db = build_db().connect(&config.database_url).await?;
 
     if !cfg!(feature = "prod") {
         let _ = db.push_schema().await;
@@ -66,7 +70,7 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
         last_name: "",
         email: "admin@noordpool.be",
         password_hash: password,
-        roles: [{ role: Role::Admin }]
+        is_admin: true,
     })
     .exec(&mut tx)
     .await;

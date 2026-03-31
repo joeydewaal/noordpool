@@ -1,9 +1,9 @@
 use jiff::Timestamp;
 use serde::Serialize;
-use toasty::{BelongsTo, HasMany, schema::Model};
+use toasty::{BelongsTo, HasMany, HasOne, schema::Model};
 use uuid::Uuid;
 
-use crate::models::{GameEvent, Position, team::Team};
+use crate::models::{GameEvent, Position, User, team::Team};
 
 #[derive(Debug, toasty::Model, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -38,6 +38,10 @@ pub struct Player {
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]
     pub game_events: HasMany<GameEvent>,
+
+    #[has_one]
+    #[serde(skip_serializing_if = "HasOne::is_unloaded")]
+    pub player: HasOne<Option<User>>,
 
     #[default(Timestamp::now())]
     pub created_at: Timestamp,

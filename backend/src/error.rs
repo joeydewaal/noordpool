@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use axum::{
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Redirect, Response},
 };
 use serde_json::json;
 
@@ -12,6 +12,7 @@ pub enum AppError {
     NotFound(String),
     Conflict(String),
     Internal(String),
+    Redirect(Redirect),
 }
 
 impl AppError {
@@ -35,15 +36,18 @@ impl AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, message) = match &self {
-            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
-            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
-            AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
-            AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
+        let (status, message) = match self {
+            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, msg),
+            AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            AppError::Redirect(redirect) => return redirect.into_response(),
         };
-        match &self {
-            AppError::Internal(_) => tracing::error!(error = %message, "internal server error"),
-            AppError::Unauthorized(_) => tracing::warn!(error = %message, "unauthorized"),
+        match status {
+            StatusCode::INTERNAL_SERVER_ERROR => {
+                tracing::error!(error = %message, "internal server error")
+            }
+            StatusCode::UNAUTHORIZED => tracing::warn!(error = %message, "unauthorized"),
             _ => {}
         }
         let body = axum::Json(json!({ "error": message }));
@@ -59,5 +63,11 @@ impl From<toasty::Error> for AppError {
         } else {
             Self::Internal(value.to_string())
         }
+    }
+}
+
+impl From<Redirect> for AppError {
+    fn from(value: Redirect) -> Self {
+        Self::Redirect(value)
     }
 }

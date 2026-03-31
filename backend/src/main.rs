@@ -14,7 +14,9 @@ use app_state::AppState;
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use config::Config;
 
-use crate::models::build_db;
+use crate::models::create_db;
+
+pub type Result<T, E = error::AppError> = ::std::result::Result<T, E>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = Config::from_env();
 
-    let db = build_db(&config).await?;
+    let db = create_db(&config).await?;
 
     let jwt = JwtContext::builder()
         .jwt_secret(&config.jwt_secret)
