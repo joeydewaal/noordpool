@@ -2,17 +2,18 @@ use std::collections::HashSet;
 
 use axum::{Json, extract::State};
 use serde::Serialize;
+use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{EventType, GameStatus, Player},
+    models::{EventType, Game, GameStatus, Player},
 };
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LeaderboardEntryResponse {
-    pub player_id: String,
+    pub player_id: Uuid,
     pub first_name: String,
     pub last_name: String,
     pub shirt_number: i32,
@@ -68,7 +69,7 @@ pub async fn leaderboard(
             }
 
             LeaderboardEntryResponse {
-                player_id: player.id.to_string(),
+                player_id: player.id,
                 first_name: player.first_name.clone(),
                 last_name: player.last_name.clone(),
                 shirt_number: player.shirt_number,
