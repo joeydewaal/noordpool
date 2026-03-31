@@ -25,7 +25,8 @@ export async function load({ url }: { url: URL }) {
 		} finally {
 			auth.loading = false;
 		}
-		if (!claims.player_id) {
+		const roles = Array.isArray(claims.roles) ? claims.roles : [];
+		if (!roles.includes('player')) {
 			const name = typeof claims.name === 'string' ? claims.name : '';
 			redirect(302, `/auth/link-player?name=${encodeURIComponent(name)}`);
 		}

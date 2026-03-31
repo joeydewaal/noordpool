@@ -3,32 +3,17 @@
 	import { pwa } from '$lib/state/pwa.svelte';
 	import { theme } from '$lib/state/theme.svelte';
 	import { logout, unlinkPlayer } from '$lib/api/auth';
-	import { getToken } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 
 	if (!auth.isAuthenticated) {
 		goto('/auth/login');
 	}
 
-	let hasPlayer = $state(false);
-
-	function checkPlayerLinked() {
-		const token = getToken();
-		if (!token) return;
-		try {
-			const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-			hasPlayer = !!payload.player_id;
-		} catch {
-			hasPlayer = false;
-		}
-	}
-
-	checkPlayerLinked();
+	let hasPlayer = $derived(auth.user?.roles.includes('player') ?? false);
 
 	async function handleUnlink() {
 		const res = await unlinkPlayer();
 		auth.setUser(res.user);
-		hasPlayer = false;
 	}
 
 	function handleLogout() {

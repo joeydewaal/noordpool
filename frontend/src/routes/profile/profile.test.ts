@@ -2,32 +2,24 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Page from './+page.svelte';
 
-function fakeJwt(payload: Record<string, unknown>): string {
-	const header = btoa(JSON.stringify({ alg: 'HS256' }));
-	const body = btoa(JSON.stringify(payload));
-	return `${header}.${body}.fake-signature`;
-}
+const mockUser = {
+	id: 'user-1',
+	email: 'test@example.com',
+	firstName: 'Jan',
+	lastName: 'de Vries',
+	avatarUrl: null,
+	roles: ['player'] as string[],
+};
 
 vi.mock('$lib/api/auth', () => ({
 	logout: vi.fn(),
 	unlinkPlayer: vi.fn(),
 }));
 
-vi.mock('$lib/api/client', () => ({
-	getToken: vi.fn(),
-}));
-
 vi.mock('$lib/state/auth.svelte', () => ({
 	auth: {
-		isAuthenticated: true,
-		user: {
-			id: 'user-1',
-			email: 'test@example.com',
-			firstName: 'Jan',
-			lastName: 'de Vries',
-			avatarUrl: null,
-			roles: ['player'],
-		},
+		get isAuthenticated() { return true; },
+		get user() { return mockUser; },
 		isAdmin: false,
 		isModerator: false,
 		setUser: vi.fn(),
@@ -44,36 +36,30 @@ vi.mock('$lib/state/theme.svelte', () => ({
 }));
 
 import { unlinkPlayer } from '$lib/api/auth';
-import { getToken } from '$lib/api/client';
 import { auth } from '$lib/state/auth.svelte';
 import { goto } from '$app/navigation';
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	mockUser.roles = ['player'];
 });
 
 describe('profile page — linked player', () => {
-	beforeEach(() => {
-		vi.mocked(getToken).mockReturnValue(
-			fakeJwt({ sub: 'user-1', player_id: 'player-1' })
-		);
-	});
-
-	it('shows unlink button when player is linked', () => {
+	it('shows unlink button when user has player role', () => {
 		render(Page);
 		expect(screen.getByText('Ontkoppelen')).toBeInTheDocument();
 		expect(screen.getByText('Gekoppelde speler')).toBeInTheDocument();
 	});
 
-	it('does not show link prompt when player is linked', () => {
+	it('does not show link prompt when user has player role', () => {
 		render(Page);
 		expect(screen.queryByText('Geen speler gekoppeld')).not.toBeInTheDocument();
 	});
 
 	it('calls unlinkPlayer and updates state on click', async () => {
 		vi.mocked(unlinkPlayer).mockResolvedValue({
-			user: { id: 'user-1', email: 'test@example.com', firstName: 'Jan', lastName: 'de Vries', avatarUrl: null, roles: ['player'] },
-			token: fakeJwt({ sub: 'user-1' }),
+			user: { id: 'user-1', email: 'test@example.com', firstName: 'Jan', lastName: 'de Vries', avatarUrl: null, roles: [] },
+			token: 'mock-token',
 		});
 
 		render(Page);
@@ -82,7 +68,7 @@ describe('profile page — linked player', () => {
 		await waitFor(() => {
 			expect(unlinkPlayer).toHaveBeenCalledOnce();
 			expect(auth.setUser).toHaveBeenCalledWith(
-				expect.objectContaining({ id: 'user-1' })
+				expect.objectContaining({ id: 'user-1', roles: [] })
 			);
 		});
 	});
@@ -90,18 +76,16 @@ describe('profile page — linked player', () => {
 
 describe('profile page — no linked player', () => {
 	beforeEach(() => {
-		vi.mocked(getToken).mockReturnValue(
-			fakeJwt({ sub: 'user-1' })
-		);
+		mockUser.roles = [];
 	});
 
-	it('shows link prompt when no player is linked', () => {
+	it('shows link prompt when user has no player role', () => {
 		render(Page);
 		expect(screen.getByText('Geen speler gekoppeld')).toBeInTheDocument();
 		expect(screen.getByText('Koppelen')).toBeInTheDocument();
 	});
 
-	it('does not show unlink button when no player is linked', () => {
+	it('does not show unlink button when user has no player role', () => {
 		render(Page);
 		expect(screen.queryByText('Ontkoppelen')).not.toBeInTheDocument();
 	});
@@ -114,12 +98,6 @@ describe('profile page — no linked player', () => {
 });
 
 describe('profile page — general', () => {
-	beforeEach(() => {
-		vi.mocked(getToken).mockReturnValue(
-			fakeJwt({ sub: 'user-1' })
-		);
-	});
-
 	it('shows user name and email', () => {
 		render(Page);
 		expect(screen.getByText('Jan de Vries')).toBeInTheDocument();

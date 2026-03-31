@@ -31,7 +31,6 @@ export interface PlayerMatch {
 
 export interface AuthResponse {
     user: User;
-    playerId?: string;
     token: string;
 }
 

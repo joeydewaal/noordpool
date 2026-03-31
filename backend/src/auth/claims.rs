@@ -8,7 +8,6 @@ use crate::models::Role;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: Uuid,
-    pub player_id: Option<Uuid>,
     pub email: String,
     pub first_name: String,
     pub last_name: String,

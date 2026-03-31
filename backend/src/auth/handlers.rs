@@ -19,7 +19,6 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 pub struct AuthResponse {
     pub user: User,
-    pub player_id: Option<Uuid>,
     pub token: String,
 }
 
@@ -84,12 +83,9 @@ pub async fn register(
         }
     })?;
 
-    let token = encode_token(&state.jwt, &user, &[Role::Player], None)?;
-    Ok(Json(AuthResponse {
-        user,
-        player_id: None,
-        token,
-    }))
+    let roles = user.get_roles();
+    let token = encode_token(&state.jwt, &user, &roles)?;
+    Ok(Json(AuthResponse { user, token }))
 }
 
 #[tracing::instrument(skip_all)]
@@ -110,16 +106,16 @@ pub async fn link_player(
     player_update.set_user_id(Some(claims.sub));
     player_update.exec(&mut db).await?;
 
-    let user = User::filter_by_id(claims.sub).get(&mut db).await?;
+    let mut user = User::filter_by_id(claims.sub).get(&mut db).await?;
+    let mut user_update = user.update();
+    user_update.set_player_id(Some(player.id));
+    user_update.exec(&mut db).await?;
+    user.player_id = Some(player.id);
 
     let roles: Vec<Role> = user.get_roles();
-    let token = encode_token(&state.jwt, &user, &roles, Some(player.id))?;
+    let token = encode_token(&state.jwt, &user, &roles)?;
 
-    Ok(Json(AuthResponse {
-        user,
-        player_id: Some(player.id),
-        token,
-    }))
+    Ok(Json(AuthResponse { user, token }))
 }
 
 #[tracing::instrument(skip_all)]
@@ -142,15 +138,16 @@ pub async fn unlink_player(
     player_update.set_user_id(None);
     player_update.exec(&mut db).await?;
 
-    let user = User::filter_by_id(claims.sub).get(&mut db).await?;
-    let roles: Vec<Role> = user.get_roles();
-    let token = encode_token(&state.jwt, &user, &roles, None)?;
+    let mut user = User::filter_by_id(claims.sub).get(&mut db).await?;
+    let mut user_update = user.update();
+    user_update.set_player_id(None);
+    user_update.exec(&mut db).await?;
+    user.player_id = None;
 
-    Ok(Json(AuthResponse {
-        user,
-        player_id: None,
-        token,
-    }))
+    let roles: Vec<Role> = user.get_roles();
+    let token = encode_token(&state.jwt, &user, &roles)?;
+
+    Ok(Json(AuthResponse { user, token }))
 }
 
 #[tracing::instrument(skip_all)]
@@ -211,19 +208,8 @@ pub async fn login(
     }
 
     let roles: Vec<Role> = user.get_roles();
-
-    let player_id = Player::filter_by_user_id(user.id)
-        .first()
-        .exec(&mut db)
-        .await?
-        .map(|p| p.id);
-
-    let token = encode_token(&state.jwt, &user, &roles, player_id)?;
-    Ok(Json(AuthResponse {
-        user,
-        player_id,
-        token,
-    }))
+    let token = encode_token(&state.jwt, &user, &roles)?;
+    Ok(Json(AuthResponse { user, token }))
 }
 
 #[tracing::instrument(skip(state), fields(user_id = %claims.sub))]
@@ -250,11 +236,9 @@ fn encode_token(
     jwt: &JwtContext<Claims>,
     user: &User,
     roles: &[Role],
-    player_id: Option<uuid::Uuid>,
 ) -> Result<String, AppError> {
     let claims = Claims {
         sub: user.id,
-        player_id,
         email: user.email.clone(),
         first_name: user.first_name.clone(),
         last_name: user.last_name.clone(),
