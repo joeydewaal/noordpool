@@ -48,7 +48,7 @@ describe('register form submission', () => {
 		await fireEvent.input(screen.getByLabelText(/bevestig wachtwoord/i), { target: { value: 'geheim123' } });
 		await fireEvent.submit(screen.getByRole('button', { name: /registreren/i }));
 
-		await waitFor(() => expect(goto).toHaveBeenCalledWith('/auth/link-player?name=Jan%20de%20Vries'));
+		await waitFor(() => expect(goto).toHaveBeenCalledWith('/auth/link-player'));
 	});
 
 	it('shows error when passwords do not match', async () => {

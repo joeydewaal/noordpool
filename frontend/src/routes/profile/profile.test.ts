@@ -90,10 +90,10 @@ describe('profile page — no linked player', () => {
 		expect(screen.queryByText('Ontkoppelen')).not.toBeInTheDocument();
 	});
 
-	it('link points to link-player page with user name', () => {
+	it('link points to link-player page', () => {
 		render(Page);
 		const link = screen.getByText('Koppelen').closest('a');
-		expect(link).toHaveAttribute('href', '/auth/link-player?name=Jan%20de%20Vries');
+		expect(link).toHaveAttribute('href', '/auth/link-player');
 	});
 });
 

@@ -27,8 +27,7 @@ export async function load({ url }: { url: URL }) {
 		}
 		const roles = Array.isArray(claims.roles) ? claims.roles : [];
 		if (!roles.includes('player')) {
-			const name = typeof claims.name === 'string' ? claims.name : '';
-			redirect(302, `/auth/link-player?name=${encodeURIComponent(name)}`);
+			redirect(302, '/auth/link-player');
 		}
 		redirect(302, '/');
 	}

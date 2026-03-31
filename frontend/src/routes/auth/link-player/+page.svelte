@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { findPlayer, linkPlayer } from '$lib/api/auth';
 	import { auth } from '$lib/state/auth.svelte';
-	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import type { PlayerMatch } from '$lib/api/types';
@@ -9,7 +8,7 @@
 	let playerMatches: PlayerMatch[] = $state([]);
 	let loading = $state(true);
 
-	const name = $derived($page.url.searchParams.get('name') ?? '');
+	const name = `${auth.user?.firstName ?? ''} ${auth.user?.lastName ?? ''}`.trim();
 
 	onMount(async () => {
 		if (name.length >= 2) {

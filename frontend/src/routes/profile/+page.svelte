@@ -60,7 +60,7 @@
 				</button>
 			</div>
 		{:else}
-			<a href="/auth/link-player?name={encodeURIComponent(`${auth.user?.firstName ?? ''} ${auth.user?.lastName ?? ''}`.trim())}" class="card p-4 flex items-center justify-between">
+			<a href="/auth/link-player" class="card p-4 flex items-center justify-between">
 				<span class="font-medium">Geen speler gekoppeld</span>
 				<span class="btn btn-sm preset-filled-primary-500">Koppelen</span>
 			</a>

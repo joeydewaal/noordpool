@@ -23,7 +23,7 @@
 		try {
 			const res = await register({ firstName, lastName, email, password });
 			auth.setUser(res.user);
-			goto(`/auth/link-player?name=${encodeURIComponent(`${firstName} ${lastName}`)}`);
+			goto('/auth/link-player');
 		} catch (err) {
 			error = 'Registratie mislukt. Probeer het opnieuw.';
 		}
