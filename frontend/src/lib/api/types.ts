@@ -133,6 +133,18 @@ export interface CreateGameEventRequest {
     minute: number;
 }
 
+export interface GameTimelineEntry {
+    gameId: string;
+    opponent: string;
+    dateTime: string;
+    goals: number;
+    assists: number;
+    yellowCards: number;
+    redCards: number;
+    cumulativeGoals: number;
+    cumulativeAssists: number;
+}
+
 export interface PlayerStats {
     playerId: string;
     appearances: number;
@@ -140,6 +152,7 @@ export interface PlayerStats {
     assists: number;
     yellowCards: number;
     redCards: number;
+    gameTimeline: GameTimelineEntry[];
 }
 
 export interface LeaderboardEntry {

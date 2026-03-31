@@ -39,6 +39,7 @@ async fn after_login(
 
     let first_name = token_res.claims.name.unwrap_or_default();
     let last_name = token_res.claims.family_name.unwrap_or_default();
+    let avatar_url = token_res.claims.picture.map(|s| s.to_string());
 
     let opt_user = User::filter_by_email(email)
         .first()
@@ -48,12 +49,25 @@ async fn after_login(
 
     // Try to find existing user by email
     let (roles, user) = match opt_user {
-        Some(user) => (user.get_roles(), user),
+        Some(mut user) => {
+            let roles = user.get_roles();
+            if user.avatar_url != avatar_url {
+                let mut update = user.update();
+                update.set_avatar_url(avatar_url.clone());
+                update
+                    .exec(&mut db)
+                    .await
+                    .map_err(|_| Redirect::to(&format!("{}?error=db_error", this.frontend_url)))?;
+                user.avatar_url = avatar_url;
+            }
+            (roles, user)
+        }
         None => {
             let user = toasty::create!(User {
                 first_name: first_name,
                 last_name: last_name,
                 email: email,
+                avatar_url: avatar_url,
             })
             .exec(&mut db)
             .await

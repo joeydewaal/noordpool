@@ -5,6 +5,8 @@
 	import { getPlayerStats } from '$lib/api/events';
 	import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 	import type { UpdatePlayerRequest } from '$lib/api/types';
+	import PlayerStatsBar from '$lib/components/charts/PlayerStatsBar.svelte';
+	import PlayerTimeline from '$lib/components/charts/PlayerTimeline.svelte';
 
 	const id = page.params.id!;
 	const queryClient = useQueryClient();
@@ -49,7 +51,7 @@
 </script>
 
 {#if playerQuery.data}
-	<div class="max-w-lg">
+	<div class="max-w-2xl">
 		<a href="/players" class="text-sm text-primary-500 hover:underline mb-4 inline-block">&larr; Alle spelers</a>
 		<div class="card p-6">
 			<div class="flex items-center gap-4 mb-4">
@@ -81,6 +83,25 @@
 							<div class="text-xs text-surface-400 mt-1">{item.label}</div>
 						</div>
 					{/each}
+				</div>
+			{/if}
+
+			{#if statsQuery.data}
+				<h2 class="text-lg font-bold mt-8 mb-4">Statistieken</h2>
+
+				<div class="card preset-tonal-surface p-4 mb-4">
+					<h3 class="text-sm font-medium text-surface-400 mb-2">Overzicht</h3>
+					<PlayerStatsBar
+						goals={statsQuery.data.goals}
+						assists={statsQuery.data.assists}
+						yellowCards={statsQuery.data.yellowCards}
+						redCards={statsQuery.data.redCards}
+					/>
+				</div>
+
+				<div class="card preset-tonal-surface p-4">
+					<h3 class="text-sm font-medium text-surface-400 mb-2">Seizoensverloop</h3>
+					<PlayerTimeline timeline={statsQuery.data.gameTimeline} />
 				</div>
 			{/if}
 

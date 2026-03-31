@@ -26,6 +26,8 @@ pub struct User {
     #[belongs_to(key = player_id, references = id)]
     pub player: BelongsTo<Option<Player>>,
 
+    pub avatar_url: Option<String>,
+
     #[default(false)]
     pub is_admin: bool,
 
@@ -62,6 +64,7 @@ pub struct UserSer<'a> {
     pub email: &'a str,
     pub first_name: &'a str,
     pub last_name: &'a str,
+    pub avatar_url: &'a Option<String>,
     #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
     pub player: &'a BelongsTo<Option<Player>>,
     pub is_admin: bool,
@@ -80,6 +83,7 @@ impl Serialize for User {
             email: &self.email,
             first_name: &self.first_name,
             last_name: &self.last_name,
+            avatar_url: &self.avatar_url,
             player: &self.player,
             is_admin: self.is_admin,
             is_moderator: self.is_moderator,

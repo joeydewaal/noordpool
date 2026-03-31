@@ -1,0 +1,15 @@
+---
+source: tests/players.rs
+assertion_line: 157
+expression: body
+---
+{
+  "appearances": 0,
+  "assists": 0,
+  "gameTimeline": [],
+  "goalMatches": [],
+  "goals": 0,
+  "playerId": "[uuid]",
+  "redCards": 0,
+  "yellowCards": 0
+}

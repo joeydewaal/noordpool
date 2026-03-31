@@ -32,7 +32,7 @@
 {#if auth.isAuthenticated}
     <div>
         <h1 class="text-2xl font-bold mb-4">
-            Welkom terug, {auth.user?.name}!
+            Welkom terug, {auth.user?.firstName} {auth.user?.lastName}!
         </h1>
         <div class="grid gap-6 md:grid-cols-2">
             <div class="card p-6">

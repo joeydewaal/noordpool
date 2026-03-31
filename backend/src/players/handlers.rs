@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use axum::{
     Json,
@@ -50,6 +50,20 @@ pub struct PlayerGoalMatchResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GameTimelineEntry {
+    pub game_id: String,
+    pub opponent: String,
+    pub date_time: Timestamp,
+    pub goals: i32,
+    pub assists: i32,
+    pub yellow_cards: i32,
+    pub red_cards: i32,
+    pub cumulative_goals: i32,
+    pub cumulative_assists: i32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlayerStatsResponse {
     pub player_id: String,
     pub appearances: usize,
@@ -58,6 +72,7 @@ pub struct PlayerStatsResponse {
     pub yellow_cards: i32,
     pub red_cards: i32,
     pub goal_matches: Vec<PlayerGoalMatchResponse>,
+    pub game_timeline: Vec<GameTimelineEntry>,
 }
 
 #[tracing::instrument(skip(state))]
@@ -204,6 +219,49 @@ pub async fn stats(
         .collect();
     goal_matches.sort_by(|a, b| b.date_time.cmp(&a.date_time));
 
+    // Build per-game timeline for charts
+    let mut timeline_map: HashMap<Uuid, (i32, i32, i32, i32, &crate::models::Game)> =
+        HashMap::new();
+    for event in events {
+        let game = event.game.get();
+        if game.status != GameStatus::Completed {
+            continue;
+        }
+        let entry = timeline_map
+            .entry(event.game_id)
+            .or_insert((0, 0, 0, 0, game));
+        match event.event_type {
+            EventType::Goal => entry.0 += 1,
+            EventType::Assist => entry.1 += 1,
+            EventType::YellowCard => entry.2 += 1,
+            EventType::RedCard => entry.3 += 1,
+        }
+    }
+
+    let mut timeline_entries: Vec<_> = timeline_map.into_iter().collect();
+    timeline_entries.sort_by(|a, b| a.1.4.date_time.cmp(&b.1.4.date_time));
+
+    let mut cum_goals = 0i32;
+    let mut cum_assists = 0i32;
+    let game_timeline: Vec<GameTimelineEntry> = timeline_entries
+        .into_iter()
+        .map(|(game_id, (g, a, yc, rc, game))| {
+            cum_goals += g;
+            cum_assists += a;
+            GameTimelineEntry {
+                game_id: game_id.to_string(),
+                opponent: game.opponent.clone(),
+                date_time: game.date_time,
+                goals: g,
+                assists: a,
+                yellow_cards: yc,
+                red_cards: rc,
+                cumulative_goals: cum_goals,
+                cumulative_assists: cum_assists,
+            }
+        })
+        .collect();
+
     let response = PlayerStatsResponse {
         player_id: id.to_string(),
         appearances: game_ids.len(),
@@ -212,6 +270,7 @@ pub async fn stats(
         yellow_cards,
         red_cards,
         goal_matches,
+        game_timeline,
     };
     Ok(Json(response))
 }
