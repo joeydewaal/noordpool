@@ -121,7 +121,7 @@ A PWA for a single football team where players can view upcoming matches, match 
 
 ---
 
-## Phase 5: Polish & PWA -- PARTIAL
+## Phase 5: Polish & PWA -- DONE
 
 - [x] PWA manifest + service worker with static asset precaching
 - [x] Responsive design with Tailwind (mobile-ready)
@@ -129,8 +129,8 @@ A PWA for a single football team where players can view upcoming matches, match 
 - [x] Error handling (try-catch in handlers, error messages displayed)
 - [x] Empty states with Dutch messaging throughout
 - [x] Basic SEO/meta tags (description, theme-color, favicon, manifest link)
-- [ ] Offline caching of API data (match schedule, recent results) — only static assets cached, no IndexedDB/API cache strategy
-- [ ] Dynamic per-page meta tags and Open Graph tags for social sharing
+- [x] Offline caching of API data — Workbox StaleWhileRevalidate for `/api/*` + TanStack Query persistence to IndexedDB
+- N/A Dynamic per-page meta tags — skipped, app runs in SPA mode (`ssr = false`) so meta tags aren't visible to crawlers
 
 ---
 
@@ -180,5 +180,5 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 2. ~~Phase 2 — Players~~ DONE
 3. ~~Phase 3 — Matches~~ DONE
 4. ~~Phase 4 — Match Events & Stats~~ DONE
-5. Phase 5 — Polish & PWA enhancements (partially done, remaining: offline API caching, dynamic meta tags)
+5. ~~Phase 5 — Polish & PWA enhancements~~ DONE
 6. Phase 6 — Live match updates & push notifications (nice-to-have, not started)

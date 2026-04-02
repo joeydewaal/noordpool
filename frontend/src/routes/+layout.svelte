@@ -1,8 +1,3 @@
-<script module lang="ts">
-    import { QueryClient } from '@tanstack/svelte-query';
-    const queryClient = new QueryClient();
-</script>
-
 <script lang="ts">
     import "../app.css";
     import Header from "$lib/components/Header.svelte";
@@ -10,9 +5,26 @@
     import { registerSW } from "virtual:pwa-register";
     import { pwa } from "$lib/state/pwa.svelte";
     import { theme } from "$lib/state/theme.svelte";
-    import { QueryClientProvider } from '@tanstack/svelte-query';
+    import { QueryClient } from '@tanstack/svelte-query';
+    import { PersistQueryClientProvider } from '@tanstack/svelte-query-persist-client';
+    import { get, set, del } from 'idb-keyval';
+    import type { Persister } from '@tanstack/query-persist-client-core';
 
     let { children } = $props();
+
+    const queryClient = new QueryClient({
+        defaultOptions: {
+            queries: {
+                gcTime: 1000 * 60 * 60 * 24, // 24 hours
+            },
+        },
+    });
+
+    const persister: Persister = {
+        persistClient: (client) => set('noordpool-query-cache', client),
+        restoreClient: () => get('noordpool-query-cache'),
+        removeClient: () => del('noordpool-query-cache'),
+    };
 
     onMount(() => {
         theme.init();
@@ -29,11 +41,11 @@
     });
 </script>
 
-<QueryClientProvider client={queryClient}>
+<PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
     <div class="min-h-screen flex">
         <Header />
         <main class="flex-1 max-w-5xl w-full px-4 py-8 md:px-8 pb-24 md:pb-8">
             {@render children()}
         </main>
     </div>
-</QueryClientProvider>
+</PersistQueryClientProvider>

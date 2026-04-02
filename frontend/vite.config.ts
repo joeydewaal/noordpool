@@ -12,6 +12,21 @@ export default defineConfig({
                 enabled: true
             },
             registerType: 'autoUpdate',
+            workbox: {
+                runtimeCaching: [
+                    {
+                        urlPattern: /^.*\/api\/(games|players|stats)/,
+                        handler: 'StaleWhileRevalidate',
+                        options: {
+                            cacheName: 'api-cache',
+                            expiration: {
+                                maxEntries: 50,
+                                maxAgeSeconds: 60 * 60 * 24,
+                            },
+                        },
+                    },
+                ],
+            },
             manifest: {
                 name: 'Noordpool',
                 short_name: 'Noordpool',
