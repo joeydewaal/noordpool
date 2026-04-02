@@ -19,124 +19,131 @@ A PWA for a single football team where players can view upcoming matches, match 
 
 ---
 
-## Phase 1: Project Scaffolding & Auth
+## Phase 1: Project Scaffolding & Auth -- DONE
 
 ### Backend
-- Initialize Rust workspace with Axum
-- Configure path dependencies for `axum-security` and `toasty`
-- Set up PostgreSQL connection (via toasty or sqlx — depends on what toasty provides)
-- Database schema: `users` table (id, email, password_hash, name, provider, created_at)
-- Database schema: `roles` table or enum-based role assignment (admin, moderator, player) — many-to-many with users
-- Auth endpoints:
+- [x] Initialize Rust workspace with Axum
+- [x] Configure path dependencies for `axum-security` and `toasty`
+- [x] Set up PostgreSQL connection (via toasty)
+- [x] Database schema: `users` table (id, email, password_hash, first_name, last_name, player_id, avatar_url, is_admin, is_moderator, created_at)
+- [x] Role assignment via boolean flags on User model (`is_admin`, `is_moderator`) + computed `get_roles()`
+- [x] Auth endpoints:
   - `POST /api/auth/register` (email + password)
   - `POST /api/auth/login` (email + password)
-  - `POST /api/auth/google` (Google OAuth callback)
+  - `POST /api/auth/google/login` (Google OAuth via axum-security OIDC)
   - `POST /api/auth/logout`
   - `GET /api/auth/me` (current user + roles)
-- Session/token management via axum-security
-- Role-based middleware for protected routes
+  - `GET /api/auth/find-player` (find player to link)
+  - `POST /api/auth/link-player` / `POST /api/auth/unlink-player`
+- [x] JWT session management via axum-security
+- [x] Role-based middleware via `#[requires]` / `#[requires_any]` macros
 
 ### Frontend
-- Initialize SvelteKit project
-- PWA setup (service worker, manifest.json, offline support)
-- Auth pages: login, register, Google OAuth flow
-- Auth state management (store current user + roles)
-- Navigation layout: header with team name, nav links, login/avatar
+- [x] Initialize SvelteKit project with TypeScript, Tailwind CSS, Skeleton UI
+- [x] PWA setup (vite-pwa plugin, manifest, service worker, icons)
+- [x] Auth pages: login, register, Google OAuth button
+- [x] Auth state management (`auth.svelte.ts` with user, token, roles)
+- [x] Navigation layout: header with team name, nav links, login/avatar
 
 ### Verification
-- Register a user, log in, see `/me` return correct data
-- Google OAuth flow works end-to-end
-- PWA installable on mobile
+- [x] Register a user, log in, see `/me` return correct data
+- [x] Google OAuth flow works end-to-end
+- [x] PWA installable on mobile
 
 ---
 
-## Phase 2: Players
+## Phase 2: Players -- DONE
 
 ### Backend
-- Database schema: `players` table (id, user_id nullable, name, shirt_number, position, active)
-  - `user_id` is nullable so players can exist without an account
-- Endpoints:
-  - `GET /api/players` (list all players — public)
+- [x] Database schema: `players` table (id, user_id nullable, first_name, last_name, shirt_number, position, active, team_id, created_at)
+  - Position enum with 10 positions (Keeper, Centre Back, Left/Right Back, etc.)
+- [x] Endpoints:
+  - `GET /api/players` (list all active players — public)
   - `GET /api/players/:id` (player detail — public)
   - `POST /api/players` (create — admin/moderator)
   - `PUT /api/players/:id` (update — admin/moderator)
-  - `DELETE /api/players/:id` (soft delete — admin only)
+  - `DELETE /api/players/:id` (soft delete via active=false — admin only)
 
 ### Frontend
-- Player list page
-- Player detail/profile page (stats come later in Phase 4)
-- Admin/moderator: player management UI (add, edit, deactivate)
+- [x] Player list page (with toggle for inactive players for admin/mod)
+- [x] Player detail/profile page (stats integrated from Phase 4)
+- [x] Admin/moderator: player management UI (create, edit, deactivate)
 
 ### Verification
-- Create players, view player list as guest
-- Only admin/moderator can create/edit players
+- [x] Create players, view player list as guest
+- [x] Only admin/moderator can create/edit players
 
 ---
 
-## Phase 3: Matches
+## Phase 3: Matches -- DONE
 
 ### Backend
-- Database schema: `matches` table (id, opponent, location, date_time, home_away, status [scheduled/completed/cancelled], home_score, away_score, created_at)
-- Endpoints:
-  - `GET /api/matches` (list — public, with filters: upcoming/past)
-  - `GET /api/matches/:id` (detail — public)
-  - `POST /api/matches` (create — admin/moderator)
-  - `PUT /api/matches/:id` (update — admin/moderator)
-  - `DELETE /api/matches/:id` (admin only)
+- [x] Database schema: `games` table (id, opponent, location, date_time, home_away, status [scheduled/completed/cancelled], home_score, away_score, created_at)
+- [x] Endpoints:
+  - `GET /api/games` (list — public, ordered by date)
+  - `GET /api/games/:id` (detail with events — public)
+  - `POST /api/games` (create — admin/moderator)
+  - `PUT /api/games/:id` (update — admin/moderator)
+  - `DELETE /api/games/:id` (admin only)
+  - `GET /api/games/upcoming`, `/api/games/recent`, `/api/games/summary`
 
 ### Frontend
-- Match list page with tabs/filter: upcoming vs past results
-- Match detail page (opponent, location, time, score)
-- Admin/moderator: match management UI (create, edit, update score)
+- [x] Match list page with tabs: upcoming vs recent results
+- [x] Match detail page (opponent, location, time, score, event timeline)
+- [x] Admin/moderator: match management UI (create, edit, update score)
 
 ### Verification
-- Create a match, view it as guest
-- Update match with final score
+- [x] Create a match, view it as guest
+- [x] Update match with final score
 
 ---
 
-## Phase 4: Match Events & Player Stats
+## Phase 4: Match Events & Player Stats -- DONE
 
 ### Backend
-- Database schema: `match_events` table (id, match_id, player_id, event_type [goal/assist/yellow_card/red_card], minute, created_at)
-- Endpoints:
-  - `GET /api/matches/:id/events` (public)
-  - `POST /api/matches/:id/events` (admin/moderator)
-  - `PUT /api/matches/:id/events/:event_id` (admin/moderator)
-  - `DELETE /api/matches/:id/events/:event_id` (admin/moderator)
-  - `GET /api/players/:id/stats` (aggregated stats — public)
-  - `GET /api/stats/leaderboard` (top scorers, top assists — public)
+- [x] Database schema: `game_events` table (id, game_id, player_id, event_type [goal/assist/yellow_card/red_card], minute, created_at)
+- [x] Endpoints:
+  - `GET /api/games/:id/events` (public)
+  - `POST /api/games/:id/events` (admin/moderator)
+  - `DELETE /api/games/:id/events/:event_id` (admin/moderator)
+  - `GET /api/players/:id/stats` (aggregated stats with per-match breakdowns and cumulative timeline — public)
+  - `GET /api/stats/leaderboard` (top scorers, top assists, most carded — public)
+
 ### Frontend
-- Match detail: show timeline of events (goals, cards with minute)
-- Player profile: show aggregated stats (appearances, goals, assists, yellow cards, red cards)
-- Leaderboard/stats overview page (include a "most carded" section)
+- [x] Match detail: event timeline with goals, cards, assists and minute
+- [x] Player profile: aggregated stats (appearances, goals, assists, yellow/red cards) + charts (bar chart, cumulative timeline)
+- [x] Leaderboard/stats overview page (top scorers, top assisters, most carded)
 
 ### Verification
-- Add goals/assists/cards to a completed match
-- Player stats page shows correct aggregated numbers including card counts
-- Leaderboard ranks players correctly
+- [x] Add goals/assists/cards to a completed match
+- [x] Player stats page shows correct aggregated numbers including card counts
+- [x] Leaderboard ranks players correctly
 
 ---
 
-## Phase 5: Polish & PWA
+## Phase 5: Polish & PWA -- PARTIAL
 
-- Offline caching of match schedule and recent results
-- Responsive design tuning for mobile
-- Loading states, error handling, empty states
-- SEO/meta tags for shared links
+- [x] PWA manifest + service worker with static asset precaching
+- [x] Responsive design with Tailwind (mobile-ready)
+- [x] Loading states (via TanStack Query `isPending`/`isLoading`)
+- [x] Error handling (try-catch in handlers, error messages displayed)
+- [x] Empty states with Dutch messaging throughout
+- [x] Basic SEO/meta tags (description, theme-color, favicon, manifest link)
+- [ ] Offline caching of API data (match schedule, recent results) — only static assets cached, no IndexedDB/API cache strategy
+- [ ] Dynamic per-page meta tags and Open Graph tags for social sharing
 
 ---
 
-## Phase 6: Live Match & Push Notifications (Nice-to-have)
+## Phase 6: Live Match & Push Notifications (Nice-to-have) -- NOT STARTED
 
 ### Backend
-- Add `live` to match status enum (scheduled/live/completed/cancelled)
-- `POST /api/matches/:id/live/start` — moderator starts live mode for a match
-- `POST /api/matches/:id/live/end` — moderator ends live mode
-- Server-Sent Events (SSE) endpoint: `GET /api/matches/:id/live/stream` — clients subscribe to real-time match events
+- [ ] Add `live` to match status enum (scheduled/live/completed/cancelled)
+- [ ] `POST /api/matches/:id/live/start` — moderator starts live mode for a match
+- [ ] `POST /api/matches/:id/live/end` — moderator ends live mode
+- [ ] Server-Sent Events (SSE) endpoint: `GET /api/matches/:id/live/stream` — clients subscribe to real-time match events
   - SSE is simpler than WebSockets and sufficient since updates flow one-way (server to client)
   - Events pushed: goal scored, card given, substitution, score update, match ended
-- Push notification integration:
+- [ ] Push notification integration:
   - Database schema: `push_subscriptions` table (id, user_id, endpoint, p256dh_key, auth_key, created_at)
   - `POST /api/push/subscribe` — register a device for push notifications
   - `DELETE /api/push/subscribe` — unsubscribe
@@ -144,35 +151,34 @@ A PWA for a single football team where players can view upcoming matches, match 
   - Trigger push notifications when a goal is scored or match ends during live mode
 
 ### Frontend
-- Live match view: auto-updating score, event timeline that updates in real-time via SSE
-- Visual indicator on match list when a match is live
-- Service worker handles incoming push notifications and displays them
-- Notification permission prompt in user settings or on first login
-- Settings page: toggle which notifications to receive (goals, match start/end)
+- [ ] Live match view: auto-updating score, event timeline that updates in real-time via SSE
+- [ ] Visual indicator on match list when a match is live
+- [ ] Service worker handles incoming push notifications and displays them
+- [ ] Notification permission prompt in user settings or on first login
+- [ ] Settings page: toggle which notifications to receive (goals, match start/end)
 
 ### Verification
-- Start live mode, add a goal event, see it appear in real-time on another device
-- Receive push notification on mobile when a goal is scored
-- SSE reconnects gracefully if connection drops
+- [ ] Start live mode, add a goal event, see it appear in real-time on another device
+- [ ] Receive push notification on mobile when a goal is scored
+- [ ] SSE reconnects gracefully if connection drops
 
 ---
 
 ## Data Model Summary
 
 ```
-users (id, email, password_hash, name, provider, created_at)
-user_roles (user_id, role) -- role: admin | moderator | player
-players (id, user_id?, name, shirt_number, position, active)
-matches (id, opponent, location, date_time, home_away, status, home_score, away_score)
-match_events (id, match_id, player_id, event_type, minute)
+users (id, email, password_hash, first_name, last_name, player_id, avatar_url, is_admin, is_moderator, created_at)
+players (id, user_id?, first_name, last_name, shirt_number, position, active, team_id, created_at)
+games (id, opponent, location, date_time, home_away, status, home_score, away_score, created_at)
+game_events (id, game_id, player_id, event_type, minute, created_at)
 push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  -- Phase 6
 ```
 
 ## Suggested Implementation Order
 
-1. Phase 1 — Scaffolding & Auth (start here)
-2. Phase 2 — Players
-3. Phase 3 — Matches
-4. Phase 4 — Match Events & Stats
-5. Phase 5 — Polish & PWA enhancements
-6. Phase 6 — Live match updates & push notifications (nice-to-have)
+1. ~~Phase 1 — Scaffolding & Auth~~ DONE
+2. ~~Phase 2 — Players~~ DONE
+3. ~~Phase 3 — Matches~~ DONE
+4. ~~Phase 4 — Match Events & Stats~~ DONE
+5. Phase 5 — Polish & PWA enhancements (partially done, remaining: offline API caching, dynamic meta tags)
+6. Phase 6 — Live match updates & push notifications (nice-to-have, not started)
