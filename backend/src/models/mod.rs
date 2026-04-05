@@ -130,8 +130,10 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
         let game = create!(Game {
             opponent: m.opponent,
             location: "",
-            date_time: m.date_time
-                .and_then(|s| s.parse::<jiff::Timestamp>().ok())
+            date_time: m
+                .date_time
+                .parse::<jiff::Timestamp>()
+                .ok()
                 .unwrap_or(jiff::Timestamp::UNIX_EPOCH),
             home_away: if m.is_home {
                 HomeAway::Home
