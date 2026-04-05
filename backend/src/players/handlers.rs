@@ -10,10 +10,12 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use jiff::ToSpan;
+
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{EventType, GameStatus, HomeAway, Player, Position, Role},
+    models::{EventType, HomeAway, Player, Position, Role},
 };
 
 #[derive(Deserialize)]
@@ -44,7 +46,6 @@ pub struct PlayerGoalMatchResponse {
     pub home_away: HomeAway,
     pub home_score: i32,
     pub away_score: i32,
-    pub status: GameStatus,
     pub minutes: Vec<i32>,
 }
 
@@ -169,9 +170,15 @@ pub async fn stats(
 
     let events = player.game_events.get();
 
+    let now = Timestamp::now();
+    let match_duration = 90.minutes();
+    let is_completed = |g: &crate::models::Game| {
+        !g.cancelled && g.date_time.checked_add(match_duration).is_ok_and(|end| end <= now)
+    };
+
     let game_ids: Vec<Uuid> = events
         .iter()
-        .filter(|e| e.game.get().status == GameStatus::Completed)
+        .filter(|e| is_completed(e.game.get()))
         .map(|e| e.game_id)
         .collect::<HashSet<_>>()
         .into_iter()
@@ -212,7 +219,6 @@ pub async fn stats(
                 home_away: game.home_away.clone(),
                 home_score: game.home_score,
                 away_score: game.away_score,
-                status: game.status.clone(),
                 minutes,
             }
         })
@@ -224,7 +230,7 @@ pub async fn stats(
         HashMap::new();
     for event in events {
         let game = event.game.get();
-        if game.status != GameStatus::Completed {
+        if !is_completed(game) {
             continue;
         }
         let entry = timeline_map

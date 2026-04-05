@@ -8,10 +8,12 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use jiff::ToSpan;
+
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{Game, GameStatus, HomeAway, Role},
+    models::{Game, HomeAway, Role},
 };
 
 #[derive(Deserialize)]
@@ -35,7 +37,7 @@ pub struct UpdateGameRequest {
     pub location: Option<String>,
     pub date_time: Option<Timestamp>,
     pub home_away: Option<HomeAway>,
-    pub status: Option<GameStatus>,
+    pub cancelled: Option<bool>,
     pub home_score: Option<i32>,
     pub away_score: Option<i32>,
 }
@@ -76,16 +78,23 @@ pub async fn upcoming(
     Query(query): Query<LimitQuery>,
 ) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db;
+    let now = Timestamp::now();
 
-    let mut game_query = Game::all()
-        .filter(Game::fields().status().is_scheduled())
-        .order_by(Game::fields().date_time().desc());
+    let all_games = Game::all()
+        .filter(Game::fields().cancelled().eq(false))
+        .order_by(Game::fields().date_time().asc())
+        .exec(&mut db)
+        .await?;
+
+    let mut games: Vec<Game> = all_games
+        .into_iter()
+        .filter(|g| g.date_time > now)
+        .collect();
 
     if let Some(limit) = query.limit {
-        game_query = game_query.limit(limit);
+        games.truncate(limit);
     }
 
-    let games = game_query.exec(&mut db).await?;
     Ok(Json(games))
 }
 
@@ -95,16 +104,24 @@ pub async fn recent(
     Query(query): Query<LimitQuery>,
 ) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db;
+    let now = Timestamp::now();
+    let match_duration = 90.minutes();
 
-    let mut game_query = Game::all()
-        .filter(Game::fields().status().is_completed())
-        .order_by(Game::fields().date_time().desc());
+    let all_games = Game::all()
+        .filter(Game::fields().cancelled().eq(false))
+        .order_by(Game::fields().date_time().desc())
+        .exec(&mut db)
+        .await?;
+
+    let mut games: Vec<Game> = all_games
+        .into_iter()
+        .filter(|g| g.date_time.checked_add(match_duration).is_ok_and(|end| end <= now))
+        .collect();
 
     if let Some(limit) = query.limit {
-        game_query = game_query.limit(limit);
+        games.truncate(limit);
     }
 
-    let games = game_query.exec(&mut db).await?;
     Ok(Json(games))
 }
 
@@ -114,21 +131,32 @@ pub async fn summary(
     Query(query): Query<LimitQuery>,
 ) -> Result<Json<GamesSummaryResponse>, AppError> {
     let mut db = state.db;
+    let now = Timestamp::now();
+    let match_duration = 90.minutes();
     let limit = query.limit.unwrap_or(3);
 
-    let upcoming = Game::all()
-        .filter(Game::fields().status().is_scheduled())
-        .order_by(Game::fields().date_time().desc())
-        .limit(limit)
+    let all_games = Game::all()
+        .filter(Game::fields().cancelled().eq(false))
+        .order_by(Game::fields().date_time().asc())
         .exec(&mut db)
         .await?;
 
-    let recent = Game::all()
-        .filter(Game::fields().status().is_completed())
-        .order_by(Game::fields().date_time().desc())
-        .limit(limit)
-        .exec(&mut db)
-        .await?;
+    // Nearest upcoming games first (asc)
+    let upcoming: Vec<Game> = all_games
+        .iter()
+        .filter(|g| g.date_time > now)
+        .cloned()
+        .take(limit)
+        .collect();
+
+    // Most recent results first (desc)
+    let recent: Vec<Game> = all_games
+        .iter()
+        .rev()
+        .filter(|g| g.date_time.checked_add(match_duration).is_ok_and(|end| end <= now))
+        .cloned()
+        .take(limit)
+        .collect();
 
     Ok(Json(GamesSummaryResponse { upcoming, recent }))
 }
@@ -178,8 +206,8 @@ pub async fn update(
     if let Some(home_away) = req.home_away {
         update.set_home_away(home_away);
     }
-    if let Some(status) = req.status {
-        update.set_status(status);
+    if let Some(cancelled) = req.cancelled {
+        update.set_cancelled(cancelled);
     }
     if let Some(home_score) = req.home_score {
         update.set_home_score(home_score);

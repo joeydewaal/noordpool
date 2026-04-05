@@ -3,7 +3,7 @@ use serde::Serialize;
 use toasty::HasMany;
 use uuid::Uuid;
 
-use super::{GameEvent, GameStatus, HomeAway};
+use super::{GameEvent, HomeAway};
 
 #[derive(Debug, Serialize, toasty::Model, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -20,8 +20,8 @@ pub struct Game {
 
     pub home_away: HomeAway,
 
-    #[default(GameStatus::Scheduled)]
-    pub status: GameStatus,
+    #[default(false)]
+    pub cancelled: bool,
 
     #[default(0)]
     pub home_score: i32,

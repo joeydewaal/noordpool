@@ -71,7 +71,7 @@ export interface UpdatePlayerRequest {
     active?: boolean;
 }
 
-export type GameStatus = 'scheduled' | 'completed' | 'cancelled';
+export type GameStatus = 'scheduled' | 'playing' | 'completed' | 'cancelled';
 export type HomeAway = 'home' | 'away';
 
 export interface Game {
@@ -80,11 +80,21 @@ export interface Game {
     location: string;
     dateTime: string;
     homeAway: HomeAway;
-    status: GameStatus;
+    cancelled: boolean;
     homeScore: number | null;
     awayScore: number | null;
     createdAt: string;
     events?: GameEvent[];
+}
+
+export function getGameStatus(game: Game): GameStatus {
+    if (game.cancelled) return 'cancelled';
+    const now = Date.now();
+    const start = new Date(game.dateTime).getTime();
+    const end = start + 90 * 60 * 1000;
+    if (now < start) return 'scheduled';
+    if (now < end) return 'playing';
+    return 'completed';
 }
 
 export interface CreateGameRequest {
@@ -99,7 +109,7 @@ export interface UpdateGameRequest {
     location?: string;
     dateTime?: string;
     homeAway?: HomeAway;
-    status?: GameStatus;
+    cancelled?: boolean;
     homeScore?: number | null;
     awayScore?: number | null;
 }

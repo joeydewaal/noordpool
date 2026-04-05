@@ -32,23 +32,21 @@
         }
     });
 
+    const isPast = $derived(
+        game_state ? new Date(game_state.dateTime).getTime() + 90 * 60 * 1000 < Date.now() : false,
+    );
+
     function handleSubmit(e: Event) {
         e.preventDefault();
         if (!game_state) return;
         updateMutation.mutate({
             opponent: game_state.opponent,
             location: game_state.location,
-            dateTime: game_state.location,
+            dateTime: game_state.dateTime,
             homeAway: game_state.homeAway,
-            status: game_state.status,
-            homeScore:
-                game_state.status === "completed"
-                    ? game_state.homeScore
-                    : null,
-            awayScore:
-                game_state.status === "completed"
-                    ? game_state.awayScore
-                    : null,
+            cancelled: game_state.cancelled,
+            homeScore: isPast ? game_state.homeScore : null,
+            awayScore: isPast ? game_state.awayScore : null,
         });
     }
 </script>
@@ -128,19 +126,15 @@
                     </label>
                 </div>
             </fieldset>
-            <div>
-                <label for="status" class="label-text">Status</label>
-                <select
-                    id="status"
-                    bind:value={game_state.status}
-                    class="select"
-                >
-                    <option value="scheduled">Gepland</option>
-                    <option value="completed">Gespeeld</option>
-                    <option value="cancelled">Afgelast</option>
-                </select>
-            </div>
-            {#if game_state.status === "completed"}
+            <label class="flex items-center gap-2">
+                <input
+                    type="checkbox"
+                    bind:checked={game_state.cancelled}
+                    class="checkbox"
+                />
+                <span class="label-text">Afgelast</span>
+            </label>
+            {#if isPast && !game_state.cancelled}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="homeScore" class="label-text">Thuisscore</label>

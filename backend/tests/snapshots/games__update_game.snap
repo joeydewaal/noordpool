@@ -4,12 +4,12 @@ expression: body
 ---
 {
   "awayScore": 1,
+  "cancelled": false,
   "createdAt": "[timestamp]",
   "dateTime": "[dateTime]",
   "homeAway": "home",
   "homeScore": 3,
   "id": "[uuid]",
   "location": "Stadium",
-  "opponent": "FC Test",
-  "status": "completed"
+  "opponent": "FC Test"
 }

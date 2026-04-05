@@ -14,6 +14,7 @@
         CreateGameEventRequest,
         Player,
     } from "$lib/api/types";
+    import { getGameStatus } from "$lib/api/types";
 
     const id = page.params.id!;
     const queryClient = useQueryClient();
@@ -24,6 +25,8 @@
         queryKey: ["games", id],
         queryFn: () => getGame(id),
     }));
+
+    const status = $derived(gameQuery.data ? getGameStatus(gameQuery.data) : 'scheduled');
 
     const playersQuery = createQuery(() => ({
         queryKey: ["players"],
@@ -128,23 +131,26 @@
                 <div>
                     Status:
                     <span
-                        class="font-medium {gameQuery.data.status ===
-                        'completed'
+                        class="font-medium {status === 'completed'
                             ? 'text-success-500'
-                            : gameQuery.data.status === 'cancelled'
+                            : status === 'cancelled'
                               ? 'text-error-500'
-                              : 'text-primary-500'}"
+                              : status === 'playing'
+                                ? 'text-warning-500'
+                                : 'text-primary-500'}"
                     >
-                        {gameQuery.data.status === "scheduled"
+                        {status === "scheduled"
                             ? "gepland"
-                            : gameQuery.data.status === "completed"
+                            : status === "completed"
                               ? "gespeeld"
-                              : "afgelast"}
+                              : status === "playing"
+                                ? "bezig"
+                                : "afgelast"}
                     </span>
                 </div>
             </div>
 
-            {#if gameQuery.data.status === "completed" && gameQuery.data.homeScore !== null}
+            {#if (status === "completed" || status === "playing") && gameQuery.data.homeScore !== null}
                 <div class="card preset-tonal-surface p-4 text-center">
                     {#if gameQuery.data.homeAway === "home"}
                         <div class="text-lg">
@@ -172,7 +178,7 @@
                 </div>
             {/if}
 
-            {#if gameQuery.data.status === "completed"}
+            {#if status === "completed" || status === "playing"}
                 <div
                     class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800"
                 >

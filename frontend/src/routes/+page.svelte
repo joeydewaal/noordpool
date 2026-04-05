@@ -20,11 +20,7 @@
     }
 
     function formatScore(game: Game): string {
-        if (
-            game.homeScore === null ||
-            (game.status === "scheduled" && game.homeScore === 0)
-        )
-            return "";
+        if (game.homeScore === null) return "";
         return `${game.homeScore} - ${game.awayScore}`;
     }
 </script>

@@ -132,7 +132,6 @@ async fn update_game() {
         .put(format!("/api/games/{game_id}"))
         .token(&token)
         .json(json!({
-            "status": "completed",
             "homeScore": 3,
             "awayScore": 1
         }))
@@ -161,22 +160,15 @@ async fn upcoming_and_recent() {
         }))
         .await;
 
-    // Create and complete a match
-    let res = app
-        .post("/api/games")
+    // Create a match in the past (automatically completed by date)
+    app.post("/api/games")
         .token(&token)
         .json(json!({
             "opponent": "FC Past",
             "location": "Away Stadium",
-            "dateTime": "2026-01-10T15:00:00Z",
+            "dateTime": "2024-01-10T15:00:00Z",
             "homeAway": "away"
         }))
-        .await;
-    let past_game = res.json_value().await;
-    let past_id = past_game["id"].as_str().unwrap();
-    app.put(format!("/api/games/{past_id}"))
-        .token(&token)
-        .json(json!({ "status": "completed", "homeScore": 2, "awayScore": 1 }))
         .await;
 
     // Check upcoming

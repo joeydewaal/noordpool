@@ -4,10 +4,12 @@ use axum::{Json, extract::State};
 use serde::Serialize;
 use uuid::Uuid;
 
+use jiff::{Timestamp, ToSpan};
+
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{EventType, GameStatus, Player},
+    models::{EventType, Player},
 };
 
 #[derive(Clone, Debug, Serialize)]
@@ -45,6 +47,12 @@ pub async fn leaderboard(
         .exec(&mut db)
         .await?;
 
+    let now = Timestamp::now();
+    let match_duration = 90.minutes();
+    let is_completed = |g: &crate::models::Game| {
+        !g.cancelled && g.date_time.checked_add(match_duration).is_ok_and(|end| end <= now)
+    };
+
     // Build one leaderboard entry per player
     let entries: Vec<LeaderboardEntryResponse> = players
         .iter()
@@ -56,7 +64,7 @@ pub async fn leaderboard(
             let mut game_ids: HashSet<uuid::Uuid> = HashSet::new();
 
             for event in player.game_events.get() {
-                if event.game.get().status != GameStatus::Completed {
+                if !is_completed(event.game.get()) {
                     continue;
                 }
                 game_ids.insert(event.game_id);

@@ -1,7 +1,6 @@
 pub mod event_type;
 pub mod game;
 pub mod game_event;
-pub mod game_status;
 pub mod home_away;
 pub mod player;
 pub mod position;
@@ -15,7 +14,6 @@ use std::error::Error;
 pub use event_type::EventType;
 pub use game::Game;
 pub use game_event::GameEvent;
-pub use game_status::GameStatus;
 pub use home_away::HomeAway;
 pub use player::Player;
 pub use position::Position;
@@ -39,7 +37,6 @@ pub fn build_db() -> Builder {
         .register::<Position>()
         .register::<Player>()
         .register::<Game>()
-        .register::<GameStatus>()
         .register::<HomeAway>()
         .register::<GameEvent>()
         .register::<EventType>();
@@ -139,11 +136,6 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
                 HomeAway::Home
             } else {
                 HomeAway::Away
-            },
-            status: if m.completed {
-                GameStatus::Completed
-            } else {
-                GameStatus::Scheduled
             },
             home_score: m.home_score,
             away_score: m.away_score,

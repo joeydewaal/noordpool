@@ -23,7 +23,6 @@ pub struct ParsedMatch {
     pub home_score: i32,
     pub away_score: i32,
     pub date_time: &'static str,
-    pub completed: bool,
 }
 
 pub static PLAYERS: &[ParsedPlayer] = &[
@@ -352,7 +351,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 0,
         date_time: "2025-01-04T14:30:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 3,
@@ -361,7 +359,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 0,
         date_time: "2025-01-18T13:30:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 4,
@@ -370,7 +367,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 2,
         away_score: 3,
         date_time: "2025-02-07T19:30:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 5,
@@ -379,7 +375,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 6,
         away_score: 2,
         date_time: "2025-02-15T15:00:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 6,
@@ -388,7 +383,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 4,
         date_time: "2025-02-21T20:00:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 7,
@@ -397,7 +391,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 4,
         away_score: 1,
         date_time: "2025-03-01T13:30:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 8,
@@ -406,7 +399,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 2,
         away_score: 4,
         date_time: "2025-03-14T19:30:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 9,
@@ -415,7 +407,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 6,
         away_score: 2,
         date_time: "2025-03-22T20:00:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 10,
@@ -424,7 +415,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 5,
         away_score: 2,
         date_time: "2025-03-29T15:00:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 11,
@@ -433,7 +423,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 3,
         date_time: "2025-04-12T13:30:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 12,
@@ -442,7 +431,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 2,
         away_score: 0,
         date_time: "2025-04-18T19:00:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 13,
@@ -451,7 +439,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 2,
         date_time: "2025-01-01T19:00:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 14,
@@ -460,7 +447,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 2,
         away_score: 3,
         date_time: "2025-04-25T20:00:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 15,
@@ -469,7 +455,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 0,
         date_time: "2025-01-01T19:00:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 16,
@@ -478,7 +463,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 3,
         date_time: "2025-08-09T15:00:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 17,
@@ -487,7 +471,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 2,
         date_time: "2025-01-01T19:00:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 18,
@@ -496,7 +479,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 5,
         date_time: "2025-01-01T19:00:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 19,
@@ -505,7 +487,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 5,
         away_score: 1,
         date_time: "2025-09-13T14:30:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 20,
@@ -514,7 +495,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 1,
         date_time: "2025-09-20T13:30:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 21,
@@ -523,7 +503,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 3,
         away_score: 1,
         date_time: "2025-10-04T15:00:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 22,
@@ -532,7 +511,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 1,
         date_time: "2025-12-12T19:30:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 23,
@@ -541,7 +519,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 3,
         away_score: 0,
         date_time: "2025-10-25T13:30:00+02:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 24,
@@ -550,7 +527,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 0,
         date_time: "2025-10-31T19:30:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 25,
@@ -559,7 +535,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 9,
         away_score: 3,
         date_time: "2025-11-08T15:00:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 26,
@@ -568,7 +543,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 1,
         away_score: 4,
         date_time: "2025-12-05T20:00:00+01:00",
-        completed: true,
     },
     ParsedMatch {
         col_index: 27,
@@ -577,7 +551,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 3,
         away_score: 0,
         date_time: "2025-12-20T13:30:00+01:00",
-        completed: true,
     },
     // === 2026 season (scheduled) ===
     ParsedMatch {
@@ -587,7 +560,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-01-10T14:30:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 31,
@@ -596,7 +568,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-01-16T20:00:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 32,
@@ -605,7 +576,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-01-24T13:30:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 33,
@@ -614,7 +584,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-01-31T13:30:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 34,
@@ -623,7 +592,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-02-07T15:00:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 35,
@@ -632,7 +600,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-02-13T19:30:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 36,
@@ -641,7 +608,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-02-21T15:00:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 37,
@@ -650,7 +616,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-02-27T20:00:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 38,
@@ -659,7 +624,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-03-06T20:00:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 39,
@@ -668,7 +632,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-03-14T13:30:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 40,
@@ -677,7 +640,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-03-20T20:00:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 41,
@@ -686,7 +648,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-04-11T15:00:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 42,
@@ -695,7 +656,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-04-17T20:00:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 43,
@@ -704,7 +664,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-04-24T19:30:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 44,
@@ -713,7 +672,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-05-02T14:00:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 45,
@@ -722,7 +680,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-08-01T14:00:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 46,
@@ -731,7 +688,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-08-08T15:00:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 47,
@@ -740,7 +696,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-09-19T15:00:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 48,
@@ -749,7 +704,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-09-25T19:30:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 49,
@@ -758,7 +712,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-10-03T13:30:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 50,
@@ -767,7 +720,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-10-10T14:30:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 51,
@@ -776,7 +728,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-10-16T20:00:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 52,
@@ -785,7 +736,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-10-23T20:00:00+02:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 53,
@@ -794,7 +744,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-11-14T13:30:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 54,
@@ -803,7 +752,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-11-20T19:30:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 55,
@@ -812,7 +760,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-12-04T20:00:00+01:00",
-        completed: false,
     },
     ParsedMatch {
         col_index: 56,
@@ -821,6 +768,5 @@ pub static MATCHES: &[ParsedMatch] = &[
         home_score: 0,
         away_score: 0,
         date_time: "2026-12-12T15:00:00+01:00",
-        completed: false,
     },
 ];

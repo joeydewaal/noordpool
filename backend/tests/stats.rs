@@ -57,7 +57,7 @@ async fn create_game_and_complete(
         .json(json!({
             "opponent": opponent,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z",
+            "dateTime": "2024-01-15T18:00:00Z",
             "homeAway": "home"
         }))
         .await;
@@ -66,7 +66,6 @@ async fn create_game_and_complete(
     app.put(format!("/api/games/{game_id}"))
         .token(token)
         .json(json!({
-            "status": "completed",
             "homeScore": home_score,
             "awayScore": away_score
         }))
@@ -179,6 +178,7 @@ async fn player_stats_with_events() {
         assert_json_snapshot!("player_stats_with_events", body, {
             ".playerId" => "[uuid]",
             ".goalMatches[].gameId" => "[uuid]",
+            ".gameTimeline[].gameId" => "[uuid]",
         });
     });
 }

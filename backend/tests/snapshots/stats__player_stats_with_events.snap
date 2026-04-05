@@ -5,10 +5,23 @@ expression: body
 {
   "appearances": 1,
   "assists": 1,
+  "gameTimeline": [
+    {
+      "assists": 1,
+      "cumulativeAssists": 1,
+      "cumulativeGoals": 2,
+      "dateTime": "2024-01-15T18:00:00Z",
+      "gameId": "[uuid]",
+      "goals": 2,
+      "opponent": "FC Rival",
+      "redCards": 0,
+      "yellowCards": 1
+    }
+  ],
   "goalMatches": [
     {
       "awayScore": 0,
-      "dateTime": "2026-06-15T18:00:00Z",
+      "dateTime": "2024-01-15T18:00:00Z",
       "gameId": "[uuid]",
       "homeAway": "home",
       "homeScore": 2,
@@ -16,8 +29,7 @@ expression: body
         10,
         55
       ],
-      "opponent": "FC Rival",
-      "status": "completed"
+      "opponent": "FC Rival"
     }
   ],
   "goals": 2,

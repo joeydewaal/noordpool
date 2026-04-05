@@ -4,6 +4,7 @@ expression: body
 ---
 {
   "awayScore": 0,
+  "cancelled": false,
   "createdAt": "[timestamp]",
   "dateTime": "[dateTime]",
   "events": [],
@@ -11,6 +12,5 @@ expression: body
   "homeScore": 0,
   "id": "[uuid]",
   "location": "Stadium",
-  "opponent": "FC Test",
-  "status": "scheduled"
+  "opponent": "FC Test"
 }
