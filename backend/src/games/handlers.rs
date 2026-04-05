@@ -8,8 +8,6 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use jiff::ToSpan;
-
 use crate::{
     app_state::AppState,
     error::AppError,
@@ -78,23 +76,17 @@ pub async fn upcoming(
     Query(query): Query<LimitQuery>,
 ) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db;
-    let now = Timestamp::now();
 
-    let all_games = Game::all()
+    let mut game_query = Game::all()
         .filter(Game::fields().cancelled().eq(false))
-        .order_by(Game::fields().date_time().asc())
-        .exec(&mut db)
-        .await?;
-
-    let mut games: Vec<Game> = all_games
-        .into_iter()
-        .filter(|g| g.date_time > now)
-        .collect();
+        .filter(Game::fields().date_time().gt(Timestamp::now()))
+        .order_by(Game::fields().date_time().asc());
 
     if let Some(limit) = query.limit {
-        games.truncate(limit);
+        game_query = game_query.limit(limit);
     }
 
+    let games = game_query.exec(&mut db).await?;
     Ok(Json(games))
 }
 
@@ -104,24 +96,17 @@ pub async fn recent(
     Query(query): Query<LimitQuery>,
 ) -> Result<Json<Vec<Game>>, AppError> {
     let mut db = state.db;
-    let now = Timestamp::now();
-    let match_duration = 90.minutes();
 
-    let all_games = Game::all()
+    let mut game_query = Game::all()
         .filter(Game::fields().cancelled().eq(false))
-        .order_by(Game::fields().date_time().desc())
-        .exec(&mut db)
-        .await?;
-
-    let mut games: Vec<Game> = all_games
-        .into_iter()
-        .filter(|g| g.date_time.checked_add(match_duration).is_ok_and(|end| end <= now))
-        .collect();
+        .filter(Game::fields().date_time().lt(Timestamp::now()))
+        .order_by(Game::fields().date_time().desc());
 
     if let Some(limit) = query.limit {
-        games.truncate(limit);
+        game_query = game_query.limit(limit);
     }
 
+    let games = game_query.exec(&mut db).await?;
     Ok(Json(games))
 }
 
@@ -132,31 +117,23 @@ pub async fn summary(
 ) -> Result<Json<GamesSummaryResponse>, AppError> {
     let mut db = state.db;
     let now = Timestamp::now();
-    let match_duration = 90.minutes();
     let limit = query.limit.unwrap_or(3);
 
-    let all_games = Game::all()
+    let upcoming = Game::all()
         .filter(Game::fields().cancelled().eq(false))
+        .filter(Game::fields().date_time().gt(now))
         .order_by(Game::fields().date_time().asc())
+        .limit(limit)
         .exec(&mut db)
         .await?;
 
-    // Nearest upcoming games first (asc)
-    let upcoming: Vec<Game> = all_games
-        .iter()
-        .filter(|g| g.date_time > now)
-        .cloned()
-        .take(limit)
-        .collect();
-
-    // Most recent results first (desc)
-    let recent: Vec<Game> = all_games
-        .iter()
-        .rev()
-        .filter(|g| g.date_time.checked_add(match_duration).is_ok_and(|end| end <= now))
-        .cloned()
-        .take(limit)
-        .collect();
+    let recent = Game::all()
+        .filter(Game::fields().cancelled().eq(false))
+        .filter(Game::fields().date_time().lt(now))
+        .order_by(Game::fields().date_time().desc())
+        .limit(limit)
+        .exec(&mut db)
+        .await?;
 
     Ok(Json(GamesSummaryResponse { upcoming, recent }))
 }
