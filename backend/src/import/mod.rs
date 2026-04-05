@@ -337,6 +337,10 @@ pub static TEAMS: &[ParsedTeam] = &[
     ParsedTeam { name: "Zandhoven" },
     ParsedTeam { name: "Mengelmoes" },
     ParsedTeam { name: "Gelmelboys" },
+    ParsedTeam {
+        name: "FC Broekkant",
+    },
+    ParsedTeam { name: "Weelde" },
 ];
 
 pub static MATCHES: &[ParsedMatch] = &[
@@ -686,7 +690,7 @@ pub static MATCHES: &[ParsedMatch] = &[
     },
     ParsedMatch {
         col_index: 42,
-        opponent: "Vet Zandhoven",
+        opponent: "Zandhoven",
         is_home: false,
         home_score: 0,
         away_score: 0,
@@ -704,7 +708,7 @@ pub static MATCHES: &[ParsedMatch] = &[
     },
     ParsedMatch {
         col_index: 44,
-        opponent: "FC Broekant",
+        opponent: "FC Broekkant",
         is_home: false,
         home_score: 0,
         away_score: 0,
@@ -713,7 +717,7 @@ pub static MATCHES: &[ParsedMatch] = &[
     },
     ParsedMatch {
         col_index: 45,
-        opponent: "B Reserven Weelde",
+        opponent: "Weelde",
         is_home: true,
         home_score: 0,
         away_score: 0,
@@ -767,7 +771,7 @@ pub static MATCHES: &[ParsedMatch] = &[
     },
     ParsedMatch {
         col_index: 51,
-        opponent: "Vet Zandhoven",
+        opponent: "Zandhoven",
         is_home: true,
         home_score: 0,
         away_score: 0,
