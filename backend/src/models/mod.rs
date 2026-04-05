@@ -140,7 +140,11 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
             } else {
                 HomeAway::Away
             },
-            status: GameStatus::Completed,
+            status: if m.completed {
+                GameStatus::Completed
+            } else {
+                GameStatus::Scheduled
+            },
             home_score: m.home_score,
             away_score: m.away_score,
         })

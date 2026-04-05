@@ -134,7 +134,25 @@ A PWA for a single football team where players can view upcoming matches, match 
 
 ---
 
-## Phase 6: Live Match & Push Notifications (Nice-to-have) -- NOT STARTED
+## Phase 5.5: Player Self-Service -- NOT STARTED
+
+### Backend
+- [ ] Allow authenticated users linked to a player to update their own shirt number and position
+  - `PUT /api/players/:id` — extend existing endpoint: if the logged-in user's `player_id` matches `:id`, allow updating `shirt_number` and `position` (no admin/moderator required)
+  - Admin/moderator can still update everything (name, active status, etc.)
+
+### Frontend
+- [ ] Player profile page: show "Bewerken" (edit) button for the linked player (not just admin/moderator)
+- [ ] Edit form: players can only change shirt number and position, not name or active status
+
+### Verification
+- [ ] A regular user linked to a player can update their own shirt number and position
+- [ ] A regular user cannot update another player's details
+- [ ] Admin/moderator can still update all fields for any player
+
+---
+
+## Phase 6: Live Match & Push Notifications -- NOT STARTED
 
 ### Backend
 - [ ] Add `live` to match status enum (scheduled/live/completed/cancelled)
@@ -151,8 +169,12 @@ A PWA for a single football team where players can view upcoming matches, match 
   - Trigger push notifications when a goal is scored or match ends during live mode
 
 ### Frontend
-- [ ] Live match view: auto-updating score, event timeline that updates in real-time via SSE
-- [ ] Visual indicator on match list when a match is live
+- [ ] Match detail: new "Live" tab visible to moderators/admins when match status is `live`
+  - Quick-action buttons to update score (home +1, away +1, undo)
+  - Add events inline (goal, assist, yellow/red card) with player selector and minute
+  - All changes are immediately pushed to viewers via SSE
+- [ ] Live match view (viewers): auto-updating score and event timeline via SSE
+- [ ] Visual indicator on match list when a match is live (pulsing dot or badge)
 - [ ] Service worker handles incoming push notifications and displays them
 - [ ] Notification permission prompt in user settings or on first login
 - [ ] Settings page: toggle which notifications to receive (goals, match start/end)
@@ -181,4 +203,5 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 3. ~~Phase 3 — Matches~~ DONE
 4. ~~Phase 4 — Match Events & Stats~~ DONE
 5. ~~Phase 5 — Polish & PWA enhancements~~ DONE
-6. Phase 6 — Live match updates & push notifications (nice-to-have, not started)
+6. Phase 5.5 — Player self-service (users update own shirt number & position)
+7. Phase 6 — Live match mode with "Live" tab for admins/mods + push notifications on score changes
