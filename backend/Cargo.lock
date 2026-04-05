@@ -3323,8 +3323,8 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "toasty"
 version = "0.2.0"
+source = "git+https://github.com/tokio-rs/toasty.git#6abfcc348a246947d3ada99199f1bfd3ddf19cf8"
 dependencies = [
- "async-stream",
  "async-trait",
  "bit-set",
  "by_address",
@@ -3349,6 +3349,7 @@ dependencies = [
 [[package]]
 name = "toasty-core"
 version = "0.2.0"
+source = "git+https://github.com/tokio-rs/toasty.git#6abfcc348a246947d3ada99199f1bfd3ddf19cf8"
 dependencies = [
  "async-trait",
  "bit-set",
@@ -3363,6 +3364,7 @@ dependencies = [
 [[package]]
 name = "toasty-driver-mysql"
 version = "0.2.0"
+source = "git+https://github.com/tokio-rs/toasty.git#6abfcc348a246947d3ada99199f1bfd3ddf19cf8"
 dependencies = [
  "async-trait",
  "jiff",
@@ -3378,6 +3380,7 @@ dependencies = [
 [[package]]
 name = "toasty-driver-postgresql"
 version = "0.2.0"
+source = "git+https://github.com/tokio-rs/toasty.git#6abfcc348a246947d3ada99199f1bfd3ddf19cf8"
 dependencies = [
  "async-trait",
  "jiff",
@@ -3396,6 +3399,7 @@ dependencies = [
 [[package]]
 name = "toasty-driver-sqlite"
 version = "0.2.0"
+source = "git+https://github.com/tokio-rs/toasty.git#6abfcc348a246947d3ada99199f1bfd3ddf19cf8"
 dependencies = [
  "async-trait",
  "rusqlite",
@@ -3411,6 +3415,7 @@ dependencies = [
 [[package]]
 name = "toasty-macros"
 version = "0.2.0"
+source = "git+https://github.com/tokio-rs/toasty.git#6abfcc348a246947d3ada99199f1bfd3ddf19cf8"
 dependencies = [
  "heck",
  "pluralizer",
@@ -3423,6 +3428,7 @@ dependencies = [
 [[package]]
 name = "toasty-sql"
 version = "0.2.0"
+source = "git+https://github.com/tokio-rs/toasty.git#6abfcc348a246947d3ada99199f1bfd3ddf19cf8"
 dependencies = [
  "toasty-core",
 ]

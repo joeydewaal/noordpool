@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{EventType, Game, GameStatus, Player},
+    models::{EventType, GameStatus, Player},
 };
 
 #[derive(Clone, Debug, Serialize)]
