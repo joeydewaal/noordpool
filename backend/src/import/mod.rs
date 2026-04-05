@@ -22,6 +22,9 @@ pub struct ParsedMatch {
     pub is_home: bool,
     pub home_score: i32,
     pub away_score: i32,
+    /// ISO 8601 date-time string with timezone offset, parsed from planning CSV.
+    /// None for matches not found in the planning CSV.
+    pub date_time: Option<&'static str>,
 }
 
 pub static PLAYERS: &[ParsedPlayer] = &[
@@ -342,6 +345,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 1,
         away_score: 0,
+        date_time: Some("2025-01-04T14:30:00+01:00"),
     },
     ParsedMatch {
         col_index: 3usize,
@@ -349,6 +353,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 1,
         away_score: 0,
+        date_time: Some("2025-01-18T13:30:00+01:00"),
     },
     ParsedMatch {
         col_index: 4usize,
@@ -356,6 +361,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 2,
         away_score: 3,
+        date_time: Some("2025-02-07T19:30:00+01:00"),
     },
     ParsedMatch {
         col_index: 5usize,
@@ -363,6 +369,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 6,
         away_score: 2,
+        date_time: Some("2025-02-15T15:00:00+01:00"),
     },
     ParsedMatch {
         col_index: 6usize,
@@ -370,6 +377,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 1,
         away_score: 4,
+        date_time: Some("2025-02-21T20:00:00+01:00"),
     },
     ParsedMatch {
         col_index: 7usize,
@@ -377,6 +385,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 4,
         away_score: 1,
+        date_time: Some("2025-03-01T13:30:00+01:00"),
     },
     ParsedMatch {
         col_index: 8usize,
@@ -384,6 +393,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 2,
         away_score: 4,
+        date_time: Some("2025-03-14T19:30:00+01:00"),
     },
     ParsedMatch {
         col_index: 9usize,
@@ -391,6 +401,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 6,
         away_score: 2,
+        date_time: Some("2025-03-22T20:00:00+01:00"),
     },
     ParsedMatch {
         col_index: 10usize,
@@ -398,6 +409,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 5,
         away_score: 2,
+        date_time: Some("2025-03-29T15:00:00+01:00"),
     },
     ParsedMatch {
         col_index: 11usize,
@@ -405,6 +417,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 1,
         away_score: 3,
+        date_time: Some("2025-04-12T13:30:00+02:00"),
     },
     ParsedMatch {
         col_index: 12usize,
@@ -412,6 +425,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 2,
         away_score: 0,
+        date_time: Some("2025-04-18T19:00:00+02:00"),
     },
     ParsedMatch {
         col_index: 13usize,
@@ -419,6 +433,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 0,
         away_score: 2,
+        date_time: None, // not in planning CSV
     },
     ParsedMatch {
         col_index: 14usize,
@@ -426,6 +441,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 2,
         away_score: 3,
+        date_time: Some("2025-04-25T20:00:00+02:00"),
     },
     ParsedMatch {
         col_index: 15usize,
@@ -433,6 +449,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 1,
         away_score: 0,
+        date_time: None, // not in planning CSV
     },
     ParsedMatch {
         col_index: 16usize,
@@ -440,6 +457,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 1,
         away_score: 3,
+        date_time: Some("2025-08-09T15:00:00+02:00"),
     },
     ParsedMatch {
         col_index: 17usize,
@@ -447,6 +465,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 1,
         away_score: 2,
+        date_time: None, // not in planning CSV
     },
     ParsedMatch {
         col_index: 18usize,
@@ -454,6 +473,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 0,
         away_score: 5,
+        date_time: None, // not in planning CSV
     },
     ParsedMatch {
         col_index: 19usize,
@@ -461,6 +481,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 5,
         away_score: 1,
+        date_time: Some("2025-09-13T14:30:00+02:00"),
     },
     ParsedMatch {
         col_index: 20usize,
@@ -468,6 +489,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 1,
         away_score: 1,
+        date_time: Some("2025-09-20T13:30:00+02:00"),
     },
     ParsedMatch {
         col_index: 21usize,
@@ -475,6 +497,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 3,
         away_score: 1,
+        date_time: Some("2025-10-04T15:00:00+02:00"),
     },
     ParsedMatch {
         col_index: 22usize,
@@ -482,6 +505,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 1,
         away_score: 1,
+        date_time: Some("2025-12-12T19:30:00+01:00"),
     },
     ParsedMatch {
         col_index: 23usize,
@@ -489,6 +513,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 3,
         away_score: 0,
+        date_time: Some("2025-10-25T13:30:00+02:00"),
     },
     ParsedMatch {
         col_index: 24usize,
@@ -496,6 +521,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: false,
         home_score: 1,
         away_score: 0,
+        date_time: Some("2025-10-31T19:30:00+01:00"),
     },
     ParsedMatch {
         col_index: 25usize,
@@ -503,6 +529,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 9,
         away_score: 3,
+        date_time: Some("2025-11-08T15:00:00+01:00"),
     },
     ParsedMatch {
         col_index: 26usize,
@@ -510,6 +537,7 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 1,
         away_score: 4,
+        date_time: Some("2025-12-05T20:00:00+01:00"),
     },
     ParsedMatch {
         col_index: 27usize,
@@ -517,5 +545,6 @@ pub static MATCHES: &[ParsedMatch] = &[
         is_home: true,
         home_score: 3,
         away_score: 0,
+        date_time: Some("2025-12-20T13:30:00+01:00"),
     },
 ];
