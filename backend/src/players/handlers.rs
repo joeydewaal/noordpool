@@ -19,7 +19,7 @@ use crate::{
     app_state::AppState,
     auth::claims::Claims,
     error::AppError,
-    models::{EventType, HomeAway, Player, Position, Role},
+    models::{EventType, Game, HomeAway, Player, Position, Role},
 };
 
 #[derive(Deserialize)]
@@ -44,7 +44,7 @@ pub struct UpdatePlayerRequest {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerGoalMatchResponse {
-    pub game_id: String,
+    pub game_id: Uuid,
     pub opponent: String,
     pub date_time: Timestamp,
     pub home_away: HomeAway,
@@ -56,7 +56,7 @@ pub struct PlayerGoalMatchResponse {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameTimelineEntry {
-    pub game_id: String,
+    pub game_id: Uuid,
     pub opponent: String,
     pub date_time: Timestamp,
     pub goals: i32,
@@ -196,12 +196,7 @@ pub async fn stats(
 
     let now = Timestamp::now();
     let match_duration = 90.minutes();
-    let is_completed = |g: &crate::models::Game| {
-        !g.cancelled
-            && g.date_time
-                .checked_add(match_duration)
-                .is_ok_and(|end| end <= now)
-    };
+    let is_completed = |g: &Game| !g.cancelled && (g.date_time + match_duration) <= now;
 
     let game_ids: Vec<Uuid> = events
         .iter()
@@ -215,8 +210,7 @@ pub async fn stats(
     let mut assists = 0i32;
     let mut yellow_cards = 0i32;
     let mut red_cards = 0i32;
-    let mut goal_map: std::collections::HashMap<Uuid, (Vec<i32>, &crate::models::Game)> =
-        std::collections::HashMap::new();
+    let mut goal_map: HashMap<Uuid, (Vec<i32>, &Game)> = HashMap::new();
 
     for event in events {
         match event.event_type {
@@ -240,7 +234,7 @@ pub async fn stats(
         .map(|(mut minutes, game)| {
             minutes.sort_unstable();
             PlayerGoalMatchResponse {
-                game_id: game.id.to_string(),
+                game_id: game.id,
                 opponent: game.opponent.clone(),
                 date_time: game.date_time,
                 home_away: game.home_away.clone(),
@@ -253,8 +247,7 @@ pub async fn stats(
     goal_matches.sort_by(|a, b| b.date_time.cmp(&a.date_time));
 
     // Build per-game timeline for charts
-    let mut timeline_map: HashMap<Uuid, (i32, i32, i32, i32, &crate::models::Game)> =
-        HashMap::new();
+    let mut timeline_map: HashMap<Uuid, (i32, i32, i32, i32, &Game)> = HashMap::new();
     for event in events {
         let game = event.game.get();
         if !is_completed(game) {
@@ -282,7 +275,7 @@ pub async fn stats(
             cum_goals += g;
             cum_assists += a;
             GameTimelineEntry {
-                game_id: game_id.to_string(),
+                game_id,
                 opponent: game.opponent.clone(),
                 date_time: game.date_time,
                 goals: g,
