@@ -5,7 +5,10 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use axum_security::rbac::{requires, requires_any};
+use axum_security::{
+    jwt::Jwt,
+    rbac::{requires, requires_any},
+};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -14,6 +17,7 @@ use jiff::ToSpan;
 
 use crate::{
     app_state::AppState,
+    auth::claims::Claims,
     error::AppError,
     models::{EventType, HomeAway, Player, Position, Role},
 };
@@ -66,7 +70,7 @@ pub struct GameTimelineEntry {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerStatsResponse {
-    pub player_id: String,
+    pub player_id: Uuid,
     pub appearances: usize,
     pub goals: i32,
     pub assists: i32,
@@ -109,33 +113,53 @@ pub async fn create(
     Ok(Json(player))
 }
 
-#[requires_any(Role::Admin, Role::Moderator)]
 pub async fn update(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
+    Jwt(claims): Jwt<Claims>,
     Json(body): Json<UpdatePlayerRequest>,
 ) -> Result<Json<Player>, AppError> {
     tracing::info!(player_id = %id, "players::update");
+
+    let is_manager = claims.roles.contains(&Role::Admin) || claims.roles.contains(&Role::Moderator);
+    let is_own_player = claims.player_id == Some(id);
+
+    if !is_manager && !is_own_player {
+        return Err(AppError::forbidden("Not allowed to update this player"));
+    }
+
     let mut player = Player::get_by_id(&mut state.db, id).await?;
     let mut player_update = player.update();
+    let mut has_changes = false;
 
-    if let Some(first_name) = body.first_name {
-        player_update.set_first_name(first_name);
+    // Admins/moderators can update all fields; players can only update shirt number and position
+    if is_manager {
+        if let Some(first_name) = body.first_name {
+            player_update.set_first_name(first_name);
+            has_changes = true;
+        }
+        if let Some(last_name) = body.last_name {
+            player_update.set_last_name(last_name);
+            has_changes = true;
+        }
+        if let Some(active) = body.active {
+            player_update.set_active(active);
+            has_changes = true;
+        }
     }
-    if let Some(last_name) = body.last_name {
-        player_update.set_last_name(last_name);
-    }
+
     if let Some(shirt_number) = body.shirt_number {
         player_update.set_shirt_number(shirt_number);
+        has_changes = true;
     }
     if let Some(position) = body.position {
         player_update.set_position(position);
-    }
-    if let Some(active) = body.active {
-        player_update.set_active(active);
+        has_changes = true;
     }
 
-    player_update.exec(&mut state.db).await?;
+    if has_changes {
+        player_update.exec(&mut state.db).await?;
+    }
     Ok(Json(player))
 }
 
@@ -173,7 +197,10 @@ pub async fn stats(
     let now = Timestamp::now();
     let match_duration = 90.minutes();
     let is_completed = |g: &crate::models::Game| {
-        !g.cancelled && g.date_time.checked_add(match_duration).is_ok_and(|end| end <= now)
+        !g.cancelled
+            && g.date_time
+                .checked_add(match_duration)
+                .is_ok_and(|end| end <= now)
     };
 
     let game_ids: Vec<Uuid> = events
@@ -269,7 +296,7 @@ pub async fn stats(
         .collect();
 
     let response = PlayerStatsResponse {
-        player_id: id.to_string(),
+        player_id: id,
         appearances: game_ids.len(),
         goals,
         assists,
@@ -278,5 +305,7 @@ pub async fn stats(
         goal_matches,
         game_timeline,
     };
+
+    dbg!(&response);
     Ok(Json(response))
 }

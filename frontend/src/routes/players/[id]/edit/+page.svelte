@@ -68,26 +68,26 @@
             onsubmit={handleSubmit}
             class="card p-6 space-y-4"
         >
-            <div>
-                <label for="firstName" class="label-text">Voornaam</label>
-                <input
-                    id="firstName"
-                    type="text"
-                    bind:value={firstName}
-                    required
-                    class="input"
-                />
-            </div>
-            <div>
-                <label for="lastName" class="label-text">Achternaam</label>
-                <input
-                    id="lastName"
-                    type="text"
-                    bind:value={lastName}
-                    required
-                    class="input"
-                />
-            </div>
+                <div>
+                    <label for="firstName" class="label-text">Voornaam</label>
+                    <input
+                        id="firstName"
+                        type="text"
+                        bind:value={firstName}
+                        required
+                        class="input"
+                    />
+                </div>
+                <div>
+                    <label for="lastName" class="label-text">Achternaam</label>
+                    <input
+                        id="lastName"
+                        type="text"
+                        bind:value={lastName}
+                        required
+                        class="input"
+                    />
+                </div>
             <div>
                 <label for="shirtNumber" class="label-text">Rugnummer</label>
                 <input
@@ -119,15 +119,15 @@
                     <option value="Spits">Spits</option>
                 </select>
             </div>
-            <div class="flex items-center gap-2">
-                <input
-                    id="active"
-                    type="checkbox"
-                    bind:checked={active}
-                    class="checkbox"
-                />
-                <label for="active" class="text-sm font-medium">Actief</label>
-            </div>
+                <div class="flex items-center gap-2">
+                    <input
+                        id="active"
+                        type="checkbox"
+                        bind:checked={active}
+                        class="checkbox"
+                    />
+                    <label for="active" class="text-sm font-medium">Actief</label>
+                </div>
             <button
                 type="submit"
                 class="btn w-full preset-filled-primary-500"

@@ -172,7 +172,21 @@ impl TestApp {
             email: email.to_string(),
             first_name: format!("Test {:?}", role),
             last_name: String::new(),
+            player_id: None,
             roles: vec![Role::Player, role],
+            exp: Timestamp::now() + 24.hour(),
+        };
+        self.state.jwt.encode_token(&claims).unwrap()
+    }
+
+    pub fn player_token_for(&mut self, player_id: Uuid) -> String {
+        let claims = Claims {
+            sub: Uuid::new_v4(),
+            email: format!("player-{}@example.com", player_id),
+            first_name: "Test".to_string(),
+            last_name: "Player".to_string(),
+            player_id: Some(player_id),
+            roles: vec![Role::Player],
             exp: Timestamp::now() + 24.hour(),
         };
         self.state.jwt.encode_token(&claims).unwrap()

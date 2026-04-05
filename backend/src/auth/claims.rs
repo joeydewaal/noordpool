@@ -11,6 +11,7 @@ pub struct Claims {
     pub email: String,
     pub first_name: String,
     pub last_name: String,
+    pub player_id: Option<Uuid>,
     pub roles: Vec<Role>,
     #[serde(with = "jiff::fmt::serde::timestamp::second::required")]
     pub exp: Timestamp,

@@ -9,6 +9,7 @@ use serde_json::json;
 #[derive(Debug)]
 pub enum AppError {
     Unauthorized(String),
+    Forbidden(String),
     NotFound(String),
     Conflict(String),
     Internal(String),
@@ -18,6 +19,10 @@ pub enum AppError {
 impl AppError {
     pub fn unauthorized(err: impl Into<String>) -> Self {
         Self::Unauthorized(err.into())
+    }
+
+    pub fn forbidden(err: impl Into<String>) -> Self {
+        Self::Forbidden(err.into())
     }
 
     #[allow(unused)]
@@ -38,6 +43,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
+            AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg),
             AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
@@ -57,7 +63,6 @@ impl IntoResponse for AppError {
 
 impl From<toasty::Error> for AppError {
     fn from(value: toasty::Error) -> Self {
-        dbg!(&value);
         if value.is_record_not_found() {
             Self::NotFound("Record not found".into())
         } else {

@@ -6,6 +6,7 @@ export interface User {
     firstName: string;
     lastName: string;
     avatarUrl: string | null;
+    playerId: string | null;
     roles: Role[];
 }
 

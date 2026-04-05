@@ -16,6 +16,10 @@ class AuthState {
         return this.user?.roles.includes('moderator') ?? false;
     }
 
+    get playerId() {
+        return this.user?.playerId ?? null;
+    }
+
     setUser(user: User) {
         this.user = user;
     }

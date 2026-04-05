@@ -82,6 +82,7 @@ async fn after_login(
         email: user.email.clone(),
         first_name: user.first_name.clone(),
         last_name: user.last_name.clone(),
+        player_id: user.player_id,
         roles: roles.clone(),
         exp: Timestamp::now() + 24.days(),
     };

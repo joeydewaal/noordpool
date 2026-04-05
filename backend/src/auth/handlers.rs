@@ -232,16 +232,13 @@ pub async fn logout() -> StatusCode {
     StatusCode::OK
 }
 
-fn encode_token(
-    jwt: &JwtContext<Claims>,
-    user: &User,
-    roles: &[Role],
-) -> Result<String, AppError> {
+fn encode_token(jwt: &JwtContext<Claims>, user: &User, roles: &[Role]) -> Result<String, AppError> {
     let claims = Claims {
         sub: user.id,
         email: user.email.clone(),
         first_name: user.first_name.clone(),
         last_name: user.last_name.clone(),
+        player_id: user.player_id,
         roles: roles.to_vec(),
         exp: Timestamp::now() + 24.hours(),
     };

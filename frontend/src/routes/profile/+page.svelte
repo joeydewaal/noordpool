@@ -3,13 +3,54 @@
 	import { pwa } from '$lib/state/pwa.svelte';
 	import { theme } from '$lib/state/theme.svelte';
 	import { logout, unlinkPlayer } from '$lib/api/auth';
+	import { getPlayer, updatePlayer } from '$lib/api/players';
 	import { goto } from '$app/navigation';
+	import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
+	import type { Position, UpdatePlayerRequest } from '$lib/api/types';
 
 	if (!auth.isAuthenticated) {
 		goto('/auth/login');
 	}
 
 	let hasPlayer = $derived(auth.user?.roles.includes('player') ?? false);
+	const playerId = $derived(auth.playerId);
+	const queryClient = useQueryClient();
+
+	const playerQuery = createQuery(() => ({
+		queryKey: ['players', playerId],
+		queryFn: () => getPlayer(playerId!),
+		enabled: !!playerId,
+	}));
+
+	const updateMutation = createMutation(() => ({
+		mutationFn: (data: UpdatePlayerRequest) => updatePlayer(playerId!, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['players', playerId] });
+		},
+	}));
+
+	let editingPlayer = $state(false);
+	let shirtNumber = $state(0);
+	let position: Position = $state("Centrale middenvelder");
+
+	function startEditing() {
+		const player = playerQuery.data;
+		if (player) {
+			shirtNumber = player.shirtNumber;
+			position = player.position;
+			editingPlayer = true;
+		}
+	}
+
+	function cancelEditing() {
+		editingPlayer = false;
+	}
+
+	function handlePlayerSubmit(e: Event) {
+		e.preventDefault();
+		updateMutation.mutate({ shirtNumber, position });
+		editingPlayer = false;
+	}
 
 	async function handleUnlink() {
 		const res = await unlinkPlayer();
@@ -52,14 +93,69 @@
 			{/if}
 		</div>
 
-		{#if hasPlayer}
-			<div class="card p-4 flex items-center justify-between">
-				<span class="font-medium">Gekoppelde speler</span>
-				<button class="btn btn-sm preset-filled-warning-500" onclick={handleUnlink}>
-					Ontkoppelen
-				</button>
+		{#if hasPlayer && playerId}
+			<div class="card p-4 space-y-4">
+				<div class="flex items-center justify-between">
+					<span class="font-medium">Gekoppelde speler</span>
+					<div class="flex gap-2">
+						{#if !editingPlayer && playerQuery.data}
+							<button class="btn btn-sm preset-filled-primary-500" onclick={startEditing}>
+								Bewerken
+							</button>
+						{/if}
+						<button class="btn btn-sm preset-filled-warning-500" onclick={handleUnlink}>
+							Ontkoppelen
+						</button>
+					</div>
+				</div>
+
+				{#if playerQuery.data}
+					{#if editingPlayer}
+						<form onsubmit={handlePlayerSubmit} class="space-y-3 pt-2 border-t border-surface-200 dark:border-surface-800">
+							<div>
+								<label for="shirtNumber" class="label-text">Rugnummer</label>
+								<input
+									id="shirtNumber"
+									type="number"
+									bind:value={shirtNumber}
+									min="1"
+									max="99"
+									required
+									class="input"
+								/>
+							</div>
+							<div>
+								<label for="position" class="label-text">Positie</label>
+								<select id="position" bind:value={position} class="select">
+									<option value="Keeper">Keeper</option>
+									<option value="Centrale verdediger">Centrale verdediger</option>
+									<option value="Linksback">Linksback</option>
+									<option value="Rechtsback">Rechtsback</option>
+									<option value="Defensieve middenvelder">Defensieve middenvelder</option>
+									<option value="Centrale middenvelder">Centrale middenvelder</option>
+									<option value="Aanvallende middenvelder">Aanvallende middenvelder</option>
+									<option value="Linksvleugel">Linksvleugel</option>
+									<option value="Rechtsvleugel">Rechtsvleugel</option>
+									<option value="Spits">Spits</option>
+								</select>
+							</div>
+							<div class="flex gap-2">
+								<button type="submit" class="btn btn-sm preset-filled-primary-500">Opslaan</button>
+								<button type="button" class="btn btn-sm preset-outlined-surface-500" onclick={cancelEditing}>Annuleren</button>
+							</div>
+						</form>
+					{:else}
+						<div class="flex items-center gap-3 pt-2 border-t border-surface-200 dark:border-surface-800">
+							<span class="text-2xl font-bold text-primary-500">{playerQuery.data.shirtNumber}</span>
+							<div>
+								<p class="font-medium">{playerQuery.data.firstName} {playerQuery.data.lastName}</p>
+								<p class="text-sm text-surface-400">{playerQuery.data.position}</p>
+							</div>
+						</div>
+					{/if}
+				{/if}
 			</div>
-		{:else}
+		{:else if !hasPlayer}
 			<a href="/auth/link-player" class="card p-4 flex items-center justify-between">
 				<span class="font-medium">Geen speler gekoppeld</span>
 				<span class="btn btn-sm preset-filled-primary-500">Koppelen</span>
