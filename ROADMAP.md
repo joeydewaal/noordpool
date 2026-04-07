@@ -154,13 +154,16 @@ A PWA for a single football team where players can view upcoming matches, match 
 
 ## Phase 6: Live Match & Push Notifications -- NOT STARTED
 
+> **Deployment note:** this app is deployed on **AWS Lambda**, which does not support long-lived connections (no SSE, no WebSockets). Live updates use **HTTP polling** from the client instead. Push notifications still work because Web Push is a fire-and-forget HTTP request from the server to the push service.
+
 ### Backend
 - [ ] Add `live` to match status enum (scheduled/live/completed/cancelled)
 - [ ] `POST /api/matches/:id/live/start` — moderator starts live mode for a match
 - [ ] `POST /api/matches/:id/live/end` — moderator ends live mode
-- [ ] Server-Sent Events (SSE) endpoint: `GET /api/matches/:id/live/stream` — clients subscribe to real-time match events
-  - SSE is simpler than WebSockets and sufficient since updates flow one-way (server to client)
-  - Events pushed: goal scored, card given, substitution, score update, match ended
+- [ ] Polling endpoint: `GET /api/matches/:id/live` — returns current score, events, and a `version`/`updated_at` so clients can detect changes cheaply
+  - No SSE/WebSockets — Lambda cannot hold long-lived connections
+  - Clients poll every few seconds while a match is live; back off when tab is hidden
+  - Support `If-None-Match` / `ETag` (or `If-Modified-Since`) so unchanged responses return `304` and stay cheap on Lambda
 - [ ] Push notification integration:
   - Database schema: `push_subscriptions` table (id, user_id, endpoint, p256dh_key, auth_key, created_at)
   - `POST /api/push/subscribe` — register a device for push notifications
@@ -172,17 +175,17 @@ A PWA for a single football team where players can view upcoming matches, match 
 - [ ] Match detail: new "Live" tab visible to moderators/admins when match status is `live`
   - Quick-action buttons to update score (home +1, away +1, undo)
   - Add events inline (goal, assist, yellow/red card) with player selector and minute
-  - All changes are immediately pushed to viewers via SSE
-- [ ] Live match view (viewers): auto-updating score and event timeline via SSE
+  - Changes become visible to viewers on their next poll tick
+- [ ] Live match view (viewers): auto-updating score and event timeline via polling (short interval while live, pause/slow down when tab hidden via `visibilitychange`)
 - [ ] Visual indicator on match list when a match is live (pulsing dot or badge)
 - [ ] Service worker handles incoming push notifications and displays them
 - [ ] Notification permission prompt in user settings or on first login
 - [ ] Settings page: toggle which notifications to receive (goals, match start/end)
 
 ### Verification
-- [ ] Start live mode, add a goal event, see it appear in real-time on another device
+- [ ] Start live mode, add a goal event, see it appear on another device within one poll interval
 - [ ] Receive push notification on mobile when a goal is scored
-- [ ] SSE reconnects gracefully if connection drops
+- [ ] Polling pauses/slows when the tab is hidden and resumes on focus
 
 ---
 
