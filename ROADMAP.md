@@ -134,21 +134,21 @@ A PWA for a single football team where players can view upcoming matches, match 
 
 ---
 
-## Phase 5.5: Player Self-Service -- NOT STARTED
+## Phase 5.5: Player Self-Service -- DONE
 
 ### Backend
-- [ ] Allow authenticated users linked to a player to update their own shirt number and position
+- [x] Allow authenticated users linked to a player to update their own shirt number and position
   - `PUT /api/players/:id` — extend existing endpoint: if the logged-in user's `player_id` matches `:id`, allow updating `shirt_number` and `position` (no admin/moderator required)
   - Admin/moderator can still update everything (name, active status, etc.)
 
 ### Frontend
-- [ ] Player profile page: show "Bewerken" (edit) button for the linked player (not just admin/moderator)
-- [ ] Edit form: players can only change shirt number and position, not name or active status
+- [x] Player profile page: show "Bewerken" (edit) button for the linked player (not just admin/moderator)
+- [x] Edit form: players can only change shirt number and position, not name or active status
 
 ### Verification
-- [ ] A regular user linked to a player can update their own shirt number and position
-- [ ] A regular user cannot update another player's details
-- [ ] Admin/moderator can still update all fields for any player
+- [x] A regular user linked to a player can update their own shirt number and position
+- [x] A regular user cannot update another player's details
+- [x] Admin/moderator can still update all fields for any player
 
 ---
 
@@ -206,5 +206,5 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 3. ~~Phase 3 — Matches~~ DONE
 4. ~~Phase 4 — Match Events & Stats~~ DONE
 5. ~~Phase 5 — Polish & PWA enhancements~~ DONE
-6. Phase 5.5 — Player self-service (users update own shirt number & position)
+6. ~~Phase 5.5 — Player self-service (users update own shirt number & position)~~ DONE
 7. Phase 6 — Live match mode with "Live" tab for admins/mods + push notifications on score changes
