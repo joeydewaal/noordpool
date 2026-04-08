@@ -12,8 +12,16 @@ import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
+import { clientsClaim } from 'workbox-core';
 
 declare let self: ServiceWorkerGlobalScope;
+
+// Take over immediately on update so a new SW (e.g. one that gained the
+// `push` handler) doesn't get stuck in `waiting` while an old SW keeps
+// silently dropping push events. Without this, an installed PWA can sit on
+// a stale SW indefinitely because the window never fully closes.
+self.skipWaiting();
+clientsClaim();
 
 // Workbox precache manifest is injected here at build time.
 precacheAndRoute(self.__WB_MANIFEST);

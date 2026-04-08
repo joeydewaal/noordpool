@@ -153,7 +153,7 @@ pub async fn adjust_score(
         push::notify_goal(&state, &fresh, Some(body.side)).await;
     }
 
-    let events: Vec<GameEvent> = fresh.events.get().into_iter().cloned().collect();
+    let events: Vec<GameEvent> = fresh.events.get().to_vec();
     Ok(Json(LivePollResponse {
         id: fresh.id,
         status: fresh.derived_status(now),
