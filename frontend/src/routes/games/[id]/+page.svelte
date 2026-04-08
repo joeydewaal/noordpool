@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { auth } from "$lib/state/auth.svelte";
-    import { getGame } from "$lib/api/games";
+    import { getGame, pollLive, adjustLiveScore } from "$lib/api/games";
     import { createGameEvent, deleteGameEvent } from "$lib/api/events";
     import { getPlayers } from "$lib/api/players";
     import {
@@ -13,8 +13,12 @@
         EventType,
         CreateGameEventRequest,
         Player,
+        LivePoll,
+        ScoreSide,
+        GameStatus,
+        Game,
     } from "$lib/api/types";
-    import { getGameStatus } from "$lib/api/types";
+    import { startVisibilityPolling } from "$lib/visibility-polling.svelte";
 
     const id = page.params.id!;
     const queryClient = useQueryClient();
@@ -26,7 +30,55 @@
         queryFn: () => getGame(id),
     }));
 
-    const status = $derived(gameQuery.data ? getGameStatus(gameQuery.data) : 'scheduled');
+    // Server-derived status (`scheduled` | `live` | `finished` | `cancelled`).
+    // The frontend never recomputes liveness from `dateTime` — see backend
+    // `Game::derived_status`.
+    let liveOverlay = $state<LivePoll | null>(null);
+    let liveEtag = $state<string | null>(null);
+
+    // TanStack Svelte Query 6 sometimes infers `gameQuery.data` as `never`
+    // inside `$derived`, so we go through a typed accessor with `$derived.by`.
+    const game = $derived.by((): Game | null | undefined => {
+        return gameQuery.data as unknown as Game | null | undefined;
+    });
+
+    const status: GameStatus = $derived(
+        liveOverlay?.status ?? game?.status ?? "scheduled",
+    );
+    const homeScore = $derived(liveOverlay?.homeScore ?? game?.homeScore ?? 0);
+    const awayScore = $derived(liveOverlay?.awayScore ?? game?.awayScore ?? 0);
+    const events = $derived(liveOverlay?.events ?? game?.events ?? []);
+
+    // Poll the live endpoint while the match is in its live window. The
+    // utility throttles to 30 s when the tab is hidden so we don't melt
+    // mobile batteries.
+    $effect(() => {
+        if (status !== "live") return;
+        const stop = startVisibilityPolling(async () => {
+            const result = await pollLive(id, liveEtag);
+            if (result.body) {
+                liveOverlay = result.body;
+            }
+            liveEtag = result.etag;
+        });
+        return stop;
+    });
+
+    const adjustScoreMutation = createMutation(() => ({
+        mutationFn: (side: ScoreSide) =>
+            adjustLiveScore(id, { side, delta: 1 }),
+        onSuccess: (data) => {
+            liveOverlay = data;
+        },
+    }));
+
+    const undoScoreMutation = createMutation(() => ({
+        mutationFn: (side: ScoreSide) =>
+            adjustLiveScore(id, { side, delta: -1 }),
+        onSuccess: (data) => {
+            liveOverlay = data;
+        },
+    }));
 
     const playersQuery = createQuery(() => ({
         queryKey: ["players"],
@@ -131,66 +183,148 @@
                 <div>
                     Status:
                     <span
-                        class="font-medium {status === 'completed'
+                        class="font-medium {status === 'finished'
                             ? 'text-success-500'
                             : status === 'cancelled'
                               ? 'text-error-500'
-                              : status === 'playing'
+                              : status === 'live'
                                 ? 'text-warning-500'
                                 : 'text-primary-500'}"
                     >
                         {status === "scheduled"
                             ? "gepland"
-                            : status === "completed"
+                            : status === "finished"
                               ? "gespeeld"
-                              : status === "playing"
+                              : status === "live"
                                 ? "bezig"
                                 : "afgelast"}
                     </span>
+                    {#if status === "live"}
+                        <span
+                            class="chip preset-filled-error-500 animate-pulse ml-2"
+                        >
+                            <span
+                                class="inline-block w-2 h-2 rounded-full bg-white mr-1"
+                            ></span>
+                            LIVE
+                        </span>
+                    {/if}
                 </div>
             </div>
 
-            {#if (status === "completed" || status === "playing") && gameQuery.data.homeScore !== null}
+            {#if status === "finished" || status === "live"}
                 <div class="card preset-tonal-surface p-4 text-center">
                     {#if gameQuery.data.homeAway === "home"}
                         <div class="text-lg">
-                            <span class="font-bold"
-                                >Noordpool {gameQuery.data.homeScore}</span
-                            >
+                            <span class="font-bold">Noordpool {homeScore}</span>
                             <span class="text-surface-500 mx-2">-</span>
                             <span class="font-bold"
-                                >{gameQuery.data.awayScore}
+                                >{awayScore}
                                 {gameQuery.data.opponent}</span
                             >
                         </div>
                     {:else}
                         <div class="text-lg">
                             <span class="font-bold"
-                                >{gameQuery.data.opponent}
-                                {gameQuery.data.homeScore}</span
+                                >{gameQuery.data.opponent} {homeScore}</span
                             >
                             <span class="text-surface-500 mx-2">-</span>
-                            <span class="font-bold"
-                                >{gameQuery.data.awayScore} Noordpool</span
-                            >
+                            <span class="font-bold">{awayScore} Noordpool</span>
                         </div>
                     {/if}
                 </div>
             {/if}
 
-            {#if status === "completed" || status === "playing"}
+            {#if status === "live" && canManage}
+                <div
+                    class="mt-4 card preset-tonal-warning p-4"
+                    aria-label="Live score adjuster"
+                >
+                    <h3 class="text-sm font-semibold mb-3">Live score</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="text-center">
+                            <div class="text-xs text-surface-400 mb-1">
+                                {gameQuery.data.homeAway === "home"
+                                    ? "Noordpool"
+                                    : gameQuery.data.opponent}
+                            </div>
+                            <div class="text-3xl font-bold mb-2">
+                                {homeScore}
+                            </div>
+                            <div class="flex justify-center gap-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm preset-filled-error-500"
+                                    onclick={() =>
+                                        undoScoreMutation.mutate("home")}
+                                    disabled={homeScore === 0 ||
+                                        undoScoreMutation.isPending}
+                                    aria-label="Doelpunt thuis intrekken"
+                                >
+                                    −
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm preset-filled-success-500"
+                                    onclick={() =>
+                                        adjustScoreMutation.mutate("home")}
+                                    disabled={adjustScoreMutation.isPending}
+                                    aria-label="Doelpunt thuis"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-surface-400 mb-1">
+                                {gameQuery.data.homeAway === "home"
+                                    ? gameQuery.data.opponent
+                                    : "Noordpool"}
+                            </div>
+                            <div class="text-3xl font-bold mb-2">
+                                {awayScore}
+                            </div>
+                            <div class="flex justify-center gap-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm preset-filled-error-500"
+                                    onclick={() =>
+                                        undoScoreMutation.mutate("away")}
+                                    disabled={awayScore === 0 ||
+                                        undoScoreMutation.isPending}
+                                    aria-label="Doelpunt uit intrekken"
+                                >
+                                    −
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm preset-filled-success-500"
+                                    onclick={() =>
+                                        adjustScoreMutation.mutate("away")}
+                                    disabled={adjustScoreMutation.isPending}
+                                    aria-label="Doelpunt uit"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {/if}
+
+            {#if status === "finished" || status === "live"}
                 <div
                     class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800"
                 >
                     <h2 class="text-lg font-bold mb-3">Wedstrijdverloop</h2>
 
-                    {#if !gameQuery.data?.events || gameQuery.data.events.length === 0}
+                    {#if events.length === 0}
                         <p class="text-sm text-surface-400">
                             Geen gebeurtenissen geregistreerd.
                         </p>
                     {:else}
                         <div class="space-y-2">
-                            {#each gameQuery.data.events as event}
+                            {#each events as event}
                                 <div class="flex items-center gap-3 text-sm">
                                     <span
                                         class="inline-flex items-center justify-center w-10 h-6 preset-tonal-surface font-mono text-xs rounded"
@@ -239,7 +373,9 @@
                                 >
                                     <option value="">Speler...</option>
                                     {#each (playersQuery.data ?? []).filter((p) => p.active) as p}
-                                        <option value={p.id}>{p.name}</option>
+                                        <option value={p.id}
+                                            >{playerName(p)}</option
+                                        >
                                     {/each}
                                 </select>
                                 <select

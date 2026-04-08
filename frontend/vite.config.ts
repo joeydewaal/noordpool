@@ -13,23 +13,18 @@ export default defineConfig({
         sveltekit(),
         SvelteKitPWA({
             devOptions: {
-                enabled: true
+                enabled: true,
+                type: 'module',
             },
+            // injectManifest mode: ship a custom service worker so we can
+            // handle Web Push (`push`, `notificationclick`) on top of the
+            // Workbox precache.
+            strategies: 'injectManifest',
+            srcDir: 'src',
+            filename: 'service-worker.ts',
             registerType: 'autoUpdate',
-            workbox: {
-                runtimeCaching: [
-                    {
-                        urlPattern: /^.*\/api\/(games|players|stats)/,
-                        handler: 'StaleWhileRevalidate',
-                        options: {
-                            cacheName: 'api-cache',
-                            expiration: {
-                                maxEntries: 50,
-                                maxAgeSeconds: 60 * 60 * 24,
-                            },
-                        },
-                    },
-                ],
+            injectManifest: {
+                globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
             },
             manifest: {
                 name: 'Noordpool',

@@ -11,5 +11,8 @@ expression: body
   "homeScore": 0,
   "id": "[uuid]",
   "location": "Stadium",
-  "opponent": "FC Test"
+  "opponent": "FC Test",
+  "status": "scheduled",
+  "updatedAt": "[timestamp]",
+  "version": 0
 }

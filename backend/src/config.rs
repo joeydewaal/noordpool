@@ -7,6 +7,9 @@ pub struct Config {
     pub google_client_secret: Option<String>,
     pub google_redirect_url: Option<String>,
     pub frontend_url: Option<String>,
+    pub vapid_public_key: Option<String>,
+    pub vapid_private_key: Option<String>,
+    pub vapid_subject: Option<String>,
 }
 
 impl Config {
@@ -24,6 +27,9 @@ impl Config {
             google_client_secret: std::env::var("GOOGLE_CLIENT_SECRET").ok(),
             google_redirect_url: std::env::var("GOOGLE_REDIRECT_URL").ok(),
             frontend_url: std::env::var("FRONTEND_URL").ok(),
+            vapid_public_key: std::env::var("VAPID_PUBLIC_KEY").ok(),
+            vapid_private_key: std::env::var("VAPID_PRIVATE_KEY").ok(),
+            vapid_subject: std::env::var("VAPID_SUBJECT").ok(),
         }
     }
 }

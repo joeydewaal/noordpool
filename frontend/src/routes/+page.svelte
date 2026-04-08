@@ -20,7 +20,6 @@
     }
 
     function formatScore(game: Game): string {
-        if (game.homeScore === null) return "";
         return `${game.homeScore} - ${game.awayScore}`;
     }
 </script>
@@ -55,15 +54,23 @@
                                     <div class="font-medium text-sm">
                                         vs {game.opponent}
                                     </div>
-                                    <span
-                                        class="chip {game.homeAway === 'home'
-                                            ? 'preset-filled-success-500'
-                                            : 'preset-filled-secondary-500'}"
-                                    >
-                                        {game.homeAway === "home"
-                                            ? "thuis"
-                                            : "uit"}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        {#if game.status === "live"}
+                                            <span
+                                                class="chip preset-filled-error-500 animate-pulse"
+                                                >LIVE {game.homeScore}–{game.awayScore}</span
+                                            >
+                                        {/if}
+                                        <span
+                                            class="chip {game.homeAway === 'home'
+                                                ? 'preset-filled-success-500'
+                                                : 'preset-filled-secondary-500'}"
+                                        >
+                                            {game.homeAway === "home"
+                                                ? "thuis"
+                                                : "uit"}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="text-xs text-surface-400 mt-1">
                                     {formatDate(game.dateTime)}

@@ -40,41 +40,70 @@ pub struct UpdateGameRequest {
     pub away_score: Option<i32>,
 }
 
+/// Wraps a `Game` so the JSON output carries the server-derived
+/// `status` field (`scheduled` | `live` | `finished` | `cancelled`).
+/// The frontend never computes its own liveness.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GameResponse {
+    #[serde(flatten)]
+    pub game: Game,
+    pub status: &'static str,
+}
+
+impl GameResponse {
+    pub fn new(game: Game) -> Self {
+        let status = game.derived_status(Timestamp::now());
+        Self { game, status }
+    }
+
+    pub fn many(games: Vec<Game>) -> Vec<Self> {
+        let now = Timestamp::now();
+        games
+            .into_iter()
+            .map(|g| {
+                let status = g.derived_status(now);
+                Self { game: g, status }
+            })
+            .collect()
+    }
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GamesSummaryResponse {
-    pub upcoming: Vec<Game>,
-    pub recent: Vec<Game>,
+    pub upcoming: Vec<GameResponse>,
+    pub recent: Vec<GameResponse>,
 }
 
 #[tracing::instrument(skip(state))]
-pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<Game>>, AppError> {
+pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<GameResponse>>, AppError> {
     let mut db = state.db;
 
     let games = Game::all()
         .order_by(Game::fields().date_time().asc())
         .exec(&mut db)
         .await?;
-    Ok(Json(games))
+    Ok(Json(GameResponse::many(games)))
 }
 
 #[tracing::instrument(skip(state), fields(game_id = %id))]
 pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<Json<Game>, AppError> {
+) -> Result<Json<GameResponse>, AppError> {
     let game = Game::filter_by_id(id)
         .include(Game::fields().events().player())
         .get(&mut state.db)
         .await?;
-    Ok(Json(game))
+    Ok(Json(GameResponse::new(game)))
 }
 
 #[tracing::instrument(skip(state, query))]
 pub async fn upcoming(
     State(state): State<AppState>,
     Query(query): Query<LimitQuery>,
-) -> Result<Json<Vec<Game>>, AppError> {
+) -> Result<Json<Vec<GameResponse>>, AppError> {
     let mut db = state.db;
 
     let mut game_query = Game::all()
@@ -87,14 +116,14 @@ pub async fn upcoming(
     }
 
     let games = game_query.exec(&mut db).await?;
-    Ok(Json(games))
+    Ok(Json(GameResponse::many(games)))
 }
 
 #[tracing::instrument(skip(state, query))]
 pub async fn recent(
     State(state): State<AppState>,
     Query(query): Query<LimitQuery>,
-) -> Result<Json<Vec<Game>>, AppError> {
+) -> Result<Json<Vec<GameResponse>>, AppError> {
     let mut db = state.db;
 
     let mut game_query = Game::all()
@@ -107,7 +136,7 @@ pub async fn recent(
     }
 
     let games = game_query.exec(&mut db).await?;
-    Ok(Json(games))
+    Ok(Json(GameResponse::many(games)))
 }
 
 #[tracing::instrument(skip(state, query))]
@@ -135,14 +164,17 @@ pub async fn summary(
         .exec(&mut db)
         .await?;
 
-    Ok(Json(GamesSummaryResponse { upcoming, recent }))
+    Ok(Json(GamesSummaryResponse {
+        upcoming: GameResponse::many(upcoming),
+        recent: GameResponse::many(recent),
+    }))
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]
 pub async fn create(
     State(state): State<AppState>,
     Json(body): Json<CreateGameRequest>,
-) -> Result<Json<Game>, AppError> {
+) -> Result<Json<GameResponse>, AppError> {
     tracing::info!("games::create");
     let mut db = state.db;
 
@@ -154,7 +186,7 @@ pub async fn create(
     })
     .exec(&mut db)
     .await?;
-    Ok(Json(game))
+    Ok(Json(GameResponse::new(game)))
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]
@@ -162,11 +194,12 @@ pub async fn update(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateGameRequest>,
-) -> Result<Json<Game>, AppError> {
+) -> Result<Json<GameResponse>, AppError> {
     tracing::info!(game_id = %id, "games::update");
     let mut db = state.db;
 
     let mut game = Game::get_by_id(&mut db, id).await?;
+    let next_version = game.version + 1;
 
     let mut update = game.update();
 
@@ -179,7 +212,6 @@ pub async fn update(
     if let Some(date_time) = req.date_time {
         update.set_date_time(date_time);
     }
-
     if let Some(home_away) = req.home_away {
         update.set_home_away(home_away);
     }
@@ -193,15 +225,22 @@ pub async fn update(
         update.set_away_score(away_score);
     }
 
+    // Every edit touches version + updated_at so ETag clients always
+    // see a fresh version after any admin/mod mutation.
+    let now = Timestamp::now();
+    update.set_version(next_version);
+    update.set_updated_at(now);
+
     update.exec(&mut db).await?;
-    Ok(Json(game))
+    let fresh = Game::get_by_id(&mut db, id).await?;
+    Ok(Json(GameResponse::new(fresh)))
 }
 
 #[requires(Role::Admin)]
 pub async fn delete(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<axum::http::StatusCode, AppError> {
+) -> Result<StatusCode, AppError> {
     tracing::info!(game_id = %id, "games::delete");
     let mut db = state.db;
 

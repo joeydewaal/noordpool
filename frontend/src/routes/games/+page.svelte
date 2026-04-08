@@ -44,7 +44,6 @@
     }
 
     function formatScore(game: Game): string {
-        if (game.homeScore === null) return "";
         return `${game.homeScore} - ${game.awayScore}`;
     }
 </script>
@@ -89,13 +88,28 @@
                                         {formatDate(game.dateTime)}
                                     </div>
                                 </div>
-                                <span
-                                    class="chip {game.homeAway === 'home'
-                                        ? 'preset-filled-success-500'
-                                        : 'preset-filled-secondary-500'}"
-                                >
-                                    {game.homeAway === "home" ? "thuis" : "uit"}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    {#if game.status === "live"}
+                                        <span
+                                            class="chip preset-filled-error-500 animate-pulse"
+                                            title="Wedstrijd is bezig"
+                                        >
+                                            <span
+                                                class="inline-block w-2 h-2 rounded-full bg-white mr-1"
+                                            ></span>
+                                            LIVE {game.homeScore}–{game.awayScore}
+                                        </span>
+                                    {/if}
+                                    <span
+                                        class="chip {game.homeAway === 'home'
+                                            ? 'preset-filled-success-500'
+                                            : 'preset-filled-secondary-500'}"
+                                    >
+                                        {game.homeAway === "home"
+                                            ? "thuis"
+                                            : "uit"}
+                                    </span>
+                                </div>
                             </div>
                         </a>
                     {/each}

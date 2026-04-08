@@ -72,7 +72,9 @@ export interface UpdatePlayerRequest {
     active?: boolean;
 }
 
-export type GameStatus = 'scheduled' | 'playing' | 'completed' | 'cancelled';
+/// Server-derived game status. Computed from `dateTime` + a fixed match
+/// window on the backend; the frontend never derives liveness itself.
+export type GameStatus = 'scheduled' | 'live' | 'finished' | 'cancelled';
 export type HomeAway = 'home' | 'away';
 
 export interface Game {
@@ -82,20 +84,48 @@ export interface Game {
     dateTime: string;
     homeAway: HomeAway;
     cancelled: boolean;
-    homeScore: number | null;
-    awayScore: number | null;
+    homeScore: number;
+    awayScore: number;
+    version: number;
+    updatedAt: string;
     createdAt: string;
+    /// Server-computed: 'scheduled' | 'live' | 'finished' | 'cancelled'
+    status: GameStatus;
     events?: GameEvent[];
 }
 
-export function getGameStatus(game: Game): GameStatus {
-    if (game.cancelled) return 'cancelled';
-    const now = Date.now();
-    const start = new Date(game.dateTime).getTime();
-    const end = start + 90 * 60 * 1000;
-    if (now < start) return 'scheduled';
-    if (now < end) return 'playing';
-    return 'completed';
+/// Live-poll body returned by `GET /api/games/{id}/live`.
+export interface LivePoll {
+    id: string;
+    status: GameStatus;
+    homeScore: number;
+    awayScore: number;
+    version: number;
+    updatedAt: string;
+    events: GameEvent[];
+}
+
+export type ScoreSide = 'home' | 'away';
+
+export interface AdjustScoreRequest {
+    side: ScoreSide;
+    delta: 1 | -1;
+}
+
+export interface PushSubscriptionRecord {
+    id: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    notifyGoal: boolean;
+    createdAt: string;
+}
+
+export interface SubscribeRequest {
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    notifyGoal?: boolean;
 }
 
 export interface CreateGameRequest {
@@ -111,8 +141,8 @@ export interface UpdateGameRequest {
     dateTime?: string;
     homeAway?: HomeAway;
     cancelled?: boolean;
-    homeScore?: number | null;
-    awayScore?: number | null;
+    homeScore?: number;
+    awayScore?: number;
 }
 
 export type EventType = 'goal' | 'assist' | 'yellow_card' | 'red_card';

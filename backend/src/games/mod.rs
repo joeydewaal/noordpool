@@ -1,6 +1,10 @@
 pub mod handlers;
+pub mod live;
 
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 
 use crate::app_state::AppState;
 
@@ -16,4 +20,6 @@ pub fn router() -> Router<AppState> {
                 .put(handlers::update)
                 .delete(handlers::delete),
         )
+        .route("/{id}/live", get(live::poll_live))
+        .route("/{id}/live/score", post(live::adjust_score))
 }

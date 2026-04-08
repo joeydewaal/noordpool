@@ -1,9 +1,13 @@
-use jiff::Timestamp;
+use jiff::{Span, Timestamp};
 use serde::Serialize;
 use toasty::HasMany;
 use uuid::Uuid;
 
 use super::{GameEvent, HomeAway};
+
+/// How long after kickoff we still consider a match "live". Covers
+/// 2x 45 min halves + halftime + stoppage + buffer.
+pub const MATCH_DURATION_MINUTES: i64 = 120;
 
 #[derive(Debug, Serialize, toasty::Model, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -29,10 +33,46 @@ pub struct Game {
     #[default(0)]
     pub away_score: i32,
 
+    /// Monotonic counter bumped on every mutation. Used as the ETag
+    /// value for the live polling endpoint.
+    #[default(0)]
+    pub version: i64,
+
+    #[default(Timestamp::now())]
+    pub updated_at: Timestamp,
+
     #[default(Timestamp::now())]
     pub created_at: Timestamp,
 
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]
     pub events: HasMany<GameEvent>,
+}
+
+impl Game {
+    /// Returns true when `now` is inside `[date_time, date_time + MATCH_DURATION]`
+    /// and the game is not cancelled.
+    pub fn is_live(&self, now: Timestamp) -> bool {
+        if self.cancelled {
+            return false;
+        }
+        let Ok(end) = self.date_time.checked_add(Span::new().minutes(MATCH_DURATION_MINUTES))
+        else {
+            return false;
+        };
+        self.date_time <= now && now <= end
+    }
+
+    /// Server-derived status string. Mirrors the frontend `GameStatus` union.
+    pub fn derived_status(&self, now: Timestamp) -> &'static str {
+        if self.cancelled {
+            "cancelled"
+        } else if now < self.date_time {
+            "scheduled"
+        } else if self.is_live(now) {
+            "live"
+        } else {
+            "finished"
+        }
+    }
 }

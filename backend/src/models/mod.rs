@@ -4,6 +4,7 @@ pub mod game_event;
 pub mod home_away;
 pub mod player;
 pub mod position;
+pub mod push_subscription;
 pub mod team;
 pub mod user;
 pub mod user_role;
@@ -17,6 +18,7 @@ pub use game_event::GameEvent;
 pub use home_away::HomeAway;
 pub use player::Player;
 pub use position::Position;
+pub use push_subscription::PushSubscription;
 use toasty::{Db, create, db::Builder};
 pub use user::User;
 pub use user_role::Role;
@@ -31,7 +33,16 @@ use crate::{
 pub fn build_db() -> Builder {
     let mut builder = Db::builder();
     builder.models(toasty::models!(
-        Team, User, Role, Position, Player, Game, HomeAway, GameEvent, EventType
+        Team,
+        User,
+        Role,
+        Position,
+        Player,
+        Game,
+        HomeAway,
+        GameEvent,
+        EventType,
+        PushSubscription
     ));
     builder
 }

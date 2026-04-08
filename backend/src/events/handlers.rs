@@ -4,13 +4,15 @@ use axum::{
     http::StatusCode,
 };
 use axum_security::rbac::requires_any;
+use jiff::Timestamp;
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{EventType, GameEvent, Role},
+    models::{EventType, Game, GameEvent, Role},
+    push,
 };
 
 #[derive(Deserialize)]
@@ -43,7 +45,7 @@ pub async fn create(
     Json(body): Json<CreateGameEventRequest>,
 ) -> Result<Json<GameEvent>, AppError> {
     tracing::info!(game_id = %game_id, "events::create");
-    let mut db = state.db;
+    let mut db = state.db.clone();
 
     let event = GameEvent::create()
         .game_id(game_id)
@@ -52,6 +54,23 @@ pub async fn create(
         .minute(body.minute)
         .exec(&mut db)
         .await?;
+
+    // Touch the parent game so live pollers see the new event on
+    // their next tick. Fire a goal push if the game is currently live.
+    let now = Timestamp::now();
+    let mut game = Game::get_by_id(&mut db, game_id).await?;
+    let next_version = game.version + 1;
+    let was_live = game.is_live(now);
+
+    let mut update = game.update();
+    update.set_version(next_version);
+    update.set_updated_at(now);
+    update.exec(&mut db).await?;
+
+    if was_live && event.event_type == EventType::Goal {
+        let fresh = Game::get_by_id(&mut db, game_id).await?;
+        push::notify_goal(&state, &fresh, None).await;
+    }
 
     Ok(Json(event))
 }

@@ -7,6 +7,7 @@ pub mod games;
 pub mod import;
 pub mod models;
 pub mod players;
+pub mod push;
 pub mod routes;
 pub mod stats;
 

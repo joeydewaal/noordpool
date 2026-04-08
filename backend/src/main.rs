@@ -7,10 +7,13 @@ mod games;
 mod import;
 mod models;
 mod players;
+mod push;
 mod routes;
 mod stats;
 
-use app_state::AppState;
+use std::sync::Arc;
+
+use app_state::{AppState, VapidConfig};
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use config::Config;
 
@@ -67,10 +70,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None
     };
 
+    let vapid = match (
+        config.vapid_public_key.clone(),
+        config.vapid_private_key.clone(),
+        config.vapid_subject.clone(),
+    ) {
+        (Some(public_key), Some(private_key), Some(subject)) => {
+            tracing::info!("Web Push enabled (VAPID configured)");
+            Some(Arc::new(VapidConfig {
+                public_key,
+                private_key,
+                subject,
+            }))
+        }
+        _ => {
+            tracing::info!("Web Push disabled (VAPID not configured)");
+            None
+        }
+    };
+
     let state = AppState {
         db,
         jwt,
         google_oidc,
+        vapid,
     };
 
     let app = routes::app(state);

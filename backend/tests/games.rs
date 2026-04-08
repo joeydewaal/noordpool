@@ -7,6 +7,7 @@ use serde_json::json;
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
     settings.add_redaction(".dateTime", "[dateTime]");
+    settings.add_redaction(".updatedAt", "[timestamp]");
     settings.add_redaction(
         ".id",
         insta::dynamic_redaction(|val, _| {

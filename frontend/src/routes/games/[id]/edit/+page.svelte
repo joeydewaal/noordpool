@@ -23,17 +23,19 @@
         },
     }));
 
-    let game_state: Game | null = $state(null);
+    let game_state = $state<Game | null>(null);
 
     $effect(() => {
-        const data = gameQuery.data;
+        const data = gameQuery.data as Game | null | undefined;
         if (data && !game_state) {
             game_state = { ...data };
         }
     });
 
-    const isPast = $derived(
-        game_state ? new Date(game_state.dateTime).getTime() + 90 * 60 * 1000 < Date.now() : false,
+    // Server-derived; once the match window has closed `status` becomes
+    // `finished` (or `cancelled`). The frontend never recomputes liveness.
+    const isFinishedOrLive = $derived(
+        game_state?.status === "finished" || game_state?.status === "live",
     );
 
     function handleSubmit(e: Event) {
@@ -45,8 +47,8 @@
             dateTime: game_state.dateTime,
             homeAway: game_state.homeAway,
             cancelled: game_state.cancelled,
-            homeScore: isPast ? game_state.homeScore : null,
-            awayScore: isPast ? game_state.awayScore : null,
+            homeScore: game_state.homeScore,
+            awayScore: game_state.awayScore,
         });
     }
 </script>
@@ -134,7 +136,7 @@
                 />
                 <span class="label-text">Afgelast</span>
             </label>
-            {#if isPast && !game_state.cancelled}
+            {#if isFinishedOrLive && !game_state.cancelled}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="homeScore" class="label-text">Thuisscore</label>

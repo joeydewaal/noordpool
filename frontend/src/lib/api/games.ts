@@ -1,4 +1,10 @@
-import type { Game, CreateGameRequest, UpdateGameRequest } from './types';
+import type {
+    Game,
+    CreateGameRequest,
+    UpdateGameRequest,
+    LivePoll,
+    AdjustScoreRequest,
+} from './types';
 import { api } from './client';
 
 export async function getGames(): Promise<Game[]> {
@@ -33,4 +39,35 @@ export async function createGame(data: CreateGameRequest): Promise<Game> {
 
 export async function updateGame(id: string, data: UpdateGameRequest): Promise<Game> {
     return (await api.put<Game>(`/games/${id}`, data)).data;
+}
+
+/// Result of a live-poll request. `null` body means 304 Not Modified —
+/// the caller should keep its previous state. Always returns the latest
+/// `etag` so the caller can pass it back on the next request.
+export interface LivePollResult {
+    body: LivePoll | null;
+    etag: string | null;
+}
+
+export async function pollLive(id: string, etag: string | null): Promise<LivePollResult> {
+    const headers: Record<string, string> = {};
+    if (etag) headers['If-None-Match'] = etag;
+
+    const res = await api.get<LivePoll>(`/games/${id}/live`, {
+        headers,
+        // Treat 304 as a successful response so axios doesn't throw.
+        validateStatus: (s) => s === 200 || s === 304,
+    });
+
+    if (res.status === 304) {
+        return { body: null, etag };
+    }
+    return {
+        body: res.data,
+        etag: (res.headers['etag'] as string | undefined) ?? null,
+    };
+}
+
+export async function adjustLiveScore(id: string, data: AdjustScoreRequest): Promise<LivePoll> {
+    return (await api.post<LivePoll>(`/games/${id}/live/score`, data)).data;
 }

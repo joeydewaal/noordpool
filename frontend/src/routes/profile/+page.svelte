@@ -7,6 +7,13 @@
 	import { goto } from '$app/navigation';
 	import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 	import type { Position, UpdatePlayerRequest } from '$lib/api/types';
+	import {
+		disablePush,
+		enablePush,
+		isCurrentBrowserSubscribed,
+		isPushSupported,
+	} from '$lib/push-subscribe';
+	import { onMount } from 'svelte';
 
 	if (!auth.isAuthenticated) {
 		goto('/auth/login');
@@ -61,6 +68,59 @@
 		logout();
 		auth.clear();
 		goto('/');
+	}
+
+	// ----- Push notifications -----
+	// We track three pieces of state: whether the browser supports Web Push at
+	// all, whether this device currently has an active subscription on the
+	// server, and whether a toggle is in flight. Permission state ('denied') is
+	// surfaced separately so we can show a help message instead of a button
+	// that will silently fail.
+	let pushSupported = $state(false);
+	let pushSubscribed = $state(false);
+	let pushPermission = $state<NotificationPermission>('default');
+	let pushBusy = $state(false);
+	let pushError = $state<string | null>(null);
+
+	async function refreshPushState() {
+		if (!isPushSupported()) {
+			pushSupported = false;
+			return;
+		}
+		pushSupported = true;
+		pushPermission = Notification.permission;
+		pushSubscribed = await isCurrentBrowserSubscribed();
+	}
+
+	onMount(() => {
+		refreshPushState();
+	});
+
+	async function handleEnablePush() {
+		pushBusy = true;
+		pushError = null;
+		try {
+			await enablePush();
+			await refreshPushState();
+		} catch (err) {
+			pushError = err instanceof Error ? err.message : 'Inschakelen mislukt.';
+			await refreshPushState();
+		} finally {
+			pushBusy = false;
+		}
+	}
+
+	async function handleDisablePush() {
+		pushBusy = true;
+		pushError = null;
+		try {
+			await disablePush();
+			await refreshPushState();
+		} catch (err) {
+			pushError = err instanceof Error ? err.message : 'Uitschakelen mislukt.';
+		} finally {
+			pushBusy = false;
+		}
 	}
 </script>
 
@@ -177,6 +237,47 @@
 					<span>Donker thema</span>
 				{/if}
 			</button>
+		</div>
+
+		<div class="card p-4 space-y-3">
+			<div class="flex items-center justify-between">
+				<div>
+					<p class="font-medium">Meldingen</p>
+					<p class="text-sm text-surface-400">
+						Ontvang een melding bij elk doelpunt tijdens een live wedstrijd.
+					</p>
+				</div>
+				{#if !pushSupported}
+					<span class="chip preset-filled-surface-500">Niet ondersteund</span>
+				{:else if pushPermission === 'denied'}
+					<span class="chip preset-filled-error-500">Geblokkeerd</span>
+				{:else if pushSubscribed}
+					<button
+						class="btn btn-sm preset-filled-warning-500"
+						onclick={handleDisablePush}
+						disabled={pushBusy}
+					>
+						Uitschakelen
+					</button>
+				{:else}
+					<button
+						class="btn btn-sm preset-filled-primary-500"
+						onclick={handleEnablePush}
+						disabled={pushBusy}
+					>
+						Inschakelen
+					</button>
+				{/if}
+			</div>
+			{#if pushPermission === 'denied'}
+				<p class="text-xs text-surface-400">
+					Meldingen zijn geblokkeerd voor deze site. Sta meldingen toe via de
+					instellingen van je browser om ze opnieuw in te schakelen.
+				</p>
+			{/if}
+			{#if pushError}
+				<p class="text-xs text-error-500">{pushError}</p>
+			{/if}
 		</div>
 
 		{#if pwa.installable}

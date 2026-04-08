@@ -31,6 +31,10 @@ impl Response {
         self.inner.status()
     }
 
+    pub fn inner_headers(&self) -> &http::HeaderMap {
+        self.inner.headers()
+    }
+
     pub async fn string(self) -> String {
         let body = self.inner.into_body().collect().await.unwrap().to_bytes();
         std::str::from_utf8(&body).unwrap().to_string()
@@ -63,6 +67,11 @@ impl RequestBuilder<'_> {
         self
     }
 
+    pub fn header(mut self, name: &str, value: &str) -> Self {
+        self.inner = self.inner.header(name, value);
+        self
+    }
+
     pub async fn send(self) -> Response {
         let req = self.inner.body(Body::empty()).unwrap();
         self.app.call(req).await
@@ -92,6 +101,7 @@ impl TestApp {
             db,
             jwt,
             google_oidc: None,
+            vapid: None,
         };
         let router = routes::app(state.clone());
         TestApp { state, router }
@@ -114,6 +124,13 @@ impl TestApp {
     pub fn put(&mut self, uri: impl Into<String>) -> RequestBuilder<'_> {
         RequestBuilder {
             inner: http::Request::put(uri.into()),
+            app: self,
+        }
+    }
+
+    pub fn patch(&mut self, uri: impl Into<String>) -> RequestBuilder<'_> {
+        RequestBuilder {
+            inner: http::Request::patch(uri.into()),
             app: self,
         }
     }
