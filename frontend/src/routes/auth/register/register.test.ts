@@ -16,7 +16,7 @@ import { goto } from '$app/navigation';
 beforeEach(() => {
 	vi.clearAllMocks();
 	vi.mocked(register).mockResolvedValue({
-		user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: '', avatarUrl: null, roles: ['player'] },
+		user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: '', avatarUrl: null, playerId: null, roles: ['player'] },
 		token: 'mock-token',
 	});
 });

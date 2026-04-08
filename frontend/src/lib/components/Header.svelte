@@ -34,7 +34,14 @@
                 dt.getDate() === now.getDate()
             );
         };
-        const today = list.filter(sameDay);
+        const today = list
+            .filter(sameDay)
+            .slice()
+            .sort(
+                (a, b) =>
+                    new Date(a.dateTime).getTime() -
+                    new Date(b.dateTime).getTime(),
+            );
         return today.find((g) => g.status === "live") ?? today[0] ?? null;
     });
     const isLiveToday = $derived(todaysGame?.status === "live");
