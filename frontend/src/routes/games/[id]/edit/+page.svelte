@@ -25,10 +25,24 @@
 
     let game_state = $state<Game | null>(null);
 
+    // `<input type="datetime-local">` only accepts the format
+    // `YYYY-MM-DDTHH:mm` in the user's local time — it rejects ISO
+    // strings with a `Z` / timezone suffix (which is what the API
+    // returns). We convert on the way in here, and back to a UTC
+    // ISO string in `handleSubmit`.
+    function isoToLocalInput(iso: string): string {
+        const d = new Date(iso);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return (
+            `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+            `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+        );
+    }
+
     $effect(() => {
         const data = gameQuery.data as Game | null | undefined;
         if (data && !game_state) {
-            game_state = { ...data };
+            game_state = { ...data, dateTime: isoToLocalInput(data.dateTime) };
         }
     });
 
@@ -41,10 +55,13 @@
     function handleSubmit(e: Event) {
         e.preventDefault();
         if (!game_state) return;
+        // Convert the local-time `datetime-local` value back to a
+        // UTC ISO string for the backend's `jiff::Timestamp`.
+        const dateTimeIso = new Date(game_state.dateTime).toISOString();
         updateMutation.mutate({
             opponent: game_state.opponent,
             location: game_state.location,
-            dateTime: game_state.dateTime,
+            dateTime: dateTimeIso,
             homeAway: game_state.homeAway,
             cancelled: game_state.cancelled,
             homeScore: game_state.homeScore,
