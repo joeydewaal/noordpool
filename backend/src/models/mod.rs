@@ -60,14 +60,6 @@ pub async fn create_db(config: &Config) -> Result<Db, Box<dyn Error>> {
 }
 
 pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
-    create!(Game {
-        opponent: "FC Test",
-        location: "Thuis",
-        date_time: Timestamp::now(),
-        home_away: HomeAway::Home,
-    })
-    .exec(db)
-    .await?;
     let mut tx = db.transaction().await?;
 
     let password = password::hash_password("Admin123")
@@ -141,9 +133,9 @@ pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
             location: "",
             date_time: m
                 .date_time
-                .parse::<jiff::Timestamp>()
+                .parse::<Timestamp>()
                 .ok()
-                .unwrap_or(jiff::Timestamp::UNIX_EPOCH),
+                .unwrap_or(Timestamp::UNIX_EPOCH),
             home_away: if m.is_home {
                 HomeAway::Home
             } else {

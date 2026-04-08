@@ -4,14 +4,14 @@ use axum::{
     http::StatusCode,
 };
 use axum_security::rbac::{requires, requires_any};
-use jiff::Timestamp;
+use jiff::{Timestamp, ToSpan};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{Game, HomeAway, Role},
+    models::{Game, HomeAway, Role, game::MATCH_DURATION_MINUTES},
 };
 
 #[derive(Deserialize)]
@@ -106,9 +106,11 @@ pub async fn upcoming(
 ) -> Result<Json<Vec<GameResponse>>, AppError> {
     let mut db = state.db;
 
+    let now = Timestamp::now() - MATCH_DURATION_MINUTES.minutes();
+
     let mut game_query = Game::all()
         .filter(Game::fields().cancelled().eq(false))
-        .filter(Game::fields().date_time().gt(Timestamp::now()))
+        .filter(Game::fields().date_time().gt(now))
         .order_by(Game::fields().date_time().asc());
 
     if let Some(limit) = query.limit {

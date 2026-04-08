@@ -24,7 +24,7 @@ expression: body
       "dateTime": "2024-01-15T18:00:00Z",
       "gameId": "[uuid]",
       "homeAway": "home",
-      "homeScore": 2,
+      "homeScore": 4,
       "minutes": [
         10,
         55
