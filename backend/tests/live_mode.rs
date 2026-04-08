@@ -81,96 +81,97 @@ async fn poll_live_marks_scheduled_game_as_scheduled() {
 }
 
 #[tokio::test]
-async fn adjust_score_when_not_live_returns_conflict() {
+async fn adjust_opponent_score_when_not_live_returns_conflict() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let id = create_game(&mut app, &token, 168.hours()).await;
 
     let res = app
-        .post(format!("/api/games/{id}/live/score"))
+        .post(format!("/api/games/{id}/live/opponent_score"))
         .token(&token)
-        .json(json!({ "side": "home", "delta": 1 }))
+        .json(json!({ "delta": 1 }))
         .await;
     assert_eq!(res.status(), 409);
 }
 
 #[tokio::test]
-async fn adjust_score_requires_admin_or_moderator() {
+async fn adjust_opponent_score_requires_admin_or_moderator() {
     let mut app = TestApp::new().await;
     let admin = app.admin_token().await;
     let id = create_game(&mut app, &admin, -5.minutes()).await;
 
     // No auth
     let res = app
-        .post(format!("/api/games/{id}/live/score"))
-        .json(json!({ "side": "home", "delta": 1 }))
+        .post(format!("/api/games/{id}/live/opponent_score"))
+        .json(json!({ "delta": 1 }))
         .await;
     assert_eq!(res.status(), 401);
 
     // Player role
     let player = app.player_token().await;
     let res = app
-        .post(format!("/api/games/{id}/live/score"))
+        .post(format!("/api/games/{id}/live/opponent_score"))
         .token(&player)
-        .json(json!({ "side": "home", "delta": 1 }))
+        .json(json!({ "delta": 1 }))
         .await;
     assert_eq!(res.status(), 403);
 }
 
 #[tokio::test]
-async fn adjust_score_increments_and_bumps_version() {
+async fn adjust_opponent_score_increments_and_bumps_version() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    // create_game uses homeAway: home, so opponent is the away side.
     let id = create_game(&mut app, &token, -5.minutes()).await;
 
     let res = app
-        .post(format!("/api/games/{id}/live/score"))
+        .post(format!("/api/games/{id}/live/opponent_score"))
         .token(&token)
-        .json(json!({ "side": "home", "delta": 1 }))
-        .await;
-    assert_eq!(res.status(), 200);
-    let body = res.json_value().await;
-    assert_eq!(body["homeScore"], 1);
-    assert_eq!(body["awayScore"], 0);
-    assert_eq!(body["version"], 1);
-
-    let res = app
-        .post(format!("/api/games/{id}/live/score"))
-        .token(&token)
-        .json(json!({ "side": "away", "delta": 1 }))
-        .await;
-    let body = res.json_value().await;
-    assert_eq!(body["homeScore"], 1);
-    assert_eq!(body["awayScore"], 1);
-    assert_eq!(body["version"], 2);
-}
-
-#[tokio::test]
-async fn adjust_score_minus_one_clamps_at_zero() {
-    let mut app = TestApp::new().await;
-    let token = app.admin_token().await;
-    let id = create_game(&mut app, &token, -5.minutes()).await;
-
-    let res = app
-        .post(format!("/api/games/{id}/live/score"))
-        .token(&token)
-        .json(json!({ "side": "home", "delta": -1 }))
+        .json(json!({ "delta": 1 }))
         .await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     assert_eq!(body["homeScore"], 0);
+    assert_eq!(body["awayScore"], 1);
+    assert_eq!(body["version"], 1);
+
+    let res = app
+        .post(format!("/api/games/{id}/live/opponent_score"))
+        .token(&token)
+        .json(json!({ "delta": 1 }))
+        .await;
+    let body = res.json_value().await;
+    assert_eq!(body["homeScore"], 0);
+    assert_eq!(body["awayScore"], 2);
+    assert_eq!(body["version"], 2);
 }
 
 #[tokio::test]
-async fn adjust_score_rejects_invalid_delta() {
+async fn adjust_opponent_score_minus_one_clamps_at_zero() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let id = create_game(&mut app, &token, -5.minutes()).await;
 
     let res = app
-        .post(format!("/api/games/{id}/live/score"))
+        .post(format!("/api/games/{id}/live/opponent_score"))
         .token(&token)
-        .json(json!({ "side": "home", "delta": 2 }))
+        .json(json!({ "delta": -1 }))
+        .await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    assert_eq!(body["awayScore"], 0);
+}
+
+#[tokio::test]
+async fn adjust_opponent_score_rejects_invalid_delta() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+    let id = create_game(&mut app, &token, -5.minutes()).await;
+
+    let res = app
+        .post(format!("/api/games/{id}/live/opponent_score"))
+        .token(&token)
+        .json(json!({ "delta": 2 }))
         .await;
     assert_eq!(res.status(), 409);
 }

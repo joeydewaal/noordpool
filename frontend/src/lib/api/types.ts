@@ -107,8 +107,7 @@ export interface LivePoll {
 
 export type ScoreSide = 'home' | 'away';
 
-export interface AdjustScoreRequest {
-    side: ScoreSide;
+export interface AdjustOpponentScoreRequest {
     delta: 1 | -1;
 }
 

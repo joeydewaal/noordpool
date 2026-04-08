@@ -3,6 +3,41 @@
     import { pwa } from "$lib/state/pwa.svelte";
     import { theme } from "$lib/state/theme.svelte";
     import { Navigation } from "@skeletonlabs/skeleton-svelte";
+    import { createQuery } from "@tanstack/svelte-query";
+    import { browser } from "$app/environment";
+    import { getUpcomingGames } from "$lib/api/games";
+    import type { Game } from "$lib/api/types";
+
+    // Used to flag a game-day in the navigation. Shares its query key
+    // with the /games page so TanStack Query dedupes the request.
+    // Polled every 60 s while the tab is visible — covers status
+    // transitions from `scheduled` to `live` to `finished` without
+    // SSE/WebSockets (Lambda deploy target — see project memory).
+    const upcomingQuery = createQuery(() => ({
+        queryKey: ["games", "upcoming"],
+        queryFn: () => getUpcomingGames(),
+        refetchInterval: 60_000,
+        refetchIntervalInBackground: false,
+        staleTime: 30_000,
+        enabled: browser,
+    }));
+
+    const todaysGame = $derived.by((): Game | null => {
+        const list = (upcomingQuery.data ?? []) as Game[];
+        if (list.length === 0) return null;
+        const now = new Date();
+        const sameDay = (g: Game) => {
+            const dt = new Date(g.dateTime);
+            return (
+                dt.getFullYear() === now.getFullYear() &&
+                dt.getMonth() === now.getMonth() &&
+                dt.getDate() === now.getDate()
+            );
+        };
+        const today = list.filter(sameDay);
+        return today.find((g) => g.status === "live") ?? today[0] ?? null;
+    });
+    const isLiveToday = $derived(todaysGame?.status === "live");
 </script>
 
 <!-- Desktop sidebar -->
@@ -40,20 +75,41 @@
                     <Navigation.TriggerText>Home</Navigation.TriggerText>
                 </Navigation.TriggerAnchor>
                 <Navigation.TriggerAnchor href="/games">
-                    <svg
-                        class="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                    </svg>
-                    <Navigation.TriggerText>Wedstrijden</Navigation.TriggerText>
+                    <span class="relative inline-block">
+                        <svg
+                            class="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                        </svg>
+                        {#if todaysGame}
+                            <span
+                                class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-error-500 {isLiveToday
+                                    ? 'animate-pulse'
+                                    : ''}"
+                                aria-label={isLiveToday
+                                    ? "Wedstrijd live"
+                                    : "Wedstrijd vandaag"}
+                            ></span>
+                        {/if}
+                    </span>
+                    <Navigation.TriggerText>
+                        <span class="flex flex-col leading-tight">
+                            <span>Wedstrijden</span>
+                            {#if todaysGame}
+                                <span class="text-xs text-surface-400">
+                                    vs {todaysGame.opponent}
+                                </span>
+                            {/if}
+                        </span>
+                    </Navigation.TriggerText>
                 </Navigation.TriggerAnchor>
                 <Navigation.TriggerAnchor href="/players">
                     <svg
@@ -175,19 +231,31 @@
                 <Navigation.TriggerText>Home</Navigation.TriggerText>
             </Navigation.TriggerAnchor>
             <Navigation.TriggerAnchor href="/games">
-                <svg
-                    class="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                </svg>
+                <span class="relative inline-block">
+                    <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                    </svg>
+                    {#if todaysGame}
+                        <span
+                            class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-error-500 {isLiveToday
+                                ? 'animate-pulse'
+                                : ''}"
+                            aria-label={isLiveToday
+                                ? "Wedstrijd live"
+                                : "Wedstrijd vandaag"}
+                        ></span>
+                    {/if}
+                </span>
                 <Navigation.TriggerText>Wedstrijden</Navigation.TriggerText>
             </Navigation.TriggerAnchor>
             <Navigation.TriggerAnchor href="/players">

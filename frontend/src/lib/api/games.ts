@@ -3,7 +3,7 @@ import type {
     CreateGameRequest,
     UpdateGameRequest,
     LivePoll,
-    AdjustScoreRequest,
+    AdjustOpponentScoreRequest,
 } from './types';
 import { api } from './client';
 
@@ -68,6 +68,13 @@ export async function pollLive(id: string, etag: string | null): Promise<LivePol
     };
 }
 
-export async function adjustLiveScore(id: string, data: AdjustScoreRequest): Promise<LivePoll> {
-    return (await api.post<LivePoll>(`/games/${id}/live/score`, data)).data;
+/// Bumps the **opponent's** live score by +/-1. Goals scored by our
+/// own team are recorded via the events endpoint, which also bumps
+/// the score — there is no longer a separate increment for "us".
+export async function adjustOpponentScore(
+    id: string,
+    delta: 1 | -1,
+): Promise<LivePoll> {
+    const body: AdjustOpponentScoreRequest = { delta };
+    return (await api.post<LivePoll>(`/games/${id}/live/opponent_score`, body)).data;
 }

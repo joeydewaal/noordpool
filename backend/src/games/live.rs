@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{Game, GameEvent, Role},
+    models::{Game, GameEvent, HomeAway, Role},
     push,
 };
 
@@ -91,7 +91,7 @@ pub async fn poll_live(
     Ok(resp)
 }
 
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ScoreSide {
     Home,
@@ -100,20 +100,21 @@ pub enum ScoreSide {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct AdjustScoreRequest {
-    pub side: ScoreSide,
+pub struct AdjustOpponentScoreRequest {
     pub delta: i32,
 }
 
-/// Moderator-only quick-action to bump the live score by +/-1.
-/// Rejects when the game is not currently live. On a +1, fires a
-/// goal push notification (awaited — Lambda freezes after response).
+/// Moderator-only quick-action to bump the **opponent's** live score
+/// by +/-1. Goals scored by our own team are recorded via the events
+/// endpoint (which also bumps our score), so this route is the only
+/// path that touches the opposing side. On +1, fires a goal push
+/// (awaited — Lambda freezes after response).
 #[requires_any(Role::Admin, Role::Moderator)]
 #[tracing::instrument(skip(state, body), fields(game_id = %id))]
-pub async fn adjust_score(
+pub async fn adjust_opponent_score(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
-    Json(body): Json<AdjustScoreRequest>,
+    Json(body): Json<AdjustOpponentScoreRequest>,
 ) -> Result<Json<LivePollResponse>, AppError> {
     if body.delta != 1 && body.delta != -1 {
         return Err(AppError::conflict("delta must be +1 or -1"));
@@ -127,7 +128,12 @@ pub async fn adjust_score(
         return Err(AppError::conflict("game is not currently live"));
     }
 
-    let (new_home, new_away) = match body.side {
+    // Opponent side is whichever score column is *not* ours.
+    let opponent_side = match game.home_away {
+        HomeAway::Home => ScoreSide::Away,
+        HomeAway::Away => ScoreSide::Home,
+    };
+    let (new_home, new_away) = match opponent_side {
         ScoreSide::Home => ((game.home_score + body.delta).max(0), game.away_score),
         ScoreSide::Away => (game.home_score, (game.away_score + body.delta).max(0)),
     };
@@ -150,7 +156,7 @@ pub async fn adjust_score(
     // freezes the runtime once the HTTP response goes back, so a
     // spawned task would get dropped.
     if body.delta == 1 {
-        push::notify_goal(&state, &fresh, Some(body.side)).await;
+        push::notify_goal(&state, &fresh, Some(opponent_side)).await;
     }
 
     let events: Vec<GameEvent> = fresh.events.get().to_vec();

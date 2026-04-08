@@ -16,6 +16,7 @@ pub use event_type::EventType;
 pub use game::Game;
 pub use game_event::GameEvent;
 pub use home_away::HomeAway;
+use jiff::Timestamp;
 pub use player::Player;
 pub use position::Position;
 pub use push_subscription::PushSubscription;
@@ -59,6 +60,14 @@ pub async fn create_db(config: &Config) -> Result<Db, Box<dyn Error>> {
 }
 
 pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
+    create!(Game {
+        opponent: "FC Test",
+        location: "Thuis",
+        date_time: Timestamp::now(),
+        home_away: HomeAway::Home,
+    })
+    .exec(db)
+    .await?;
     let mut tx = db.transaction().await?;
 
     let password = password::hash_password("Admin123")
