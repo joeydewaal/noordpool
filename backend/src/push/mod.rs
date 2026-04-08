@@ -37,10 +37,7 @@ use crate::{
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/vapid-public-key", get(vapid_public_key))
-        .route(
-            "/subscriptions",
-            post(subscribe).delete(unsubscribe),
-        )
+        .route("/subscriptions", post(subscribe).delete(unsubscribe))
         .route("/subscriptions/me", get(list_mine))
         .route("/subscriptions/{id}", patch(update_prefs))
 }
@@ -234,11 +231,12 @@ pub async fn notify_goal(state: &AppState, game: &Game, side: Option<ScoreSide>)
     for sub in &subs {
         let sub_info = SubscriptionInfo::new(&sub.endpoint, &sub.p256dh, &sub.auth);
 
-        let sig = match VapidSignatureBuilder::from_base64(&vapid.private_key, &sub_info)
-            .and_then(|mut b| {
+        let sig = match VapidSignatureBuilder::from_base64(&vapid.private_key, &sub_info).and_then(
+            |mut b| {
                 b.add_claim("sub", vapid.subject.clone());
                 b.build()
-            }) {
+            },
+        ) {
             Ok(s) => s,
             Err(err) => {
                 tracing::error!(error = %err, sub_id = %sub.id, "notify_goal: vapid sign failed");

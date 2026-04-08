@@ -176,7 +176,10 @@ async fn register_without_player_has_no_player_role() {
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     let roles = body["user"]["roles"].as_array().unwrap();
-    assert!(!roles.iter().any(|r| r == "player"), "fresh user should not have player role");
+    assert!(
+        !roles.iter().any(|r| r == "player"),
+        "fresh user should not have player role"
+    );
 }
 
 // ── link-player ───────────────────────────────────────────────────────────────
@@ -223,7 +226,10 @@ async fn link_player_links_to_existing_player() {
     assert_eq!(body["user"]["lastName"], "Swart");
     assert!(body["token"].as_str().is_some());
     let roles = body["user"]["roles"].as_array().unwrap();
-    assert!(roles.iter().any(|r| r == "player"), "linked user should have player role");
+    assert!(
+        roles.iter().any(|r| r == "player"),
+        "linked user should have player role"
+    );
 }
 
 #[tokio::test]
@@ -272,7 +278,10 @@ async fn link_player_linked_user_has_player_role_in_login() {
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     let roles = body["user"]["roles"].as_array().unwrap();
-    assert!(roles.iter().any(|r| r == "player"), "linked user should have player role on login");
+    assert!(
+        roles.iter().any(|r| r == "player"),
+        "linked user should have player role on login"
+    );
 }
 
 #[tokio::test]
@@ -298,7 +307,10 @@ async fn login_without_player_has_no_player_role() {
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
     let roles = body["user"]["roles"].as_array().unwrap();
-    assert!(!roles.iter().any(|r| r == "player"), "unlinked user should not have player role on login");
+    assert!(
+        !roles.iter().any(|r| r == "player"),
+        "unlinked user should not have player role on login"
+    );
 }
 
 #[tokio::test]
@@ -510,7 +522,10 @@ async fn unlink_player_removes_link() {
     let body = res.json_value().await;
     assert!(body["token"].as_str().is_some());
     let roles = body["user"]["roles"].as_array().unwrap();
-    assert!(!roles.iter().any(|r| r == "player"), "unlinked user should not have player role");
+    assert!(
+        !roles.iter().any(|r| r == "player"),
+        "unlinked user should not have player role"
+    );
 
     // Player should reappear in find-player
     let res = app
@@ -550,9 +565,6 @@ async fn unlink_player_fails_if_not_linked() {
 async fn unlink_player_requires_authentication() {
     let mut app = TestApp::new().await;
 
-    let res = app
-        .post("/api/auth/unlink-player")
-        .json(json!({}))
-        .await;
+    let res = app.post("/api/auth/unlink-player").json(json!({})).await;
     assert_eq!(res.status(), 401);
 }

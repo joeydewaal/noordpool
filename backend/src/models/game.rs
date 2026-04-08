@@ -56,7 +56,9 @@ impl Game {
         if self.cancelled {
             return false;
         }
-        let Ok(end) = self.date_time.checked_add(Span::new().minutes(MATCH_DURATION_MINUTES))
+        let Ok(end) = self
+            .date_time
+            .checked_add(Span::new().minutes(MATCH_DURATION_MINUTES))
         else {
             return false;
         };

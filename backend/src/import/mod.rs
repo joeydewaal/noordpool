@@ -63,11 +63,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         first_name: "Thiebe",
         last_name: "Breugelmans",
         position: Position::CentreBack,
-        goals_per_match: &[
-            (6usize, 1u32),
-            (7usize, 1u32),
-            (22usize, 1u32),
-        ],
+        goals_per_match: &[(6usize, 1u32), (7usize, 1u32), (22usize, 1u32)],
         active: true,
     },
     ParsedPlayer {
@@ -75,10 +71,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         first_name: "Bart",
         last_name: "Cammaert",
         position: Position::LeftWinger,
-        goals_per_match: &[
-            (7usize, 1u32),
-            (18usize, 1u32),
-        ],
+        goals_per_match: &[(7usize, 1u32), (18usize, 1u32)],
         active: true,
     },
     ParsedPlayer {
@@ -101,10 +94,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         first_name: "Ronny",
         last_name: "Canters",
         position: Position::DefensiveMidfielder,
-        goals_per_match: &[
-            (18usize, 1u32),
-            (25usize, 1u32),
-        ],
+        goals_per_match: &[(18usize, 1u32), (25usize, 1u32)],
         active: true,
     },
     ParsedPlayer {
@@ -191,11 +181,7 @@ pub static PLAYERS: &[ParsedPlayer] = &[
         first_name: "Itse",
         last_name: "Van Nijlen",
         position: Position::RightBack,
-        goals_per_match: &[
-            (18usize, 1u32),
-            (19usize, 1u32),
-            (20usize, 1u32),
-        ],
+        goals_per_match: &[(18usize, 1u32), (19usize, 1u32), (20usize, 1u32)],
         active: true,
     },
     ParsedPlayer {
