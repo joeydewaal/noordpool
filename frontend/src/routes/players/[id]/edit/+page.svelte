@@ -1,6 +1,5 @@
 <script lang="ts">
     import { page } from "$app/state";
-    import { goto } from "$app/navigation";
     import { auth } from "$lib/state/auth.svelte";
     import { getPlayer, updatePlayer } from "$lib/api/players";
     import { updateUser } from "$lib/api/users";
@@ -20,7 +19,7 @@
         mutationFn: (data: UpdatePlayerRequest) => updatePlayer(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['players'] });
-            goto(`/players/${id}`);
+            history.back();
         },
     }));
 
@@ -76,10 +75,10 @@
     <p class="text-surface-400">Speler niet gevonden.</p>
 {:else if initialized}
     <div class="max-w-lg">
-        <a
-            href="/players/{id}"
+        <button
+            onclick={() => history.back()}
             class="text-sm text-primary-500 hover:underline mb-4 inline-block"
-            >&larr; Terug naar speler</a
+            >&larr; Terug naar speler</button
         >
         <h1 class="text-2xl font-bold mb-6">Speler bewerken</h1>
         <form

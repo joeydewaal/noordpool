@@ -59,7 +59,7 @@
         <button
             onclick={() => history.back()}
             class="text-sm text-primary-500 hover:underline mb-4 inline-block"
-            >&larr; Alle spelers</button
+            >&larr; Terug</button
         >
         <div class="card p-6">
             <div class="flex items-center gap-4 mb-4">
