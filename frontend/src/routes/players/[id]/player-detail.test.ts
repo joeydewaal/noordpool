@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 
 const { mockAuth, mockQueryState } = vi.hoisted(() => {
     const mockAuth = {
@@ -114,5 +114,15 @@ describe('Player detail page', () => {
 
         expect(screen.getByText('Bewerken')).toBeInTheDocument();
         expect(screen.getByText('Deactiveren')).toBeInTheDocument();
+    });
+
+    it('back button calls history.back so users return to where they came from', async () => {
+        const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+
+        render(Page);
+        await fireEvent.click(screen.getByRole('button', { name: /terug/i }));
+
+        expect(backSpy).toHaveBeenCalled();
+        backSpy.mockRestore();
     });
 });

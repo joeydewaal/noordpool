@@ -48,6 +48,7 @@ vi.mock('@tanstack/svelte-query', () => ({
             mutate: (vars: any) => {
                 mockMutate(vars);
                 opts.mutationFn?.(vars);
+                opts.onSuccess?.();
             },
             get isPending() { return false; },
         };
@@ -189,6 +190,28 @@ describe('Player edit page', () => {
             userId: 'user-1',
             isModerator: false,
         });
+    });
+
+    it('back button calls history.back so users return to where they came from', async () => {
+        mockAuth.isAdmin = true;
+        const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+
+        render(Page);
+        await fireEvent.click(screen.getByRole('button', { name: /terug naar speler/i }));
+
+        expect(backSpy).toHaveBeenCalled();
+        backSpy.mockRestore();
+    });
+
+    it('saving the form calls history.back on success', async () => {
+        mockAuth.isAdmin = true;
+        const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+
+        render(Page);
+        await fireEvent.click(screen.getByRole('button', { name: /wijzigingen opslaan/i }));
+
+        expect(backSpy).toHaveBeenCalled();
+        backSpy.mockRestore();
     });
 
     it('hides moderator toggle when linked user is admin', () => {
