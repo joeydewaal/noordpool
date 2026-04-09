@@ -40,7 +40,7 @@ pub struct Player {
     pub game_events: HasMany<GameEvent>,
 
     #[has_one]
-    #[serde(skip_serializing_if = "HasOne::is_unloaded")]
+    #[serde(rename = "user", skip_serializing_if = "HasOne::is_unloaded")]
     pub player: HasOne<Option<User>>,
 
     #[default(Timestamp::now())]

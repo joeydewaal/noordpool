@@ -4,4 +4,4 @@
 sleep $((5*3600))
 
 # Execute the command
-claude --permission-mode acceptEdits -c "go on"
+claude --permission-mode acceptEdits -c "go on with the last assignment"

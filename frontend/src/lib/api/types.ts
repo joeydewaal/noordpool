@@ -7,6 +7,8 @@ export interface User {
     lastName: string;
     avatarUrl: string | null;
     playerId: string | null;
+    isAdmin?: boolean;
+    isModerator?: boolean;
     roles: Role[];
 }
 
@@ -55,6 +57,7 @@ export interface Player {
     shirtNumber: number;
     position: Position;
     active: boolean;
+    user?: User | null;
 }
 
 export interface CreatePlayerRequest {

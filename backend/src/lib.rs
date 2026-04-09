@@ -10,5 +10,6 @@ pub mod players;
 pub mod push;
 pub mod routes;
 pub mod stats;
+pub mod users;
 
 pub type Result<T, E = error::AppError> = ::std::result::Result<T, E>;

@@ -2,12 +2,13 @@ use axum::Router;
 use axum_security::oidc::OidcExt as _;
 use tower_http::cors::CorsLayer;
 
-use crate::{app_state::AppState, auth, events, games, players, push, stats};
+use crate::{app_state::AppState, auth, events, games, players, push, stats, users};
 
 pub fn app(state: AppState) -> Router {
     let mut app = Router::new()
         .nest("/api/auth", auth::router())
         .nest("/api/players", players::router())
+        .nest("/api/users", users::router())
         .nest("/api/games", games::router())
         .nest("/api/games/{game_id}/events", events::router())
         .nest("/api/stats", stats::router())

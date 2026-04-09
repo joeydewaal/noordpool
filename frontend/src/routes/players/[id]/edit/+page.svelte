@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import { auth } from "$lib/state/auth.svelte";
     import { getPlayer, updatePlayer } from "$lib/api/players";
+    import { updateUser } from "$lib/api/users";
     import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
     import type { Position, UpdatePlayerRequest } from "$lib/api/types";
 
@@ -22,6 +23,23 @@
             goto(`/players/${id}`);
         },
     }));
+
+    const moderatorMutation = createMutation(() => ({
+        mutationFn: ({ userId, isModerator }: { userId: string; isModerator: boolean }) =>
+            updateUser(userId, { isModerator }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['players', id] });
+        },
+    }));
+
+    function toggleModerator() {
+        const linkedUser = playerQuery.data?.user;
+        if (!linkedUser) return;
+        moderatorMutation.mutate({
+            userId: linkedUser.id,
+            isModerator: !linkedUser.isModerator,
+        });
+    }
 
     let firstName = $state("");
     let lastName = $state("");
@@ -135,5 +153,33 @@
                 Wijzigingen opslaan
             </button>
         </form>
+
+        {#if auth.isAdmin && playerQuery.data.user && !playerQuery.data.user.isAdmin}
+            <div class="card p-6 mt-4">
+                <h2 class="text-lg font-bold mb-2">Rol</h2>
+                <p class="text-sm text-surface-400 mb-4">
+                    {#if playerQuery.data.user.isModerator}
+                        {firstName} {lastName} is moderator.
+                    {:else}
+                        {firstName} {lastName} heeft geen moderatorrol.
+                    {/if}
+                </p>
+                <button
+                    type="button"
+                    onclick={toggleModerator}
+                    disabled={moderatorMutation.isPending}
+                    class="btn {playerQuery.data.user.isModerator
+                        ? 'preset-tonal-tertiary'
+                        : 'preset-filled-tertiary-500'}"
+                    aria-label={playerQuery.data.user.isModerator
+                        ? `Demote ${firstName} ${lastName}`
+                        : `Promote ${firstName} ${lastName}`}
+                >
+                    {playerQuery.data.user.isModerator
+                        ? "Verwijder moderator"
+                        : "Maak moderator"}
+                </button>
+            </div>
+        {/if}
     </div>
 {/if}

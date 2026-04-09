@@ -91,7 +91,10 @@ pub async fn get_one(
     State(mut state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Player>, AppError> {
-    let player = Player::get_by_id(&mut state.db, id).await?;
+    let player = Player::filter_by_id(id)
+        .include(Player::fields().player())
+        .get(&mut state.db)
+        .await?;
     Ok(Json(player))
 }
 

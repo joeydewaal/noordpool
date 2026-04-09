@@ -9,5 +9,6 @@ expression: body
   "id": "[uuid]",
   "lastName": "de Boer",
   "position": "Centrale middenvelder",
-  "shirtNumber": 10
+  "shirtNumber": 10,
+  "user": null
 }

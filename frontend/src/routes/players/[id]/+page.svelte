@@ -83,6 +83,15 @@
                             inactief
                         </span>
                     {/if}
+                    {#if playerQuery.data.user?.isAdmin}
+                        <span class="chip mt-1 ml-1 preset-filled-warning-500">
+                            admin
+                        </span>
+                    {:else if playerQuery.data.user?.isModerator}
+                        <span class="chip mt-1 ml-1 preset-filled-tertiary-500">
+                            moderator
+                        </span>
+                    {/if}
                 </div>
             </div>
 
