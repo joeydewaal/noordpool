@@ -201,7 +201,21 @@ A PWA for a single football team where players can view upcoming matches, match 
 
 ---
 
-## Phase 7: Admin User Management -- NOT STARTED
+## Phase 7: This Week's Match Highlight -- NOT STARTED
+
+### Frontend
+- [ ] Wedstrijden tab: if there is a match this week, show it prominently at the top (highlighted card with opponent, date/time, location)
+- [ ] Clear visual distinction from the regular match list (e.g. accent border, "Deze week" label)
+- [ ] If the match is today or live, emphasize further (e.g. "Vandaag" badge or live indicator)
+
+### Verification
+- [ ] A match scheduled this week appears highlighted at the top of the wedstrijden tab
+- [ ] When no match this week, the tab shows the normal list without a highlight
+- [ ] A live match this week shows the live indicator in the highlight card
+
+---
+
+## Phase 8: Admin User Management -- NOT STARTED
 
 ### Backend
 - [ ] `GET /api/users` — list all users with roles and linked player (admin only)
@@ -238,4 +252,5 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 6. ~~Phase 5.5 — Player self-service (users update own shirt number & position)~~ DONE
 7. ~~Phase 6 — Live match mode with polling + push notifications on goals~~ DONE
 8. ~~Phase 6.5 — CI/CD with GitHub Actions~~ DONE
-9. Phase 7 — Admin user management UI
+9. Phase 7 — This week's match highlight in wedstrijden tab
+10. Phase 8 — Admin user management UI
