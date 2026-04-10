@@ -2,7 +2,7 @@
 
 ## Context
 
-A PWA for a single football team where players can view upcoming matches, match results (with goal scorers, assists, cards, timestamps), and personal stats. Guest users can view everything read-only. Authenticated users have roles: **Admin** (full control including user/role management), **Moderator** (manage matches & player stats), **Player** (view only). Users can have multiple roles.
+A PWA for football teams where players can view upcoming matches, match results (with goal scorers, assists, cards, timestamps), and personal stats. Matches track both home and away teams with full event tracking for all players. Guest users can view everything read-only. Authenticated users have roles: **Admin** (full control including user/role management), **Moderator** (manage matches & player stats), **Player** (view only). Users can have multiple roles.
 
 ## Tech Stack
 
@@ -232,12 +232,108 @@ A PWA for a single football team where players can view upcoming matches, match 
 
 ---
 
+## Phase 9: Multi-Team Support -- NOT STARTED
+
+> **Breaking change:** this phase replaces the single-team `opponent` + `home_away` model with explicit `home_team_id` / `away_team_id` foreign keys. A database migration is required. The `HomeAway` enum is removed.
+
+### Backend — Schema
+
+- [ ] Add `home_team_id: Uuid` and `away_team_id: Uuid` fields to `Game` model (both FK to `teams.id`)
+- [ ] Remove `opponent: String` and `home_away: HomeAway` fields from `Game` model
+- [ ] Remove `home_away.rs` module and all `HomeAway` references
+- [ ] Write migration: add columns, backfill from `opponent` + `home_away` (create team rows for each distinct opponent, set home/away team IDs), then drop old columns
+
+### Backend — Handlers & Logic
+
+- [ ] Update `CreateGameRequest` / `UpdateGameRequest` — replace `opponent`/`homeAway` with `homeTeamId`/`awayTeamId`
+- [ ] Eager-load home/away team names in `GameResponse` (avoid N+1)
+- [ ] Rework `adjust_opponent_score` in `games/live.rs` — use team IDs instead of `HomeAway` enum
+- [ ] Score increment logic in event handlers: determine side by checking `player.team_id` against `game.home_team_id` / `game.away_team_id`
+- [ ] Add optional `?team_id=` query param to leaderboard endpoint for team filtering
+- [ ] Update push notification payloads — use team names instead of opponent string
+- [ ] Add `GET /api/teams` endpoint (public) for team selection in UI
+- [ ] Update seed data to use team FKs instead of opponent strings
+
+### Frontend — Types
+
+- [ ] Remove `HomeAway` type
+- [ ] Update `Game` interface — replace `opponent` + `homeAway` with `homeTeam: { id: string; name: string }` and `awayTeam: { id: string; name: string }`
+- [ ] Update `CreateGameRequest` / `UpdateGameRequest` with `homeTeamId` / `awayTeamId`
+- [ ] Add `Team` interface (`id: string`, `name: string`)
+
+### Frontend — Pages & Components
+
+- [ ] Game create/edit: replace opponent text input + thuis/uit radio with two team selectors (dropdowns from `GET /api/teams`)
+- [ ] Match display: show both team names instead of `vs {opponent}`
+- [ ] Event form: allow selecting players from either team
+- [ ] Leaderboard: add optional team filter dropdown
+- [ ] Player stats: update game timeline entries with both team names
+- [ ] Push notification text: use team names instead of opponent string
+
+### Configuration
+
+- [ ] Add `OWN_TEAM_ID` env var to identify "our team" for UX shortcuts (opponent score adjuster, default leaderboard filter)
+
+### Verification
+
+- [ ] Create a match between two teams using the team selector UI
+- [ ] Score display shows both team names correctly
+- [ ] Goal events increment the correct side based on the player's team
+- [ ] Opponent score adjuster works correctly during live matches
+- [ ] Leaderboard shows stats for all players and filters by team
+- [ ] Push notifications fire with correct team names
+- [ ] Existing seed data migrates correctly
+
+---
+
+## Phase 10: Performance -- NOT STARTED
+
+> **Goal:** reduce response times and payload sizes across the stack. Uses a Lambda-local in-memory cache (effective during warm container reuse, gracefully empty on cold starts) combined with query optimization and frontend bundle improvements.
+
+### Backend — In-Memory Cache
+
+- [ ] Add a process-local cache (e.g. `moka` or `mini-moka`) to `AppState` with TTL-based expiration
+- [ ] Cache frequently read, rarely written data: team list, player list, leaderboard, recent/upcoming games
+- [ ] Invalidate relevant cache entries on writes (game create/update, event add/delete, player update)
+- [ ] Keep cache miss path identical to current behavior — cold starts just skip the cache
+
+### Backend — Query Optimization
+
+- [ ] Audit database queries for N+1 patterns — eager-load relations (teams on games, players on events) in list endpoints
+- [ ] Add database indexes on hot query paths: `games(date_time)`, `game_events(game_id)`, `players(team_id)`, `game_events(player_id)`
+- [ ] Optimize leaderboard query — aggregate in a single query instead of per-player lookups
+- [ ] Review `stats` endpoint for redundant queries and consolidate where possible
+
+### Backend — Response Optimization
+
+- [ ] Enable response compression (gzip/brotli) via `tower-http` `CompressionLayer`
+- [ ] Extend ETag / `304 Not Modified` support beyond live polling to game list and player list endpoints
+- [ ] Trim unnecessary fields from list responses (e.g. game list doesn't need full event arrays)
+
+### Frontend — Bundle & Runtime
+
+- [ ] Audit bundle size — identify and tree-shake unused Skeleton UI components and dependencies
+- [ ] Lazy-load route chunks for admin/moderator-only pages (game edit, player management)
+- [ ] Optimize TanStack Query `staleTime` / `gcTime` settings per query to reduce unnecessary refetches
+- [ ] Review service worker precache list — only precache critical assets, let non-critical assets use runtime caching
+- [ ] Compress and resize any static image assets (icons, team logos)
+
+### Verification
+
+- [ ] Measure cold start and warm response times before and after cache implementation
+- [ ] Confirm cache invalidation works: update a game, immediately fetch the list, see the change
+- [ ] Verify `304 Not Modified` responses on unchanged resources reduce payload transfer
+- [ ] Run Lighthouse audit on frontend — target performance score improvement
+- [ ] Confirm no regressions in existing functionality after query/response changes
+
+---
+
 ## Data Model Summary
 
 ```
 users (id, email, password_hash, first_name, last_name, player_id, avatar_url, is_admin, is_moderator, created_at)
 players (id, user_id?, first_name, last_name, shirt_number, position, active, team_id, created_at)
-games (id, opponent, location, date_time, home_away, status, home_score, away_score, created_at)
+games (id, home_team_id, away_team_id, location, date_time, home_score, away_score, cancelled, version, updated_at, created_at)
 game_events (id, game_id, player_id, event_type, minute, created_at)
 push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  -- Phase 6
 ```
@@ -254,3 +350,5 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 8. ~~Phase 6.5 — CI/CD with GitHub Actions~~ DONE
 9. Phase 7 — This week's match highlight in wedstrijden tab
 10. Phase 8 — Admin user management UI
+11. Phase 9 — Multi-team support: explicit home/away team FKs, team-aware events & stats
+12. Phase 10 — Performance: Lambda-local cache, query optimization, compression, frontend bundle
