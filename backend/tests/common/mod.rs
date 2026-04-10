@@ -14,8 +14,11 @@ use noordpool_backend::{
 };
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::json;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tower::Service;
 use uuid::Uuid;
+
+static TEST_DB_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub struct TestApp {
     state: AppState,
@@ -96,7 +99,9 @@ impl TestApp {
     pub async fn new() -> Self {
         let (url, test_db, base_url) = match std::env::var("DATABASE_URL") {
             Ok(base) => {
-                let db_name = format!("test_{}", Uuid::new_v4().simple());
+                let id = TEST_DB_COUNTER.fetch_add(1, Ordering::Relaxed);
+                let pid = std::process::id();
+                let db_name = format!("test_{pid}_{id}");
                 let (client, conn) = tokio_postgres::connect(&base, tokio_postgres::NoTls)
                     .await
                     .unwrap();
