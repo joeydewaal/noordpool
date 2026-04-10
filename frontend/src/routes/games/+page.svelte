@@ -6,6 +6,7 @@
   import { getUpcomingGames, getRecentResults } from "$lib/api/games";
   import type { Game } from "$lib/api/types";
   import { Tabs } from "@skeletonlabs/skeleton-svelte";
+  import { isThisWeek, isToday } from "$lib/utils/date";
 
   const canManage = $derived(auth.isAdmin || auth.isModerator);
 
@@ -46,6 +47,20 @@
   function formatScore(game: Game): string {
     return `${game.homeScore} - ${game.awayScore}`;
   }
+
+  const thisWeekMatch: Game | null = $derived.by(() => {
+    const games = upcomingQuery.data;
+    if (!games || games.length === 0) return null;
+    const next = games[0];
+    return isThisWeek(next.dateTime) ? next : null;
+  });
+
+  const remainingUpcoming: Game[] = $derived.by(() => {
+    const games = upcomingQuery.data;
+    if (!games) return [];
+    if (!thisWeekMatch) return games;
+    return games.filter((g) => g.id !== thisWeekMatch.id);
+  });
 </script>
 
 <div class="flex items-center justify-between mb-6">
@@ -56,6 +71,45 @@
     </a>
   {/if}
 </div>
+
+{#if thisWeekMatch}
+  <a
+    href="/games/{thisWeekMatch.id}"
+    class="block card p-5 mb-6 border-l-4 border-primary-500 preset-tonal-primary hover:preset-filled-primary-500 transition-colors"
+  >
+    <div class="flex items-center justify-between mb-2">
+      <span class="chip preset-filled-primary-500 text-xs font-semibold">
+        {#if thisWeekMatch.status === "live"}
+          <span
+            class="inline-block w-2 h-2 rounded-full bg-white mr-1 animate-pulse"
+          ></span>
+          LIVE
+        {:else if isToday(thisWeekMatch.dateTime)}
+          Vandaag
+        {:else}
+          Deze week
+        {/if}
+      </span>
+      <span
+        class="chip {thisWeekMatch.homeAway === 'home'
+          ? 'preset-filled-success-500'
+          : 'preset-filled-secondary-500'}"
+      >
+        {thisWeekMatch.homeAway === "home" ? "thuis" : "uit"}
+      </span>
+    </div>
+    <div class="text-lg font-bold">vs {thisWeekMatch.opponent}</div>
+    <div class="text-sm text-surface-400 mt-1">
+      {formatDate(thisWeekMatch.dateTime)}
+    </div>
+    <div class="text-sm text-surface-400">{thisWeekMatch.location}</div>
+    {#if thisWeekMatch.status === "live"}
+      <div class="text-xl font-bold mt-2">
+        {thisWeekMatch.homeScore} – {thisWeekMatch.awayScore}
+      </div>
+    {/if}
+  </a>
+{/if}
 
 {#if upcomingQuery.isError || recentQuery.isError}
   <p class="text-red-500 text-sm">Kon wedstrijden niet laden</p>
@@ -68,13 +122,17 @@
     <Tabs.Content value="upcoming">
       {#if upcomingQuery.isPending}
         <p class="text-surface-400 text-sm">Laden...</p>
-      {:else if !upcomingQuery.data || upcomingQuery.data.length === 0}
+      {:else if remainingUpcoming.length === 0 && !thisWeekMatch}
         <p class="text-surface-400 text-sm">
           Geen komende wedstrijden gepland.
         </p>
+      {:else if remainingUpcoming.length === 0}
+        <p class="text-surface-400 text-sm">
+          Geen andere komende wedstrijden gepland.
+        </p>
       {:else}
         <div class="space-y-3">
-          {#each upcomingQuery.data as game}
+          {#each remainingUpcoming as game}
             <a
               href="/games/{game.id}"
               class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"
