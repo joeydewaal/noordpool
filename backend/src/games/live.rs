@@ -68,7 +68,7 @@ pub async fn poll_live(
     }
 
     let now = Timestamp::now();
-    let events: Vec<GameEvent> = game.events.get().into_iter().cloned().collect();
+    let events: Vec<GameEvent> = game.events.get().to_vec();
     let body = LivePollResponse {
         id: game.id,
         status: game.derived_status(now),

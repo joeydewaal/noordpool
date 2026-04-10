@@ -14,57 +14,57 @@
  * polling with a back-off when the tab is hidden is the right shape.
  */
 export interface VisibilityPollingOptions {
-    visibleMs?: number;
-    hiddenMs?: number;
+  visibleMs?: number;
+  hiddenMs?: number;
 }
 
 export function startVisibilityPolling(
-    tick: () => void | Promise<void>,
-    opts: VisibilityPollingOptions = {},
+  tick: () => void | Promise<void>,
+  opts: VisibilityPollingOptions = {},
 ): () => void {
-    const visibleMs = opts.visibleMs ?? 3_000;
-    const hiddenMs = opts.hiddenMs ?? 30_000;
+  const visibleMs = opts.visibleMs ?? 3_000;
+  const hiddenMs = opts.hiddenMs ?? 30_000;
 
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let stopped = false;
 
-    const currentInterval = () =>
-        typeof document !== 'undefined' && document.visibilityState === 'hidden'
-            ? hiddenMs
-            : visibleMs;
+  const currentInterval = () =>
+    typeof document !== "undefined" && document.visibilityState === "hidden"
+      ? hiddenMs
+      : visibleMs;
 
-    async function loop() {
-        if (stopped) return;
-        try {
-            await tick();
-        } catch {
-            // swallow — caller decides how to surface errors via reactive state
-        }
-        if (stopped) return;
-        timer = setTimeout(loop, currentInterval());
+  async function loop() {
+    if (stopped) return;
+    try {
+      await tick();
+    } catch {
+      // swallow — caller decides how to surface errors via reactive state
     }
+    if (stopped) return;
+    timer = setTimeout(loop, currentInterval());
+  }
 
-    function onVisibilityChange() {
-        if (stopped) return;
-        if (document.visibilityState === 'visible') {
-            // Cancel pending tick and run one immediately so the user sees
-            // fresh data the moment they refocus the tab.
-            if (timer) clearTimeout(timer);
-            loop();
-        }
+  function onVisibilityChange() {
+    if (stopped) return;
+    if (document.visibilityState === "visible") {
+      // Cancel pending tick and run one immediately so the user sees
+      // fresh data the moment they refocus the tab.
+      if (timer) clearTimeout(timer);
+      loop();
     }
+  }
 
-    // Kick off
-    loop();
-    if (typeof document !== 'undefined') {
-        document.addEventListener('visibilitychange', onVisibilityChange);
+  // Kick off
+  loop();
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", onVisibilityChange);
+  }
+
+  return () => {
+    stopped = true;
+    if (timer) clearTimeout(timer);
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     }
-
-    return () => {
-        stopped = true;
-        if (timer) clearTimeout(timer);
-        if (typeof document !== 'undefined') {
-            document.removeEventListener('visibilitychange', onVisibilityChange);
-        }
-    };
+  };
 }

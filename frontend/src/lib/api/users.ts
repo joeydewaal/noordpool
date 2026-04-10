@@ -1,10 +1,13 @@
-import type { User } from './types';
-import { api } from './client';
+import type { User } from "./types";
+import { api } from "./client";
 
 export interface UpdateUserRequest {
-	isModerator?: boolean;
+  isModerator?: boolean;
 }
 
-export async function updateUser(id: string, data: UpdateUserRequest): Promise<User> {
-	return (await api.patch<User>(`/users/${id}`, data)).data;
+export async function updateUser(
+  id: string,
+  data: UpdateUserRequest,
+): Promise<User> {
+  return (await api.patch<User>(`/users/${id}`, data)).data;
 }

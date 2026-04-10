@@ -33,3 +33,4 @@ csv = "1"
 insta = { version = "1", features = ["json", "redactions"] }
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
+tokio-postgres = "0.7"

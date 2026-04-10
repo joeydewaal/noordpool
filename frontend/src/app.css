@@ -10,32 +10,32 @@
 
 /* Give cards visible backgrounds in both modes */
 .card {
-	background-color: var(--color-surface-50);
-	box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  background-color: var(--color-surface-50);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
 }
 :where(.dark, .dark *) .card {
-	background-color: var(--color-surface-800);
-	box-shadow: none;
+  background-color: var(--color-surface-800);
+  box-shadow: none;
 }
 
 /* Make tonal-surface presets use a lighter shade in dark so they don't blend with the body */
 :where(.dark, .dark *) .preset-tonal-surface {
-	background-color: var(--color-surface-800);
+  background-color: var(--color-surface-800);
 }
 
 /* LayerChart uses surface color utilities not in the Tailwind theme */
 .fill-surface-content {
-	fill: var(--color-surface-content);
+  fill: var(--color-surface-content);
 }
 .stroke-surface-content\/50 {
-	stroke: color-mix(in oklch, var(--color-surface-content) 50%, transparent);
+  stroke: color-mix(in oklch, var(--color-surface-content) 50%, transparent);
 }
 .stroke-surface-content\/10 {
-	stroke: color-mix(in oklch, var(--color-surface-content) 10%, transparent);
+  stroke: color-mix(in oklch, var(--color-surface-content) 10%, transparent);
 }
 
 /* Clean up LayerChart text rendering for dark theme */
 :where(.dark, .dark *) svg text {
-	stroke: none !important;
-	fill: var(--color-surface-300) !important;
+  stroke: none !important;
+  fill: var(--color-surface-300) !important;
 }

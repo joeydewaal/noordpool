@@ -240,7 +240,7 @@ pub async fn stats(
                 game_id: game.id,
                 opponent: game.opponent.clone(),
                 date_time: game.date_time,
-                home_away: game.home_away.clone(),
+                home_away: game.home_away,
                 home_score: game.home_score,
                 away_score: game.away_score,
                 minutes,

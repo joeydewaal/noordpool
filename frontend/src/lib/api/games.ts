@@ -1,80 +1,89 @@
 import type {
-    Game,
-    CreateGameRequest,
-    UpdateGameRequest,
-    LivePoll,
-    AdjustOpponentScoreRequest,
-} from './types';
-import { api } from './client';
+  Game,
+  CreateGameRequest,
+  UpdateGameRequest,
+  LivePoll,
+  AdjustOpponentScoreRequest,
+} from "./types";
+import { api } from "./client";
 
 export async function getGames(): Promise<Game[]> {
-    return (await api.get<Game[]>('/games')).data;
+  return (await api.get<Game[]>("/games")).data;
 }
 
 export async function getGame(id: string): Promise<Game | null> {
-    try {
-        return (await api.get<Game>(`/games/${id}`)).data;
-    } catch {
-        return null;
-    }
+  try {
+    return (await api.get<Game>(`/games/${id}`)).data;
+  } catch {
+    return null;
+  }
 }
 
 export async function getUpcomingGames(limit?: number): Promise<Game[]> {
-    const params = limit ? { limit } : {};
-    return (await api.get<Game[]>('/games/upcoming', { params })).data;
+  const params = limit ? { limit } : {};
+  return (await api.get<Game[]>("/games/upcoming", { params })).data;
 }
 
 export async function getRecentResults(limit?: number): Promise<Game[]> {
-    const params = limit ? { limit } : {};
-    return (await api.get<Game[]>('/games/recent', { params })).data;
+  const params = limit ? { limit } : {};
+  return (await api.get<Game[]>("/games/recent", { params })).data;
 }
 
-export async function getGamesSummary(limit = 3): Promise<{ upcoming: Game[]; recent: Game[] }> {
-    return (await api.get('/games/summary', { params: { limit } })).data;
+export async function getGamesSummary(
+  limit = 3,
+): Promise<{ upcoming: Game[]; recent: Game[] }> {
+  return (await api.get("/games/summary", { params: { limit } })).data;
 }
 
 export async function createGame(data: CreateGameRequest): Promise<Game> {
-    return (await api.post<Game>('/games', data)).data;
+  return (await api.post<Game>("/games", data)).data;
 }
 
-export async function updateGame(id: string, data: UpdateGameRequest): Promise<Game> {
-    return (await api.put<Game>(`/games/${id}`, data)).data;
+export async function updateGame(
+  id: string,
+  data: UpdateGameRequest,
+): Promise<Game> {
+  return (await api.put<Game>(`/games/${id}`, data)).data;
 }
 
 /// Result of a live-poll request. `null` body means 304 Not Modified —
 /// the caller should keep its previous state. Always returns the latest
 /// `etag` so the caller can pass it back on the next request.
 export interface LivePollResult {
-    body: LivePoll | null;
-    etag: string | null;
+  body: LivePoll | null;
+  etag: string | null;
 }
 
-export async function pollLive(id: string, etag: string | null): Promise<LivePollResult> {
-    const headers: Record<string, string> = {};
-    if (etag) headers['If-None-Match'] = etag;
+export async function pollLive(
+  id: string,
+  etag: string | null,
+): Promise<LivePollResult> {
+  const headers: Record<string, string> = {};
+  if (etag) headers["If-None-Match"] = etag;
 
-    const res = await api.get<LivePoll>(`/games/${id}/live`, {
-        headers,
-        // Treat 304 as a successful response so axios doesn't throw.
-        validateStatus: (s) => s === 200 || s === 304,
-    });
+  const res = await api.get<LivePoll>(`/games/${id}/live`, {
+    headers,
+    // Treat 304 as a successful response so axios doesn't throw.
+    validateStatus: (s) => s === 200 || s === 304,
+  });
 
-    if (res.status === 304) {
-        return { body: null, etag };
-    }
-    return {
-        body: res.data,
-        etag: (res.headers['etag'] as string | undefined) ?? null,
-    };
+  if (res.status === 304) {
+    return { body: null, etag };
+  }
+  return {
+    body: res.data,
+    etag: (res.headers["etag"] as string | undefined) ?? null,
+  };
 }
 
 /// Bumps the **opponent's** live score by +/-1. Goals scored by our
 /// own team are recorded via the events endpoint, which also bumps
 /// the score — there is no longer a separate increment for "us".
 export async function adjustOpponentScore(
-    id: string,
-    delta: 1 | -1,
+  id: string,
+  delta: 1 | -1,
 ): Promise<LivePoll> {
-    const body: AdjustOpponentScoreRequest = { delta };
-    return (await api.post<LivePoll>(`/games/${id}/live/opponent_score`, body)).data;
+  const body: AdjustOpponentScoreRequest = { delta };
+  return (await api.post<LivePoll>(`/games/${id}/live/opponent_score`, body))
+    .data;
 }

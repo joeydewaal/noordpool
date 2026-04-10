@@ -20,6 +20,10 @@ use uuid::Uuid;
 pub struct TestApp {
     state: AppState,
     router: axum::Router,
+    /// Name of the temporary database to drop on cleanup (PostgreSQL only).
+    test_db: Option<String>,
+    /// Base connection URL for creating/dropping databases.
+    base_url: Option<String>,
 }
 
 pub struct Response {
@@ -90,7 +94,28 @@ impl RequestBuilder<'_> {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let db = build_db().connect("sqlite::memory:").await.unwrap();
+        let (url, test_db, base_url) = match std::env::var("DATABASE_URL") {
+            Ok(base) => {
+                let db_name = format!("test_{}", Uuid::new_v4().simple());
+                let (client, conn) = tokio_postgres::connect(&base, tokio_postgres::NoTls)
+                    .await
+                    .unwrap();
+                tokio::spawn(async move {
+                    conn.await.ok();
+                });
+                client
+                    .execute(&format!("CREATE DATABASE {db_name}"), &[])
+                    .await
+                    .unwrap();
+                drop(client);
+                // Replace the database name in the URL
+                let test_url = format!("{}/{}", base.rsplit_once('/').unwrap().0, db_name);
+                (test_url, Some(db_name), Some(base))
+            }
+            Err(_) => ("sqlite::memory:".to_string(), None, None),
+        };
+
+        let db = build_db().connect(&url).await.unwrap();
         db.push_schema().await.unwrap();
 
         let jwt = JwtContext::builder()
@@ -104,7 +129,12 @@ impl TestApp {
             vapid: None,
         };
         let router = routes::app(state.clone());
-        TestApp { state, router }
+        TestApp {
+            state,
+            router,
+            test_db,
+            base_url,
+        }
     }
 
     pub fn get(&mut self, uri: impl Into<String>) -> RequestBuilder<'_> {
