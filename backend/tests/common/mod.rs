@@ -90,7 +90,9 @@ impl RequestBuilder<'_> {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let db = build_db().connect("sqlite::memory:").await.unwrap();
+        let db_url = std::env::var("DATABASE_URL");
+        let url = db_url.as_deref().unwrap_or("sqlite::memory:");
+        let db = build_db().connect(url).await.unwrap();
         db.push_schema().await.unwrap();
 
         let jwt = JwtContext::builder()

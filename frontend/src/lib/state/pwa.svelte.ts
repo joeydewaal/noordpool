@@ -1,19 +1,19 @@
 class PwaState {
-	deferredPrompt: any = $state(null);
+  deferredPrompt: any = $state(null);
 
-	get installable() {
-		return this.deferredPrompt !== null;
-	}
+  get installable() {
+    return this.deferredPrompt !== null;
+  }
 
-	async install() {
-		if (!this.deferredPrompt) return;
+  async install() {
+    if (!this.deferredPrompt) return;
 
-		this.deferredPrompt.prompt();
-		const { outcome } = await this.deferredPrompt.userChoice;
-		this.deferredPrompt = null;
+    this.deferredPrompt.prompt();
+    const { outcome } = await this.deferredPrompt.userChoice;
+    this.deferredPrompt = null;
 
-		return outcome;
-	}
+    return outcome;
+  }
 }
 
 export const pwa = new PwaState();
