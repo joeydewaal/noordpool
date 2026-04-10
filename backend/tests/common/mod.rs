@@ -100,7 +100,8 @@ impl TestApp {
         let (url, test_db, base_url) = match std::env::var("DATABASE_URL") {
             Ok(base) => {
                 let id = TEST_DB_COUNTER.fetch_add(1, Ordering::Relaxed);
-                let db_name = format!("test_{id}");
+                let pid = std::process::id();
+                let db_name = format!("test_{pid}_{id}");
                 let (client, conn) = tokio_postgres::connect(&base, tokio_postgres::NoTls)
                     .await
                     .unwrap();
