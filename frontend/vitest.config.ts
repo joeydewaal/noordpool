@@ -1,3 +1,4 @@
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 
@@ -15,8 +16,8 @@ export default defineConfig({
   resolve: {
     conditions: ["browser"],
     alias: {
-      $lib: "/home/joey/dev/noordpool/frontend/src/lib",
-      $app: "/home/joey/dev/noordpool/frontend/src/test/mocks/app",
+      $lib: path.resolve(__dirname, "src/lib"),
+      $app: path.resolve(__dirname, "src/test/mocks/app"),
     },
   },
 });
