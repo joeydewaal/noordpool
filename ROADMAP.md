@@ -201,17 +201,18 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
-## Phase 7: This Week's Match Highlight -- NOT STARTED
+## Phase 7: This Week's Match Highlight -- DONE
 
 ### Frontend
-- [ ] Wedstrijden tab: if there is a match this week, show it prominently at the top (highlighted card with opponent, date/time, location)
-- [ ] Clear visual distinction from the regular match list (e.g. accent border, "Deze week" label)
-- [ ] If the match is today or live, emphasize further (e.g. "Vandaag" badge or live indicator)
+- [x] Wedstrijden tab: if there is a match this week, show it prominently at the top (highlighted card with opponent, date/time, location)
+- [x] Clear visual distinction from the regular match list (accent left border, primary tonal background, "Deze week" label)
+- [x] If the match is today or live, emphasize further ("Vandaag" badge or "LIVE" indicator with score)
+- [x] Highlighted match removed from regular upcoming list to avoid duplication
 
 ### Verification
-- [ ] A match scheduled this week appears highlighted at the top of the wedstrijden tab
-- [ ] When no match this week, the tab shows the normal list without a highlight
-- [ ] A live match this week shows the live indicator in the highlight card
+- [x] A match scheduled this week appears highlighted at the top of the wedstrijden tab
+- [x] When no match this week, the tab shows the normal list without a highlight
+- [x] A live match this week shows the live indicator with score in the highlight card
 
 ---
 
@@ -348,7 +349,7 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 6. ~~Phase 5.5 — Player self-service (users update own shirt number & position)~~ DONE
 7. ~~Phase 6 — Live match mode with polling + push notifications on goals~~ DONE
 8. ~~Phase 6.5 — CI/CD with GitHub Actions~~ DONE
-9. Phase 7 — This week's match highlight in wedstrijden tab
+9. ~~Phase 7 — This week's match highlight in wedstrijden tab~~ DONE
 10. Phase 8 — Admin user management UI
 11. Phase 9 — Multi-team support: explicit home/away team FKs, team-aware events & stats
 12. Phase 10 — Performance: Lambda-local cache, query optimization, compression, frontend bundle
