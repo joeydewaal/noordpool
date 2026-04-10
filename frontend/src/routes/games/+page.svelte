@@ -75,7 +75,7 @@
 {#if thisWeekMatch}
   <a
     href="/games/{thisWeekMatch.id}"
-    class="block card p-5 mb-6 border-l-4 border-primary-500 preset-tonal-primary hover:preset-filled-primary-500 transition-colors"
+    class="block card p-5 mb-6 border-l-4 border-primary-500 preset-tonal-primary hover:brightness-125 transition-all"
   >
     <div class="flex items-center justify-between mb-2">
       <span class="chip preset-filled-primary-500 text-xs font-semibold">
