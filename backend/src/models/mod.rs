@@ -53,16 +53,16 @@ pub async fn create_db(config: &Config) -> Result<Db, Box<dyn Error>> {
 
     if !cfg!(feature = "prod") {
         let _ = db.push_schema().await;
-        models::init_db(&mut db).await?;
+        models::init_db(&mut db, config).await?;
     }
 
     Ok(db)
 }
 
-pub async fn init_db(db: &mut Db) -> Result<(), Box<dyn Error>> {
+pub async fn init_db(db: &mut Db, config: &Config) -> Result<(), Box<dyn Error>> {
     let mut tx = db.transaction().await?;
 
-    let password = password::hash_password("Admin123")
+    let password = password::hash_password(&config.admin_password)
         .await
         .expect("Couldn't hash password");
 

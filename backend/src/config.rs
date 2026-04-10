@@ -10,6 +10,7 @@ pub struct Config {
     pub vapid_public_key: Option<String>,
     pub vapid_private_key: Option<String>,
     pub vapid_subject: Option<String>,
+    pub admin_password: String,
 }
 
 impl Config {
@@ -30,6 +31,8 @@ impl Config {
             vapid_public_key: std::env::var("VAPID_PUBLIC_KEY").ok(),
             vapid_private_key: std::env::var("VAPID_PRIVATE_KEY").ok(),
             vapid_subject: std::env::var("VAPID_SUBJECT").ok(),
+            admin_password: std::env::var("ADMIN_PASSWORD")
+                .unwrap_or_else(|_| "Admin123".to_string()),
         }
     }
 }
