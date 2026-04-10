@@ -152,40 +152,83 @@ A PWA for a single football team where players can view upcoming matches, match 
 
 ---
 
-## Phase 6: Live Match & Push Notifications -- NOT STARTED
+## Phase 6: Live Match & Push Notifications -- DONE
 
 > **Deployment note:** this app is deployed on **AWS Lambda**, which does not support long-lived connections (no SSE, no WebSockets). Live updates use **HTTP polling** from the client instead. Push notifications still work because Web Push is a fire-and-forget HTTP request from the server to the push service.
 
 ### Backend
-- [ ] Add `live` to match status enum (scheduled/live/completed/cancelled)
-- [ ] `POST /api/matches/:id/live/start` — moderator starts live mode for a match
-- [ ] `POST /api/matches/:id/live/end` — moderator ends live mode
-- [ ] Polling endpoint: `GET /api/matches/:id/live` — returns current score, events, and a `version`/`updated_at` so clients can detect changes cheaply
-  - No SSE/WebSockets — Lambda cannot hold long-lived connections
-  - Clients poll every few seconds while a match is live; back off when tab is hidden
-  - Support `If-None-Match` / `ETag` (or `If-Modified-Since`) so unchanged responses return `304` and stay cheap on Lambda
-- [ ] Push notification integration:
-  - Database schema: `push_subscriptions` table (id, user_id, endpoint, p256dh_key, auth_key, created_at)
-  - `POST /api/push/subscribe` — register a device for push notifications
-  - `DELETE /api/push/subscribe` — unsubscribe
-  - Use Web Push protocol (RFC 8030) with VAPID keys
-  - Trigger push notifications when a goal is scored or match ends during live mode
+- [x] Derived match status (`scheduled`/`live`/`finished`/`cancelled`) computed from `date_time` + 120-minute window
+- [x] Polling endpoint: `GET /api/games/:id/live` — returns current score, events, status, and `version` for cheap change detection
+  - ETag support (`W/"<id>-<version>"`) with `If-None-Match` / `304 Not Modified`
+  - Version field incremented on every mutation (score change, event add/delete)
+- [x] `POST /api/games/:id/live/opponent_score` — moderator quick-action to adjust opponent score (±1), triggers goal push on +1
+- [x] Push notification integration:
+  - Database schema: `push_subscriptions` table (id, user_id, endpoint, p256dh, auth, notify_goal, created_at)
+  - `POST /api/push/subscriptions` — upsert subscription by endpoint
+  - `DELETE /api/push/subscriptions` — unsubscribe
+  - `GET /api/push/subscriptions/me` — list current user's subscriptions
+  - `GET /api/push/vapid-public-key` — return server VAPID key
+  - Web Push protocol (RFC 8030) with VAPID keys
+  - Push triggered on goal events and opponent score increments during live mode
+  - Expired endpoints pruned automatically (410/404/401)
 
 ### Frontend
-- [ ] Match detail: new "Live" tab visible to moderators/admins when match status is `live`
-  - Quick-action buttons to update score (home +1, away +1, undo)
-  - Add events inline (goal, assist, yellow/red card) with player selector and minute
-  - Changes become visible to viewers on their next poll tick
-- [ ] Live match view (viewers): auto-updating score and event timeline via polling (short interval while live, pause/slow down when tab hidden via `visibilitychange`)
-- [ ] Visual indicator on match list when a match is live (pulsing dot or badge)
-- [ ] Service worker handles incoming push notifications and displays them
-- [ ] Notification permission prompt in user settings or on first login
-- [ ] Settings page: toggle which notifications to receive (goals, match start/end)
+- [x] Live match view: auto-updating score and event timeline via visibility-aware polling (3s visible, 30s hidden, immediate on refocus)
+- [x] Moderator quick-actions: opponent score ±1 buttons visible during live matches
+- [x] Visual indicator: pulsing "LIVE" badge on match detail when active
+- [x] Service worker handles push events, displays goal notifications with game link
+- [x] Profile page: push notification toggle with permission/support status display
+
+### Not implemented (deferred)
+- Manual start/end live mode toggle (auto-detection from kickoff + 120min works well for now)
+- Match start/end push notifications (only goals trigger push)
+- Granular per-type notification preferences UI (notify_goal field exists but no UI beyond on/off)
 
 ### Verification
-- [ ] Start live mode, add a goal event, see it appear on another device within one poll interval
-- [ ] Receive push notification on mobile when a goal is scored
-- [ ] Polling pauses/slows when the tab is hidden and resumes on focus
+- [x] Add a goal event during a live match, see it appear on another device within one poll interval
+- [x] Receive push notification on mobile when a goal is scored
+- [x] Polling pauses/slows when the tab is hidden and resumes on focus
+
+---
+
+## Phase 6.5: CI/CD -- DONE
+
+- [x] GitHub Actions workflow (`.github/workflows/ci.yml`) on push to main + PRs
+- [x] **Backend job:** `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test` with PostgreSQL 16 service container
+- [x] **Frontend job:** `prettier --check`, `svelte-check`, `vitest` with Node 22
+- [x] Rust caching via `Swatinem/rust-cache`, npm caching via `actions/setup-node`
+- [x] Per-test database isolation (unique PostgreSQL database per test via `tokio-postgres`)
+
+---
+
+## Phase 7: This Week's Match Highlight -- NOT STARTED
+
+### Frontend
+- [ ] Wedstrijden tab: if there is a match this week, show it prominently at the top (highlighted card with opponent, date/time, location)
+- [ ] Clear visual distinction from the regular match list (e.g. accent border, "Deze week" label)
+- [ ] If the match is today or live, emphasize further (e.g. "Vandaag" badge or live indicator)
+
+### Verification
+- [ ] A match scheduled this week appears highlighted at the top of the wedstrijden tab
+- [ ] When no match this week, the tab shows the normal list without a highlight
+- [ ] A live match this week shows the live indicator in the highlight card
+
+---
+
+## Phase 8: Admin User Management -- NOT STARTED
+
+### Backend
+- [ ] `GET /api/users` — list all users with roles and linked player (admin only)
+
+### Frontend
+- [ ] Admin-only page at `/admin/users` listing all users in a table (name, email, roles, linked player)
+- [ ] Toggle buttons to promote/demote moderator role per user (uses existing `PATCH /api/users/:id`)
+- [ ] Nav link to user management visible to admins only
+
+### Verification
+- [ ] Admin can view all users and their roles
+- [ ] Admin can toggle moderator role for any user
+- [ ] Non-admins cannot access the user management page
 
 ---
 
@@ -207,4 +250,7 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 4. ~~Phase 4 — Match Events & Stats~~ DONE
 5. ~~Phase 5 — Polish & PWA enhancements~~ DONE
 6. ~~Phase 5.5 — Player self-service (users update own shirt number & position)~~ DONE
-7. Phase 6 — Live match mode with "Live" tab for admins/mods + push notifications on score changes
+7. ~~Phase 6 — Live match mode with polling + push notifications on goals~~ DONE
+8. ~~Phase 6.5 — CI/CD with GitHub Actions~~ DONE
+9. Phase 7 — This week's match highlight in wedstrijden tab
+10. Phase 8 — Admin user management UI
