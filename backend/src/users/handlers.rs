@@ -12,6 +12,15 @@ use crate::{
     models::{Role, User},
 };
 
+#[requires(Role::Admin)]
+pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, AppError> {
+    let users = User::all()
+        .order_by(User::fields().created_at().asc())
+        .exec(&mut state.db)
+        .await?;
+    Ok(Json(users))
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateUserRequest {
