@@ -216,20 +216,20 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
-## Phase 8: Admin User Management -- NOT STARTED
+## Phase 8: Admin User Management -- DONE
 
 ### Backend
-- [ ] `GET /api/users` — list all users with roles and linked player (admin only)
+- [x] `GET /api/users` — list all users with roles (admin only)
 
 ### Frontend
-- [ ] Admin-only page at `/admin/users` listing all users in a table (name, email, roles, linked player)
-- [ ] Toggle buttons to promote/demote moderator role per user (uses existing `PATCH /api/users/:id`)
-- [ ] Nav link to user management visible to admins only
+- [x] Admin-only page at `/admin/users` listing all users (name, email, role chips)
+- [x] Toggle buttons to promote/demote moderator role per user (uses existing `PATCH /api/users/:id`)
+- [x] Nav link to user management visible to admins only
 
 ### Verification
-- [ ] Admin can view all users and their roles
-- [ ] Admin can toggle moderator role for any user
-- [ ] Non-admins cannot access the user management page
+- [x] Admin can view all users and their roles
+- [x] Admin can toggle moderator role for any user
+- [x] Non-admins cannot access the user management page
 
 ---
 
@@ -350,6 +350,6 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 7. ~~Phase 6 — Live match mode with polling + push notifications on goals~~ DONE
 8. ~~Phase 6.5 — CI/CD with GitHub Actions~~ DONE
 9. ~~Phase 7 — This week's match highlight in wedstrijden tab~~ DONE
-10. Phase 8 — Admin user management UI
+10. ~~Phase 8 — Admin user management UI~~ DONE
 11. Phase 9 — Multi-team support: explicit home/away team FKs, team-aware events & stats
 12. Phase 10 — Performance: Lambda-local cache, query optimization, compression, frontend bundle

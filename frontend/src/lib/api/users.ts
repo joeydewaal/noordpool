@@ -5,6 +5,10 @@ export interface UpdateUserRequest {
   isModerator?: boolean;
 }
 
+export async function listUsers(): Promise<User[]> {
+  return (await api.get<User[]>("/users")).data;
+}
+
 export async function updateUser(
   id: string,
   data: UpdateUserRequest,
