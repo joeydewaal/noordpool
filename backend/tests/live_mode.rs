@@ -118,6 +118,51 @@ async fn adjust_opponent_score_requires_admin_or_moderator() {
 }
 
 #[tokio::test]
+async fn moderator_can_adjust_opponent_score_during_live_match() {
+    let mut app = TestApp::new().await;
+    let admin = app.admin_token().await;
+    // Admin creates a live game; moderator should be able to update its score.
+    let id = create_game(&mut app, &admin, -5.minutes()).await;
+
+    let moderator = app.moderator_token().await;
+    let res = app
+        .post(format!("/api/games/{id}/live/opponent_score"))
+        .token(&moderator)
+        .json(json!({ "delta": 1 }))
+        .await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    assert_eq!(body["homeScore"], 0);
+    assert_eq!(body["awayScore"], 1);
+    assert_eq!(body["version"], 1);
+}
+
+#[tokio::test]
+async fn moderator_can_update_live_game_via_put() {
+    let mut app = TestApp::new().await;
+    let admin = app.admin_token().await;
+    let id = create_game(&mut app, &admin, -5.minutes()).await;
+
+    // Confirm the game is actually live before the moderator edits it.
+    let res = app.get(format!("/api/games/{id}/live")).send().await;
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json_value().await["status"], "live");
+
+    let moderator = app.moderator_token().await;
+    let res = app
+        .put(format!("/api/games/{id}"))
+        .token(&moderator)
+        .json(json!({ "homeScore": 2, "awayScore": 1 }))
+        .await;
+    assert_eq!(res.status(), 200);
+    let body = res.json_value().await;
+    assert_eq!(body["homeScore"], 2);
+    assert_eq!(body["awayScore"], 1);
+    assert_eq!(body["status"], "live");
+    assert_eq!(body["version"], 1);
+}
+
+#[tokio::test]
 async fn adjust_opponent_score_increments_and_bumps_version() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
