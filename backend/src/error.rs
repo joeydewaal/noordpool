@@ -8,6 +8,7 @@ use serde_json::json;
 
 #[derive(Debug)]
 pub enum AppError {
+    BadRequest(String),
     Unauthorized(String),
     Forbidden(String),
     NotFound(String),
@@ -17,6 +18,10 @@ pub enum AppError {
 }
 
 impl AppError {
+    pub fn bad_request(err: impl Into<String>) -> Self {
+        Self::BadRequest(err.into())
+    }
+
     pub fn unauthorized(err: impl Into<String>) -> Self {
         Self::Unauthorized(err.into())
     }
@@ -42,6 +47,7 @@ impl AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),

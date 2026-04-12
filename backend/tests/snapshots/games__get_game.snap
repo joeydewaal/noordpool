@@ -4,15 +4,23 @@ expression: body
 ---
 {
   "awayScore": 0,
+  "awayTeam": {
+    "id": "[uuid]",
+    "name": "FC Test"
+  },
+  "awayTeamId": "[uuid]",
   "cancelled": false,
   "createdAt": "[timestamp]",
   "dateTime": "[dateTime]",
   "events": [],
-  "homeAway": "home",
   "homeScore": 0,
+  "homeTeam": {
+    "id": "[uuid]",
+    "name": "De Noordpool"
+  },
+  "homeTeamId": "[uuid]",
   "id": "[uuid]",
   "location": "Stadium",
-  "opponent": "FC Test",
   "status": "scheduled",
   "updatedAt": "[timestamp]",
   "version": 0

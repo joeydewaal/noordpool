@@ -1,7 +1,6 @@
 pub mod event_type;
 pub mod game;
 pub mod game_event;
-pub mod home_away;
 pub mod player;
 pub mod position;
 pub mod push_subscription;
@@ -15,21 +14,16 @@ use std::error::Error;
 pub use event_type::EventType;
 pub use game::Game;
 pub use game_event::GameEvent;
-pub use home_away::HomeAway;
 use jiff::Timestamp;
 pub use player::Player;
 pub use position::Position;
 pub use push_subscription::PushSubscription;
+pub use team::Team;
 use toasty::{Db, create, db::Builder};
 pub use user::User;
 pub use user_role::Role;
 
-use crate::{
-    auth::password,
-    config::Config,
-    import,
-    models::{self, team::Team},
-};
+use crate::{auth::password, config::Config, import};
 
 pub fn build_db() -> Builder {
     let mut builder = Db::builder();
@@ -40,7 +34,6 @@ pub fn build_db() -> Builder {
         Position,
         Player,
         Game,
-        HomeAway,
         GameEvent,
         EventType,
         PushSubscription
@@ -53,7 +46,7 @@ pub async fn create_db(config: &Config) -> Result<Db, Box<dyn Error>> {
 
     if !cfg!(feature = "prod") {
         let _ = db.push_schema().await;
-        models::init_db(&mut db, config).await?;
+        init_db(&mut db, config).await?;
     }
 
     Ok(db)
@@ -126,21 +119,32 @@ pub async fn init_db(db: &mut Db, config: &Config) -> Result<(), Box<dyn Error>>
     }
     create_teams.exec(&mut tx).await?;
 
+    // Build name→Team lookup so we can resolve FKs for games.
+    let all_teams = Team::all().exec(&mut tx).await?;
+    let team_by_name: HashMap<&str, &Team> = all_teams
+        .iter()
+        .map(|t| (t.name.as_str(), t))
+        .collect();
+
     let mut col_to_game: HashMap<usize, Game> = HashMap::new();
     for m in matches {
+        let opponent_team = team_by_name
+            .get(m.opponent)
+            .unwrap_or_else(|| panic!("seed opponent '{}' not found in teams", m.opponent));
+        let (home_team_id, away_team_id) = if m.is_home {
+            (noordpool.id, opponent_team.id)
+        } else {
+            (opponent_team.id, noordpool.id)
+        };
         let game = create!(Game {
-            opponent: m.opponent,
+            home_team_id: home_team_id,
+            away_team_id: away_team_id,
             location: "",
             date_time: m
                 .date_time
                 .parse::<Timestamp>()
                 .ok()
                 .unwrap_or(Timestamp::UNIX_EPOCH),
-            home_away: if m.is_home {
-                HomeAway::Home
-            } else {
-                HomeAway::Away
-            },
             home_score: m.home_score,
             away_score: m.away_score,
         })

@@ -21,8 +21,5 @@ pub fn router() -> Router<AppState> {
                 .delete(handlers::delete),
         )
         .route("/{id}/live", get(live::poll_live))
-        .route(
-            "/{id}/live/opponent_score",
-            post(live::adjust_opponent_score),
-        )
+        .route("/{id}/live/score", post(live::adjust_score))
 }

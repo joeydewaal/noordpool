@@ -1,9 +1,10 @@
 use jiff::{Span, Timestamp};
 use serde::Serialize;
-use toasty::HasMany;
+use toasty::{BelongsTo, HasMany};
 use uuid::Uuid;
 
-use super::{GameEvent, HomeAway};
+use super::GameEvent;
+use crate::models::team::Team;
 
 /// How long after kickoff we still consider a match "live". Covers
 /// 2x 45 min halves + halftime + stoppage + buffer.
@@ -16,13 +17,23 @@ pub struct Game {
     #[auto]
     pub id: Uuid,
 
-    pub opponent: String,
+    #[index]
+    pub home_team_id: Uuid,
+
+    #[belongs_to(key = home_team_id, references = id)]
+    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
+    pub home_team: BelongsTo<Team>,
+
+    #[index]
+    pub away_team_id: Uuid,
+
+    #[belongs_to(key = away_team_id, references = id)]
+    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
+    pub away_team: BelongsTo<Team>,
 
     pub location: String,
 
     pub date_time: Timestamp,
-
-    pub home_away: HomeAway,
 
     #[default(false)]
     pub cancelled: bool,

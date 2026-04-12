@@ -182,7 +182,13 @@ pub async fn update_prefs(
 ///
 /// Subscriptions that come back as `EndpointNotValid` (410 Gone) or
 /// `EndpointNotFound` (404) are pruned from the database.
-pub async fn notify_goal(state: &AppState, game: &Game, side: Option<ScoreSide>) {
+pub async fn notify_goal(
+    state: &AppState,
+    game: &Game,
+    side: Option<ScoreSide>,
+    home_team_name: &str,
+    away_team_name: &str,
+) {
     let Some(vapid) = state.vapid.as_ref() else {
         tracing::debug!("notify_goal: VAPID not configured, skipping");
         return;
@@ -208,7 +214,8 @@ pub async fn notify_goal(state: &AppState, game: &Game, side: Option<ScoreSide>)
     let payload = json!({
         "type": "goal",
         "gameId": game.id,
-        "opponent": game.opponent,
+        "homeTeam": { "id": game.home_team_id, "name": home_team_name },
+        "awayTeam": { "id": game.away_team_id, "name": away_team_name },
         "homeScore": game.home_score,
         "awayScore": game.away_score,
         "side": side.map(|s| match s {

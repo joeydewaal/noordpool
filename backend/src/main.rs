@@ -10,6 +10,7 @@ mod players;
 mod push;
 mod routes;
 mod stats;
+mod teams;
 mod users;
 
 use std::sync::Arc;

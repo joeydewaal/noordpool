@@ -8,12 +8,19 @@ expression: body
   "gameTimeline": [
     {
       "assists": 1,
+      "awayTeam": {
+        "id": "[uuid]",
+        "name": "FC Rival"
+      },
       "cumulativeAssists": 1,
       "cumulativeGoals": 2,
       "dateTime": "2024-01-15T18:00:00Z",
       "gameId": "[uuid]",
       "goals": 2,
-      "opponent": "FC Rival",
+      "homeTeam": {
+        "id": "[uuid]",
+        "name": "De Noordpool"
+      },
       "redCards": 0,
       "yellowCards": 1
     }
@@ -21,15 +28,21 @@ expression: body
   "goalMatches": [
     {
       "awayScore": 0,
+      "awayTeam": {
+        "id": "[uuid]",
+        "name": "FC Rival"
+      },
       "dateTime": "2024-01-15T18:00:00Z",
       "gameId": "[uuid]",
-      "homeAway": "home",
       "homeScore": 4,
+      "homeTeam": {
+        "id": "[uuid]",
+        "name": "De Noordpool"
+      },
       "minutes": [
         10,
         55
-      ],
-      "opponent": "FC Rival"
+      ]
     }
   ],
   "goals": 2,

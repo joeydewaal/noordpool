@@ -2,16 +2,29 @@
   import { goto } from "$app/navigation";
   import { auth } from "$lib/state/auth.svelte";
   import { createGame } from "$lib/api/games";
-  import { createMutation, useQueryClient } from "@tanstack/svelte-query";
-  import type { HomeAway, CreateGameRequest } from "$lib/api/types";
+  import { listTeams, createTeam } from "$lib/api/teams";
+  import {
+    createMutation,
+    createQuery,
+    useQueryClient,
+  } from "@tanstack/svelte-query";
+  import type { CreateGameRequest, Team } from "$lib/api/types";
 
   const canManage = $derived(auth.isAdmin || auth.isModerator);
   const queryClient = useQueryClient();
 
-  let opponent = $state("");
+  let homeTeamId = $state("");
+  let awayTeamId = $state("");
   let location = $state("");
   let dateTime = $state("");
-  let homeAway: HomeAway = $state("home");
+  let newTeamName = $state("");
+  let sameTeamError = $state(false);
+
+  const teamsQuery = createQuery(() => ({
+    queryKey: ["teams"],
+    queryFn: listTeams,
+  }));
+  const teams: Team[] = $derived($teamsQuery.data ?? []);
 
   const createMut = createMutation(() => ({
     mutationFn: (data: CreateGameRequest) => createGame(data),
@@ -21,14 +34,33 @@
     },
   }));
 
+  const createTeamMut = createMutation(() => ({
+    mutationFn: (name: string) => createTeam(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      newTeamName = "";
+    },
+  }));
+
   function handleSubmit(e: Event) {
     e.preventDefault();
+    if (homeTeamId === awayTeamId) {
+      sameTeamError = true;
+      return;
+    }
+    sameTeamError = false;
     createMut.mutate({
-      opponent,
+      homeTeamId,
+      awayTeamId,
       location,
       dateTime: new Date(dateTime),
-      homeAway,
     });
+  }
+
+  function handleCreateTeam() {
+    if (newTeamName.trim()) {
+      createTeamMut.mutate(newTeamName.trim());
+    }
   }
 </script>
 
@@ -42,15 +74,38 @@
     <h1 class="text-2xl font-bold mb-6">Nieuwe wedstrijd</h1>
     <form onsubmit={handleSubmit} class="card p-6 space-y-4">
       <div>
-        <label for="opponent" class="label-text">Tegenstander</label>
-        <input
-          id="opponent"
-          type="text"
-          bind:value={opponent}
+        <label for="homeTeam" class="label-text">Thuisploeg</label>
+        <select
+          id="homeTeam"
+          bind:value={homeTeamId}
           required
-          class="input"
-        />
+          class="select"
+        >
+          <option value="" disabled>Kies thuisploeg</option>
+          {#each teams as team}
+            <option value={team.id}>{team.name}</option>
+          {/each}
+        </select>
       </div>
+      <div>
+        <label for="awayTeam" class="label-text">Uitploeg</label>
+        <select
+          id="awayTeam"
+          bind:value={awayTeamId}
+          required
+          class="select"
+        >
+          <option value="" disabled>Kies uitploeg</option>
+          {#each teams as team}
+            <option value={team.id}>{team.name}</option>
+          {/each}
+        </select>
+      </div>
+      {#if sameTeamError}
+        <p class="text-error-500 text-sm">
+          Thuis- en uitploeg moeten verschillen.
+        </p>
+      {/if}
       <div>
         <label for="location" class="label-text">Locatie</label>
         <input
@@ -71,33 +126,30 @@
           class="input"
         />
       </div>
-      <fieldset>
-        <legend class="label-text mb-2">Thuis / Uit</legend>
-        <div class="flex gap-4">
-          <label class="flex items-center gap-2">
-            <input
-              type="radio"
-              bind:group={homeAway}
-              value="home"
-              class="radio"
-            />
-            <span class="text-sm">Thuis</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <input
-              type="radio"
-              bind:group={homeAway}
-              value="away"
-              class="radio"
-            />
-            <span class="text-sm">Uit</span>
-          </label>
-        </div>
-      </fieldset>
       <button type="submit" class="btn w-full preset-filled-primary-500">
         Wedstrijd aanmaken
       </button>
     </form>
+
+    <div class="card p-4 mt-6 space-y-2">
+      <p class="text-sm font-medium">Nieuwe ploeg toevoegen</p>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          bind:value={newTeamName}
+          placeholder="Ploegnaam"
+          class="input flex-1"
+        />
+        <button
+          type="button"
+          onclick={handleCreateTeam}
+          class="btn preset-outlined-primary-500"
+          disabled={!newTeamName.trim()}
+        >
+          + Toevoegen
+        </button>
+      </div>
+    </div>
   </div>
 {:else}
   <p class="text-error-500 font-medium">

@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{Game, HomeAway, Role, game::MATCH_DURATION_MINUTES},
+    models::{Game, Role, game::MATCH_DURATION_MINUTES},
 };
 
 #[derive(Deserialize)]
@@ -22,19 +22,19 @@ pub struct LimitQuery {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateGameRequest {
-    pub opponent: String,
+    pub home_team_id: Uuid,
+    pub away_team_id: Uuid,
     pub location: String,
     pub date_time: Timestamp,
-    pub home_away: HomeAway,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateGameRequest {
-    pub opponent: Option<String>,
+    pub home_team_id: Option<Uuid>,
+    pub away_team_id: Option<Uuid>,
     pub location: Option<String>,
     pub date_time: Option<Timestamp>,
-    pub home_away: Option<HomeAway>,
     pub cancelled: Option<bool>,
     pub home_score: Option<i32>,
     pub away_score: Option<i32>,
@@ -81,6 +81,8 @@ pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<GameResponse
     let mut db = state.db;
 
     let games = Game::all()
+        .include(Game::fields().home_team())
+        .include(Game::fields().away_team())
         .order_by(Game::fields().date_time().asc())
         .exec(&mut db)
         .await?;
@@ -93,6 +95,8 @@ pub async fn get_one(
     Path(id): Path<Uuid>,
 ) -> Result<Json<GameResponse>, AppError> {
     let game = Game::filter_by_id(id)
+        .include(Game::fields().home_team())
+        .include(Game::fields().away_team())
         .include(Game::fields().events().player())
         .get(&mut state.db)
         .await?;
@@ -109,6 +113,8 @@ pub async fn upcoming(
     let now = Timestamp::now() - MATCH_DURATION_MINUTES.minutes();
 
     let mut game_query = Game::all()
+        .include(Game::fields().home_team())
+        .include(Game::fields().away_team())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().gt(now))
         .order_by(Game::fields().date_time().asc());
@@ -129,6 +135,8 @@ pub async fn recent(
     let mut db = state.db;
 
     let mut game_query = Game::all()
+        .include(Game::fields().home_team())
+        .include(Game::fields().away_team())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().lt(Timestamp::now()))
         .order_by(Game::fields().date_time().desc());
@@ -151,6 +159,8 @@ pub async fn summary(
     let limit = query.limit.unwrap_or(3);
 
     let upcoming = Game::all()
+        .include(Game::fields().home_team())
+        .include(Game::fields().away_team())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().gt(now))
         .order_by(Game::fields().date_time().asc())
@@ -159,6 +169,8 @@ pub async fn summary(
         .await?;
 
     let recent = Game::all()
+        .include(Game::fields().home_team())
+        .include(Game::fields().away_team())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().lt(now))
         .order_by(Game::fields().date_time().desc())
@@ -180,14 +192,28 @@ pub async fn create(
     tracing::info!("games::create");
     let mut db = state.db;
 
-    let game = toasty::create!(Game {
-        opponent: body.opponent,
+    if body.home_team_id == body.away_team_id {
+        return Err(AppError::bad_request(
+            "home and away team must be different",
+        ));
+    }
+
+    let created = toasty::create!(Game {
+        home_team_id: body.home_team_id,
+        away_team_id: body.away_team_id,
         location: body.location,
         date_time: body.date_time,
-        home_away: body.home_away,
     })
     .exec(&mut db)
     .await?;
+
+    // Re-fetch with team relations so the response carries full team
+    // objects (the create! call returns a Game with unloaded relations).
+    let game = Game::filter_by_id(created.id)
+        .include(Game::fields().home_team())
+        .include(Game::fields().away_team())
+        .get(&mut db)
+        .await?;
     Ok(Json(GameResponse::new(game)))
 }
 
@@ -201,21 +227,31 @@ pub async fn update(
     let mut db = state.db;
 
     let mut game = Game::get_by_id(&mut db, id).await?;
-    let next_version = game.version + 1;
 
+    // Determine the final home/away so we can validate the pair even
+    // when only one side is being changed.
+    let next_home = req.home_team_id.unwrap_or(game.home_team_id);
+    let next_away = req.away_team_id.unwrap_or(game.away_team_id);
+    if next_home == next_away {
+        return Err(AppError::bad_request(
+            "home and away team must be different",
+        ));
+    }
+
+    let next_version = game.version + 1;
     let mut update = game.update();
 
-    if let Some(opponent) = req.opponent {
-        update.set_opponent(opponent);
+    if let Some(home_team_id) = req.home_team_id {
+        update.set_home_team_id(home_team_id);
+    }
+    if let Some(away_team_id) = req.away_team_id {
+        update.set_away_team_id(away_team_id);
     }
     if let Some(location) = req.location {
         update.set_location(location);
     }
     if let Some(date_time) = req.date_time {
         update.set_date_time(date_time);
-    }
-    if let Some(home_away) = req.home_away {
-        update.set_home_away(home_away);
     }
     if let Some(cancelled) = req.cancelled {
         update.set_cancelled(cancelled);
@@ -234,7 +270,11 @@ pub async fn update(
     update.set_updated_at(now);
 
     update.exec(&mut db).await?;
-    let fresh = Game::get_by_id(&mut db, id).await?;
+    let fresh = Game::filter_by_id(id)
+        .include(Game::fields().home_team())
+        .include(Game::fields().away_team())
+        .get(&mut db)
+        .await?;
     Ok(Json(GameResponse::new(fresh)))
 }
 

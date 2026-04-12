@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { auth } from "$lib/state/auth.svelte";
-  import { getGame, pollLive, adjustOpponentScore } from "$lib/api/games";
+  import { getGame, pollLive, adjustScore } from "$lib/api/games";
   import { createGameEvent, deleteGameEvent } from "$lib/api/events";
   import { getPlayers } from "$lib/api/players";
   import {
@@ -16,6 +16,7 @@
     LivePoll,
     GameStatus,
     Game,
+    ScoreSide,
   } from "$lib/api/types";
   import { startVisibilityPolling } from "$lib/visibility-polling.svelte";
 
@@ -29,14 +30,9 @@
     queryFn: () => getGame(id),
   }));
 
-  // Server-derived status (`scheduled` | `live` | `finished` | `cancelled`).
-  // The frontend never recomputes liveness from `dateTime` — see backend
-  // `Game::derived_status`.
   let liveOverlay = $state<LivePoll | null>(null);
   let liveEtag = $state<string | null>(null);
 
-  // TanStack Svelte Query 6 sometimes infers `gameQuery.data` as `never`
-  // inside `$derived`, so we go through a typed accessor with `$derived.by`.
   const game = $derived.by((): Game | null | undefined => {
     return gameQuery.data as unknown as Game | null | undefined;
   });
@@ -48,9 +44,15 @@
   const awayScore = $derived(liveOverlay?.awayScore ?? game?.awayScore ?? 0);
   const events = $derived(liveOverlay?.events ?? game?.events ?? []);
 
-  // Poll the live endpoint while the match is in its live window. The
-  // utility throttles to 30 s when the tab is hidden so we don't melt
-  // mobile batteries.
+  // Derive which side the current user is on (null if not a player in this game)
+  const ownSide: ScoreSide | null = $derived.by(() => {
+    const teamId = auth.teamId;
+    if (!teamId || !game) return null;
+    if (game.homeTeam.id === teamId) return "home";
+    if (game.awayTeam.id === teamId) return "away";
+    return null;
+  });
+
   $effect(() => {
     if (status !== "live") return;
     const stop = startVisibilityPolling(async () => {
@@ -63,20 +65,14 @@
     return stop;
   });
 
-  // Bumps the opponent's score. Goals scored by our own team are
-  // recorded via the events form below — that flow also bumps our
-  // side of the score on the backend.
-  const opponentScoreMutation = createMutation(() => ({
-    mutationFn: (delta: 1 | -1) => adjustOpponentScore(id, delta),
+  const scoreMutation = createMutation(() => ({
+    mutationFn: ({ side, delta }: { side: ScoreSide; delta: 1 | -1 }) =>
+      adjustScore(id, side, delta),
     onSuccess: (data) => {
       liveOverlay = data;
     },
   }));
 
-  // After mutating events we want the live overlay to reflect the
-  // new score immediately. The version was bumped server-side, so
-  // clearing the etag forces the next poll to return 200, and we
-  // also kick off an immediate poll for instant feedback.
   async function refreshLive() {
     const result = await pollLive(id, null);
     if (result.body) liveOverlay = result.body;
@@ -162,6 +158,7 @@
 </script>
 
 {#if gameQuery.data}
+  {@const g = gameQuery.data}
   <div class="max-w-lg">
     <button
       onclick={() => history.back()}
@@ -171,20 +168,22 @@
     <div class="card p-6">
       <div class="flex items-center justify-between mb-2">
         <h1 class="text-2xl font-bold">
-          vs {gameQuery.data.opponent}
+          {g.homeTeam.name} vs {g.awayTeam.name}
         </h1>
-        <span
-          class="chip {gameQuery.data.homeAway === 'home'
-            ? 'preset-filled-success-500'
-            : 'preset-filled-secondary-500'}"
-        >
-          {gameQuery.data.homeAway === "home" ? "thuis" : "uit"}
-        </span>
+        {#if ownSide}
+          <span
+            class="chip {ownSide === 'home'
+              ? 'preset-filled-success-500'
+              : 'preset-filled-secondary-500'}"
+          >
+            {ownSide === "home" ? "thuis" : "uit"}
+          </span>
+        {/if}
       </div>
 
       <div class="text-sm text-surface-400 space-y-1 mb-4">
-        <div>{formatDate(gameQuery.data.dateTime)}</div>
-        <div>{gameQuery.data.location}</div>
+        <div>{formatDate(g.dateTime)}</div>
+        <div>{g.location}</div>
         <div>
           Status:
           <span
@@ -216,67 +215,83 @@
 
       {#if status === "finished" || status === "live"}
         <div class="card preset-tonal-surface p-4 text-center">
-          {#if gameQuery.data.homeAway === "home"}
-            <div class="text-lg">
-              <span class="font-bold">Noordpool {homeScore}</span>
-              <span class="text-surface-500 mx-2">-</span>
-              <span class="font-bold"
-                >{awayScore}
-                {gameQuery.data.opponent}</span
-              >
-            </div>
-          {:else}
-            <div class="text-lg">
-              <span class="font-bold"
-                >{gameQuery.data.opponent} {homeScore}</span
-              >
-              <span class="text-surface-500 mx-2">-</span>
-              <span class="font-bold">{awayScore} Noordpool</span>
-            </div>
-          {/if}
+          <div class="text-lg">
+            <span class="font-bold">{g.homeTeam.name} {homeScore}</span>
+            <span class="text-surface-500 mx-2">-</span>
+            <span class="font-bold">{awayScore} {g.awayTeam.name}</span>
+          </div>
         </div>
       {/if}
 
       {#if status === "live" && canManage}
-        {@const opponentScore =
-          gameQuery.data.homeAway === "home" ? awayScore : homeScore}
         <div
           class="mt-4 card preset-tonal-warning p-4"
-          aria-label="Opponent score adjuster"
+          aria-label="Score adjuster"
         >
-          <h3 class="text-sm font-semibold mb-1">Tegenstander scoorde</h3>
-          <p class="text-xs text-surface-400 mb-3">
-            Eigen doelpunten registreer je hieronder als gebeurtenis — die telt
-            automatisch mee in de score.
-          </p>
-          <div class="flex items-center justify-center gap-4">
-            <button
-              type="button"
-              class="btn btn-sm preset-filled-error-500"
-              onclick={() => opponentScoreMutation.mutate(-1)}
-              disabled={opponentScore === 0 || opponentScoreMutation.isPending}
-              aria-label="Doelpunt tegenstander intrekken"
-            >
-              −
-            </button>
-            <div class="text-center">
-              <div class="text-xs text-surface-400">
-                {gameQuery.data.opponent}
+          {#if ownSide}
+            {@const opponentSide = ownSide === "home" ? "away" : "home"}
+            {@const opponentName =
+              ownSide === "home" ? g.awayTeam.name : g.homeTeam.name}
+            {@const opponentScore = ownSide === "home" ? awayScore : homeScore}
+            <h3 class="text-sm font-semibold mb-1">Tegenstander scoorde</h3>
+            <p class="text-xs text-surface-400 mb-3">
+              Eigen doelpunten registreer je hieronder als gebeurtenis.
+            </p>
+            <div class="flex items-center justify-center gap-4">
+              <button
+                type="button"
+                class="btn btn-sm preset-filled-error-500"
+                onclick={() =>
+                  scoreMutation.mutate({ side: opponentSide, delta: -1 })}
+                disabled={opponentScore === 0 || scoreMutation.isPending}
+                aria-label="Doelpunt tegenstander intrekken"
+              >
+                &minus;
+              </button>
+              <div class="text-center">
+                <div class="text-xs text-surface-400">{opponentName}</div>
+                <div class="text-3xl font-bold">{opponentScore}</div>
               </div>
-              <div class="text-3xl font-bold">
-                {opponentScore}
-              </div>
+              <button
+                type="button"
+                class="btn btn-sm preset-filled-success-500"
+                onclick={() =>
+                  scoreMutation.mutate({ side: opponentSide, delta: 1 })}
+                disabled={scoreMutation.isPending}
+                aria-label="Doelpunt tegenstander"
+              >
+                +
+              </button>
             </div>
-            <button
-              type="button"
-              class="btn btn-sm preset-filled-success-500"
-              onclick={() => opponentScoreMutation.mutate(1)}
-              disabled={opponentScoreMutation.isPending}
-              aria-label="Doelpunt tegenstander"
-            >
-              +
-            </button>
-          </div>
+          {:else}
+            <h3 class="text-sm font-semibold mb-3">Score aanpassen</h3>
+            <div class="grid grid-cols-2 gap-4">
+              {#each [{ side: "home" as ScoreSide, name: g.homeTeam.name, score: homeScore }, { side: "away" as ScoreSide, name: g.awayTeam.name, score: awayScore }] as { side, name, score }}
+                <div class="flex flex-col items-center gap-1">
+                  <div class="text-xs text-surface-400">{name}</div>
+                  <div class="text-2xl font-bold">{score}</div>
+                  <div class="flex gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-sm preset-filled-error-500"
+                      onclick={() => scoreMutation.mutate({ side, delta: -1 })}
+                      disabled={score === 0 || scoreMutation.isPending}
+                    >
+                      &minus;
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm preset-filled-success-500"
+                      onclick={() => scoreMutation.mutate({ side, delta: 1 })}
+                      disabled={scoreMutation.isPending}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
       {/if}
 
@@ -369,7 +384,7 @@
           class="mt-6 pt-4 border-t border-surface-200 dark:border-surface-800"
         >
           <a
-            href="/games/{gameQuery.data.id}/edit"
+            href="/games/{g.id}/edit"
             class="btn btn-sm preset-filled-primary-500"
           >
             Bewerken
