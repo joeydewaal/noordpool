@@ -24,7 +24,7 @@
     queryKey: ["teams"],
     queryFn: listTeams,
   }));
-  const teams: Team[] = $derived($teamsQuery.data ?? []);
+  const teams: Team[] = $derived(teamsQuery.data ?? []);
 
   const updateMutation = createMutation(() => ({
     mutationFn: (data: UpdateGameRequest) => updateGame(id, data),

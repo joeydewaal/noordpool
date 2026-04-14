@@ -2,7 +2,7 @@
   import { createQuery } from "@tanstack/svelte-query";
   import { auth } from "$lib/state/auth.svelte";
   import { getGamesSummary } from "$lib/api/games";
-  import type { Game } from "$lib/api/types";
+  import type { Game, ScoreSide } from "$lib/api/types";
 
   const summaryQuery = createQuery(() => ({
     queryKey: ["games", "summary"],
@@ -21,6 +21,14 @@
 
   function formatScore(game: Game): string {
     return `${game.homeScore} - ${game.awayScore}`;
+  }
+
+  function ownSide(game: Game): ScoreSide | null {
+    const teamId = auth.teamId;
+    if (!teamId) return null;
+    if (game.homeTeam.id === teamId) return "home";
+    if (game.awayTeam.id === teamId) return "away";
+    return null;
   }
 </script>
 
@@ -43,13 +51,14 @@
         {:else}
           <div class="space-y-3">
             {#each summaryQuery.data.upcoming as game}
+              {@const side = ownSide(game)}
               <a
                 href="/games/{game.id}"
                 class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1"
               >
                 <div class="flex items-center justify-between">
                   <div class="font-medium text-sm">
-                    vs {game.opponent}
+                    {game.homeTeam.name} vs {game.awayTeam.name}
                   </div>
                   <div class="flex items-center gap-2">
                     {#if game.status === "live"}
@@ -57,13 +66,15 @@
                         >LIVE {game.homeScore}–{game.awayScore}</span
                       >
                     {/if}
-                    <span
-                      class="chip {game.homeAway === 'home'
-                        ? 'preset-filled-success-500'
-                        : 'preset-filled-secondary-500'}"
-                    >
-                      {game.homeAway === "home" ? "thuis" : "uit"}
-                    </span>
+                    {#if side}
+                      <span
+                        class="chip {side === 'home'
+                          ? 'preset-filled-success-500'
+                          : 'preset-filled-secondary-500'}"
+                      >
+                        {side === "home" ? "thuis" : "uit"}
+                      </span>
+                    {/if}
                   </div>
                 </div>
                 <div class="text-xs text-surface-400 mt-1">
@@ -86,23 +97,26 @@
         {:else}
           <div class="space-y-3">
             {#each summaryQuery.data.recent as game}
+              {@const side = ownSide(game)}
               <a
                 href="/games/{game.id}"
                 class="block p-3 rounded-lg hover:preset-tonal-surface transition-colors -mx-1"
               >
                 <div class="flex items-center justify-between">
                   <div class="font-medium text-sm">
-                    vs {game.opponent}
+                    {game.homeTeam.name} vs {game.awayTeam.name}
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="font-bold text-sm">{formatScore(game)}</span>
-                    <span
-                      class="chip {game.homeAway === 'home'
-                        ? 'preset-filled-success-500'
-                        : 'preset-filled-secondary-500'}"
-                    >
-                      {game.homeAway === "home" ? "thuis" : "uit"}
-                    </span>
+                    {#if side}
+                      <span
+                        class="chip {side === 'home'
+                          ? 'preset-filled-success-500'
+                          : 'preset-filled-secondary-500'}"
+                      >
+                        {side === "home" ? "thuis" : "uit"}
+                      </span>
+                    {/if}
                   </div>
                 </div>
                 <div class="text-xs text-surface-400 mt-1">
@@ -144,15 +158,8 @@
             >
               <div class="flex items-center justify-between">
                 <div class="font-medium text-sm">
-                  vs {game.opponent}
+                  {game.homeTeam.name} vs {game.awayTeam.name}
                 </div>
-                <span
-                  class="chip {game.homeAway === 'home'
-                    ? 'preset-filled-success-500'
-                    : 'preset-filled-secondary-500'}"
-                >
-                  {game.homeAway === "home" ? "thuis" : "uit"}
-                </span>
               </div>
               <div class="text-xs text-surface-400 mt-1">
                 {formatDate(game.dateTime)}
@@ -180,17 +187,10 @@
             >
               <div class="flex items-center justify-between">
                 <div class="font-medium text-sm">
-                  vs {game.opponent}
+                  {game.homeTeam.name} vs {game.awayTeam.name}
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="font-bold text-sm">{formatScore(game)}</span>
-                  <span
-                    class="chip {game.homeAway === 'home'
-                      ? 'preset-filled-success-500'
-                      : 'preset-filled-secondary-500'}"
-                  >
-                    {game.homeAway === "home" ? "thuis" : "uit"}
-                  </span>
                 </div>
               </div>
               <div class="text-xs text-surface-400 mt-1">

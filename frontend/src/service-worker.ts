@@ -45,19 +45,21 @@ registerRoute(
 //   {
 //     type: "goal",
 //     gameId: string,
-//     opponent: string,
+//     homeTeam: { id: string, name: string },
+//     awayTeam: { id: string, name: string },
 //     homeScore: number,
 //     awayScore: number,
-//     side: "home" | "away" | null,
+//     side: "home" | "away",
 //   }
 
 interface GoalPayload {
   type: "goal";
   gameId: string;
-  opponent: string;
+  homeTeam: { id: string; name: string };
+  awayTeam: { id: string; name: string };
   homeScore: number;
   awayScore: number;
-  side: "home" | "away" | null;
+  side: "home" | "away";
 }
 
 self.addEventListener("push", (event: PushEvent) => {
@@ -74,7 +76,9 @@ self.addEventListener("push", (event: PushEvent) => {
       : "Noordpool";
 
   const body =
-    payload?.type === "goal" ? `vs ${payload.opponent}` : "Update beschikbaar";
+    payload?.type === "goal"
+      ? `${payload.homeTeam.name} ${payload.homeScore}–${payload.awayScore} ${payload.awayTeam.name}`
+      : "Update beschikbaar";
 
   const data =
     payload?.type === "goal"
