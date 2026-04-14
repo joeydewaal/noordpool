@@ -4,7 +4,10 @@ use axum::extract::FromRef;
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use toasty::Db;
 
-use crate::auth::{claims::Claims, google::GoogleHandler};
+use crate::{
+    auth::{claims::Claims, google::GoogleHandler},
+    games::live_ws::LiveHub,
+};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -12,6 +15,7 @@ pub struct AppState {
     pub jwt: JwtContext<Claims>,
     pub google_oidc: Option<OidcContext<GoogleHandler>>,
     pub vapid: Option<Arc<VapidConfig>>,
+    pub live_hub: LiveHub,
 }
 
 /// Loaded once at startup. If absent, push endpoints return 503.

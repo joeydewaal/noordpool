@@ -105,7 +105,9 @@ export interface Game {
   events?: GameEvent[];
 }
 
-/// Live-poll body returned by `GET /api/games/{id}/live`.
+/// Initial snapshot frame delivered over the `/api/games/{id}/ws`
+/// WebSocket, and the shape of the state the live-match page keeps in
+/// memory.
 export interface LivePoll {
   id: string;
   status: GameStatus;

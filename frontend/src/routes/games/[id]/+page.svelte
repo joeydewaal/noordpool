@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { auth } from "$lib/state/auth.svelte";
-  import { getGame, pollLive, adjustScore } from "$lib/api/games";
+  import { getGame, adjustScore } from "$lib/api/games";
   import { createGameEvent, deleteGameEvent } from "$lib/api/events";
   import { getPlayers } from "$lib/api/players";
   import {
@@ -17,8 +17,9 @@
     GameStatus,
     Game,
     ScoreSide,
+    GameEvent,
   } from "$lib/api/types";
-  import { startVisibilityPolling } from "$lib/visibility-polling.svelte";
+  import { startLiveMatchStream } from "$lib/live-match.svelte";
   import Spinner from "$lib/components/Spinner.svelte";
 
   const id = page.params.id!;
@@ -32,7 +33,6 @@
   }));
 
   let liveOverlay = $state<LivePoll | null>(null);
-  let liveEtag = $state<string | null>(null);
 
   const game = $derived.by((): Game | null | undefined => {
     return gameQuery.data as unknown as Game | null | undefined;
@@ -56,14 +56,39 @@
 
   $effect(() => {
     if (status !== "live") return;
-    const stop = startVisibilityPolling(async () => {
-      const result = await pollLive(id, liveEtag);
-      if (result.body) {
-        liveOverlay = result.body;
-      }
-      liveEtag = result.etag;
+    return startLiveMatchStream(id, {
+      onSnapshot: (snapshot) => {
+        liveOverlay = snapshot;
+      },
+      onScoreUpdate: ({ home, away, version, updatedAt }) => {
+        if (!liveOverlay) return;
+        liveOverlay = {
+          ...liveOverlay,
+          homeScore: home,
+          awayScore: away,
+          version,
+          updatedAt,
+        };
+      },
+      onEventAdded: (event: GameEvent) => {
+        if (!liveOverlay) return;
+        liveOverlay = {
+          ...liveOverlay,
+          events: [...liveOverlay.events, event],
+        };
+      },
+      onEventDeleted: (eventId) => {
+        if (!liveOverlay) return;
+        liveOverlay = {
+          ...liveOverlay,
+          events: liveOverlay.events.filter((e) => e.id !== eventId),
+        };
+      },
+      onStatusChange: (newStatus) => {
+        if (!liveOverlay) return;
+        liveOverlay = { ...liveOverlay, status: newStatus };
+      },
     });
-    return stop;
   });
 
   const scoreMutation = createMutation(() => ({
@@ -73,12 +98,6 @@
       liveOverlay = data;
     },
   }));
-
-  async function refreshLive() {
-    const result = await pollLive(id, null);
-    if (result.body) liveOverlay = result.body;
-    liveEtag = result.etag;
-  }
 
   const playersQuery = createQuery(() => ({
     queryKey: ["players"],
@@ -90,7 +109,6 @@
     mutationFn: (data: CreateGameEventRequest) => createGameEvent(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games", id] });
-      refreshLive();
     },
   }));
 
@@ -98,7 +116,6 @@
     mutationFn: (eventId: string) => deleteGameEvent(id, eventId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games", id] });
-      refreshLive();
     },
   }));
 

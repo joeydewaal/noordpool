@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
+    games::live_ws::{LiveEvent, publish},
     models::{EventType, Game, GameEvent, Player, Role},
     push,
 };
@@ -100,6 +101,24 @@ pub async fn create(
     }
     update.exec(&mut db).await?;
 
+    publish(
+        &state.live_hub,
+        game_id,
+        LiveEvent::EventAdded(event.clone()),
+    );
+    if is_goal {
+        publish(
+            &state.live_hub,
+            game_id,
+            LiveEvent::ScoreUpdate {
+                home: new_home,
+                away: new_away,
+                version: next_version,
+                updated_at: now,
+            },
+        );
+    }
+
     if was_live && is_goal {
         let fresh = Game::filter_by_id(game_id)
             .include(Game::fields().home_team())
@@ -165,6 +184,24 @@ pub async fn delete(
         update.set_away_score(new_away);
     }
     update.exec(&mut db).await?;
+
+    publish(
+        &state.live_hub,
+        game_id,
+        LiveEvent::EventDeleted { id: event_id },
+    );
+    if was_goal {
+        publish(
+            &state.live_hub,
+            game_id,
+            LiveEvent::ScoreUpdate {
+                home: new_home,
+                away: new_away,
+                version: next_version,
+                updated_at: now,
+            },
+        );
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }

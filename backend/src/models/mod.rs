@@ -44,8 +44,12 @@ pub fn build_db() -> Builder {
 pub async fn create_db(config: &Config) -> Result<Db, Box<dyn Error>> {
     let mut db = build_db().connect(&config.database_url).await?;
 
-    if !cfg!(feature = "prod") {
-        let _ = db.push_schema().await;
+    let _ = db.push_schema().await;
+
+    // Seeding (admin user + demo data) is opt-in via env var so production
+    // never auto-creates credentials. Local dev picks it up from the default
+    // `.env`.
+    if std::env::var("NOORDPOOL_SEED").ok().as_deref() == Some("1") {
         init_db(&mut db, config).await?;
     }
 

@@ -24,64 +24,6 @@ async fn create_game(app: &mut TestApp, token: &str, offset: jiff::Span) -> Stri
 }
 
 #[tokio::test]
-async fn poll_live_returns_status_and_etag() {
-    let mut app = TestApp::new().await;
-    let token = app.admin_token().await;
-
-    // kick-off was 5 minutes ago → inside the live window
-    let id = create_game(&mut app, &token, -5.minutes()).await;
-
-    let res = app.get(format!("/api/games/{id}/live")).send().await;
-    assert_eq!(res.status(), 200);
-    let etag = res
-        .inner_headers()
-        .get("etag")
-        .expect("etag header")
-        .to_str()
-        .unwrap()
-        .to_string();
-    assert!(etag.starts_with("W/\""));
-    let body = res.json_value().await;
-    assert_eq!(body["status"], "live");
-    assert_eq!(body["version"], 0);
-}
-
-#[tokio::test]
-async fn poll_live_returns_304_when_etag_matches() {
-    let mut app = TestApp::new().await;
-    let token = app.admin_token().await;
-    let id = create_game(&mut app, &token, -5.minutes()).await;
-
-    let res = app.get(format!("/api/games/{id}/live")).send().await;
-    let etag = res
-        .inner_headers()
-        .get("etag")
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    let res = app
-        .get(format!("/api/games/{id}/live"))
-        .header("if-none-match", &etag)
-        .send()
-        .await;
-    assert_eq!(res.status(), 304);
-}
-
-#[tokio::test]
-async fn poll_live_marks_scheduled_game_as_scheduled() {
-    let mut app = TestApp::new().await;
-    let token = app.admin_token().await;
-    let id = create_game(&mut app, &token, 168.hours()).await;
-
-    let res = app.get(format!("/api/games/{id}/live")).send().await;
-    assert_eq!(res.status(), 200);
-    let body = res.json_value().await;
-    assert_eq!(body["status"], "scheduled");
-}
-
-#[tokio::test]
 async fn adjust_score_when_not_live_returns_conflict() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
@@ -143,7 +85,7 @@ async fn moderator_can_update_live_game_via_put() {
     let admin = app.admin_token().await;
     let id = create_game(&mut app, &admin, -5.minutes()).await;
 
-    let res = app.get(format!("/api/games/{id}/live")).send().await;
+    let res = app.get(format!("/api/games/{id}")).send().await;
     assert_eq!(res.status(), 200);
     assert_eq!(res.json_value().await["status"], "live");
 
