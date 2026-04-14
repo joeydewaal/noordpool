@@ -1,0 +1,20 @@
+app = "noorpool-backend"
+primary_region = "ams"
+
+[build]
+
+[env]
+  PORT = "3000"
+  RUST_LOG = "info"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+
+  [[http_service.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[http_service.ports]]
+    port = 443
+    handlers = ["tls", "http"]
