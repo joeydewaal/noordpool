@@ -452,7 +452,7 @@ pub static MATCHES: &[ParsedMatch] = &[
     },
     ParsedMatch {
         col_index: 23,
-        opponent: "White star",
+        opponent: "White Star",
         is_home: false,
         home_score: 3,
         away_score: 0,
