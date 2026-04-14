@@ -11,6 +11,7 @@
   import type { UpdatePlayerRequest } from "$lib/api/types";
   import PlayerStatsBar from "$lib/components/charts/PlayerStatsBar.svelte";
   import PlayerTimeline from "$lib/components/charts/PlayerTimeline.svelte";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const id = page.params.id!;
   const queryClient = useQueryClient();
@@ -54,7 +55,9 @@
   }
 </script>
 
-{#if playerQuery.data}
+{#if playerQuery.isPending}
+  <Spinner />
+{:else if playerQuery.data}
   <div class="max-w-2xl">
     <button
       onclick={() => history.back()}

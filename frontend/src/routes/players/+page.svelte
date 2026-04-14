@@ -2,6 +2,7 @@
   import { createQuery } from "@tanstack/svelte-query";
   import { auth } from "$lib/state/auth.svelte";
   import { getPlayers } from "$lib/api/players";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const canManage = $derived(auth.isAdmin || auth.isModerator);
 
@@ -47,6 +48,11 @@
   </div>
 </div>
 
+{#if playersQuery.isPending}
+  <Spinner />
+{:else if playersQuery.isError}
+  <p class="text-error-500 text-sm">Kon spelers niet laden</p>
+{:else}
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   {#each filtered as player}
     <a
@@ -73,3 +79,4 @@
     </a>
   {/each}
 </div>
+{/if}

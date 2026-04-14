@@ -19,6 +19,7 @@
     ScoreSide,
   } from "$lib/api/types";
   import { startVisibilityPolling } from "$lib/visibility-polling.svelte";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const id = page.params.id!;
   const queryClient = useQueryClient();
@@ -157,7 +158,9 @@
   }
 </script>
 
-{#if gameQuery.data}
+{#if gameQuery.isPending}
+  <Spinner />
+{:else if gameQuery.data}
   {@const g = gameQuery.data}
   <div class="max-w-lg">
     <button

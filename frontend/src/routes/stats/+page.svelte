@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createQuery } from "@tanstack/svelte-query";
   import { getLeaderboard } from "$lib/api/events";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const leaderboardQuery = createQuery(() => ({
     queryKey: ["leaderboard"],
@@ -11,6 +12,11 @@
 <div class="max-w-2xl space-y-6">
   <h1 class="text-2xl font-bold">Statistieken</h1>
 
+  {#if leaderboardQuery.isPending}
+    <Spinner />
+  {:else if leaderboardQuery.isError}
+    <p class="text-error-500 text-sm">Kon statistieken niet laden</p>
+  {:else}
   <div class="card p-6">
     <h2 class="text-lg font-bold mb-3">Topscorers</h2>
     {#if !leaderboardQuery.data || leaderboardQuery.data.topScorers.length === 0}
@@ -128,4 +134,5 @@
       </div>
     {/if}
   </div>
+  {/if}
 </div>

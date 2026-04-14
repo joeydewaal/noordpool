@@ -9,6 +9,7 @@
     useQueryClient,
   } from "@tanstack/svelte-query";
   import type { CreateGameRequest, Team } from "$lib/api/types";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const canManage = $derived(auth.isAdmin || auth.isModerator);
   const queryClient = useQueryClient();
@@ -72,6 +73,11 @@
       >&larr; Alle wedstrijden</a
     >
     <h1 class="text-2xl font-bold mb-6">Nieuwe wedstrijd</h1>
+    {#if teamsQuery.isPending}
+      <Spinner />
+    {:else if teamsQuery.isError}
+      <p class="text-error-500 text-sm">Kon ploegen niet laden</p>
+    {:else}
     <form onsubmit={handleSubmit} class="card p-6 space-y-4">
       <div>
         <label for="homeTeam" class="label-text">Thuisploeg</label>
@@ -140,6 +146,7 @@
         </button>
       </div>
     </div>
+    {/if}
   </div>
 {:else}
   <p class="text-error-500 font-medium">
