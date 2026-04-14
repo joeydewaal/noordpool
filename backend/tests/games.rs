@@ -263,7 +263,9 @@ async fn delete_match_forbidden_for_moderator() {
     let mut app = TestApp::new().await;
     let admin_token = app.admin_token().await;
     let mod_token = app.moderator_token().await;
-    let (home_id, away_id) = app.create_teams(&admin_token, "De Noordpool", "FC Test").await;
+    let (home_id, away_id) = app
+        .create_teams(&admin_token, "De Noordpool", "FC Test")
+        .await;
 
     let res = app
         .post("/api/games")

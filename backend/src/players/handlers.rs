@@ -212,7 +212,15 @@ pub async fn stats(
     let all_teams = Team::all().exec(db).await?;
     let team_map: HashMap<Uuid, TeamSummary> = all_teams
         .into_iter()
-        .map(|t| (t.id, TeamSummary { id: t.id, name: t.name }))
+        .map(|t| {
+            (
+                t.id,
+                TeamSummary {
+                    id: t.id,
+                    name: t.name,
+                },
+            )
+        })
         .collect();
 
     let events = player.game_events.get();
@@ -262,8 +270,14 @@ pub async fn stats(
             minutes.sort_unstable();
             PlayerGoalMatchResponse {
                 game_id: game.id,
-                home_team: team_map.get(&game.home_team_id).cloned().unwrap_or_else(|| unknown.clone()),
-                away_team: team_map.get(&game.away_team_id).cloned().unwrap_or_else(|| unknown.clone()),
+                home_team: team_map
+                    .get(&game.home_team_id)
+                    .cloned()
+                    .unwrap_or_else(|| unknown.clone()),
+                away_team: team_map
+                    .get(&game.away_team_id)
+                    .cloned()
+                    .unwrap_or_else(|| unknown.clone()),
                 date_time: game.date_time,
                 home_score: game.home_score,
                 away_score: game.away_score,
@@ -303,8 +317,14 @@ pub async fn stats(
             cum_assists += a;
             GameTimelineEntry {
                 game_id,
-                home_team: team_map.get(&game.home_team_id).cloned().unwrap_or_else(|| unknown.clone()),
-                away_team: team_map.get(&game.away_team_id).cloned().unwrap_or_else(|| unknown.clone()),
+                home_team: team_map
+                    .get(&game.home_team_id)
+                    .cloned()
+                    .unwrap_or_else(|| unknown.clone()),
+                away_team: team_map
+                    .get(&game.away_team_id)
+                    .cloned()
+                    .unwrap_or_else(|| unknown.clone()),
                 date_time: game.date_time,
                 goals: g,
                 assists: a,

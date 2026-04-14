@@ -184,7 +184,6 @@ impl TestApp {
         Response { inner: resp }
     }
 
-
     pub async fn admin_token(&mut self) -> String {
         self.role_token("admin@example.com", Role::Admin).await
     }
@@ -236,31 +235,20 @@ impl TestApp {
     }
 
     /// Create two teams and return (home_team_id, away_team_id).
-    pub async fn create_teams(
-        &mut self,
-        token: &str,
-        home: &str,
-        away: &str,
-    ) -> (String, String) {
+    pub async fn create_teams(&mut self, token: &str, home: &str, away: &str) -> (String, String) {
         let res = self
             .post("/api/teams")
             .token(token)
             .json(json!({ "name": home }))
             .await;
-        let home_id = res.json_value().await["id"]
-            .as_str()
-            .unwrap()
-            .to_string();
+        let home_id = res.json_value().await["id"].as_str().unwrap().to_string();
 
         let res = self
             .post("/api/teams")
             .token(token)
             .json(json!({ "name": away }))
             .await;
-        let away_id = res.json_value().await["id"]
-            .as_str()
-            .unwrap()
-            .to_string();
+        let away_id = res.json_value().await["id"].as_str().unwrap().to_string();
 
         (home_id, away_id)
     }

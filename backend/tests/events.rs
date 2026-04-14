@@ -34,11 +34,7 @@ async fn create_player(
     if let Some(tid) = team_id {
         body["teamId"] = json!(tid);
     }
-    let res = app
-        .post("/api/players")
-        .token(token)
-        .json(body)
-        .await;
+    let res = app.post("/api/players").token(token).json(body).await;
     let body = res.json_value().await;
     body["id"].as_str().unwrap().to_string()
 }

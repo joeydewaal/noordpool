@@ -40,11 +40,7 @@ async fn create_player(
     if let Some(tid) = team_id {
         body["teamId"] = json!(tid);
     }
-    let res = app
-        .post("/api/players")
-        .token(token)
-        .json(body)
-        .await;
+    let res = app.post("/api/players").token(token).json(body).await;
     let body = res.json_value().await;
     body["id"].as_str().unwrap().to_string()
 }
@@ -128,7 +124,16 @@ async fn leaderboard_with_data() {
         Some(&home_id),
     )
     .await;
-    let defender = create_player(&mut app, &token, "Tough", "Guy", 4, "Centrale verdediger", Some(&home_id)).await;
+    let defender = create_player(
+        &mut app,
+        &token,
+        "Tough",
+        "Guy",
+        4,
+        "Centrale verdediger",
+        Some(&home_id),
+    )
+    .await;
 
     let game1 = create_game_and_complete(&mut app, &token, &home_id, &away_id, 3, 0).await;
 
@@ -179,7 +184,16 @@ async fn player_stats_with_events() {
     let token = app.admin_token().await;
     let (home_id, away_id) = app.create_teams(&token, "De Noordpool", "FC Rival").await;
 
-    let player = create_player(&mut app, &token, "Star", "Player", 7, "Spits", Some(&home_id)).await;
+    let player = create_player(
+        &mut app,
+        &token,
+        "Star",
+        "Player",
+        7,
+        "Spits",
+        Some(&home_id),
+    )
+    .await;
     let game = create_game_and_complete(&mut app, &token, &home_id, &away_id, 2, 0).await;
 
     add_event(&mut app, &token, &game, &player, "goal", 10).await;
@@ -208,7 +222,9 @@ async fn player_stats_with_events() {
 async fn stats_ignore_scheduled_game_events() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
-    let (home_id, away_id) = app.create_teams(&token, "De Noordpool", "FC Scheduled").await;
+    let (home_id, away_id) = app
+        .create_teams(&token, "De Noordpool", "FC Scheduled")
+        .await;
 
     let player = create_player(&mut app, &token, "Player", "", 11, "Spits", Some(&home_id)).await;
 

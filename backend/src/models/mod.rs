@@ -121,10 +121,8 @@ pub async fn init_db(db: &mut Db, config: &Config) -> Result<(), Box<dyn Error>>
 
     // Build name→Team lookup so we can resolve FKs for games.
     let all_teams = Team::all().exec(&mut tx).await?;
-    let team_by_name: HashMap<&str, &Team> = all_teams
-        .iter()
-        .map(|t| (t.name.as_str(), t))
-        .collect();
+    let team_by_name: HashMap<&str, &Team> =
+        all_teams.iter().map(|t| (t.name.as_str(), t)).collect();
 
     let mut col_to_game: HashMap<usize, Game> = HashMap::new();
     for m in matches {

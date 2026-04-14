@@ -65,17 +65,23 @@ pub async fn create(
     let is_goal = event.event_type == EventType::Goal;
 
     let (new_home, new_away, goal_side) = if is_goal {
-        let player = Player::filter_by_id(body.player_id)
-            .get(&mut db)
-            .await?;
+        let player = Player::filter_by_id(body.player_id).get(&mut db).await?;
         let team_id = player
             .team_id
             .ok_or_else(|| AppError::bad_request("player has no team"))?;
 
         if team_id == game.home_team_id {
-            (game.home_score + 1, game.away_score, Some(crate::games::live::ScoreSide::Home))
+            (
+                game.home_score + 1,
+                game.away_score,
+                Some(crate::games::live::ScoreSide::Home),
+            )
         } else if team_id == game.away_team_id {
-            (game.home_score, game.away_score + 1, Some(crate::games::live::ScoreSide::Away))
+            (
+                game.home_score,
+                game.away_score + 1,
+                Some(crate::games::live::ScoreSide::Away),
+            )
         } else {
             return Err(AppError::bad_request(
                 "player does not belong to either team in this game",
@@ -138,9 +144,7 @@ pub async fn delete(
     let next_version = game.version + 1;
 
     let (new_home, new_away) = if was_goal {
-        let player = Player::filter_by_id(event.player_id)
-            .get(&mut db)
-            .await?;
+        let player = Player::filter_by_id(event.player_id).get(&mut db).await?;
         let team_id = player.team_id;
 
         if team_id == Some(game.home_team_id) {
