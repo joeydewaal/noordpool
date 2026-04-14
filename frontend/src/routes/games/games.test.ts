@@ -75,9 +75,7 @@ describe("games page loading states", () => {
 
     render(Page);
 
-    expect(
-      screen.getByText("Noordpool vs Ajax"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs Ajax")).toBeInTheDocument();
   });
 
   it("shows empty state when results query returns no data", () => {
@@ -119,9 +117,7 @@ describe("this week's match highlight", () => {
     render(Page);
 
     expect(screen.getByText("Deze week")).toBeInTheDocument();
-    expect(
-      screen.getByText("Noordpool vs Ajax"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs Ajax")).toBeInTheDocument();
     expect(screen.getByText("Sportpark Noord")).toBeInTheDocument();
   });
 

@@ -164,9 +164,7 @@ describe("Header today-game indicator", () => {
     render(Header);
 
     expect(screen.getAllByLabelText("Wedstrijd live").length).toBe(2);
-    expect(
-      screen.getByText("Noordpool vs NowPlaying"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs NowPlaying")).toBeInTheDocument();
   });
 
   it("falls back to the earliest game today when none are live", () => {
@@ -189,9 +187,7 @@ describe("Header today-game indicator", () => {
 
     render(Header);
 
-    expect(
-      screen.getByText("Noordpool vs Early"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs Early")).toBeInTheDocument();
   });
 
   it("ignores games on a different local date", () => {

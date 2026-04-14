@@ -2,22 +2,20 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
 import type { Game } from "$lib/api/types";
 
-const { mockAuth, mockState, scoreMutate, addEventMutate } = vi.hoisted(
-  () => {
-    const mockAuth = {
-      isAdmin: false,
-      isModerator: false,
-      teamId: null as string | null,
-    };
-    const mockState = {
-      gameData: null as Game | null,
-      playersData: [] as unknown[],
-    };
-    const scoreMutate = vi.fn();
-    const addEventMutate = vi.fn();
-    return { mockAuth, mockState, scoreMutate, addEventMutate };
-  },
-);
+const { mockAuth, mockState, scoreMutate, addEventMutate } = vi.hoisted(() => {
+  const mockAuth = {
+    isAdmin: false,
+    isModerator: false,
+    teamId: null as string | null,
+  };
+  const mockState = {
+    gameData: null as Game | null,
+    playersData: [] as unknown[],
+  };
+  const scoreMutate = vi.fn();
+  const addEventMutate = vi.fn();
+  return { mockAuth, mockState, scoreMutate, addEventMutate };
+});
 
 vi.mock("$app/state", () => ({
   page: { params: { id: "game-1" } },
@@ -135,18 +133,14 @@ describe("game detail — score adjuster", () => {
   it("does not render the score adjuster for a non-moderator", () => {
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
-    expect(
-      screen.queryByLabelText("Score adjuster"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Score adjuster")).not.toBeInTheDocument();
   });
 
   it("does not render any score adjuster when the game is not live", () => {
     mockAuth.isModerator = true;
     mockState.gameData = makeGame({ status: "scheduled" });
     render(Page);
-    expect(
-      screen.queryByLabelText("Score adjuster"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Score adjuster")).not.toBeInTheDocument();
   });
 
   it("shows opponent panel when user belongs to a team in this game", () => {

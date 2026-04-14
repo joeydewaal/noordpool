@@ -75,12 +75,7 @@
     <form onsubmit={handleSubmit} class="card p-6 space-y-4">
       <div>
         <label for="homeTeam" class="label-text">Thuisploeg</label>
-        <select
-          id="homeTeam"
-          bind:value={homeTeamId}
-          required
-          class="select"
-        >
+        <select id="homeTeam" bind:value={homeTeamId} required class="select">
           <option value="" disabled>Kies thuisploeg</option>
           {#each teams as team}
             <option value={team.id}>{team.name}</option>
@@ -89,12 +84,7 @@
       </div>
       <div>
         <label for="awayTeam" class="label-text">Uitploeg</label>
-        <select
-          id="awayTeam"
-          bind:value={awayTeamId}
-          required
-          class="select"
-        >
+        <select id="awayTeam" bind:value={awayTeamId} required class="select">
           <option value="" disabled>Kies uitploeg</option>
           {#each teams as team}
             <option value={team.id}>{team.name}</option>
