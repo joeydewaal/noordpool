@@ -143,7 +143,7 @@ describe("game detail — score adjuster", () => {
     expect(screen.queryByLabelText("Score adjuster")).not.toBeInTheDocument();
   });
 
-  it("shows opponent panel when user belongs to a team in this game", () => {
+  it("shows both-side controls when user belongs to a team in this game", () => {
     mockAuth.isModerator = true;
     mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({ status: "live" });
@@ -154,6 +154,20 @@ describe("game detail — score adjuster", () => {
     expect(
       screen.getByLabelText("Doelpunt tegenstander intrekken"),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Eigen doelpunt")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Eigen doelpunt intrekken"),
+    ).toBeInTheDocument();
+  });
+
+  it("own-side + button mutates own side", async () => {
+    mockAuth.isModerator = true;
+    mockAuth.teamId = "team-home";
+    mockState.gameData = makeGame({ status: "live" });
+    render(Page);
+
+    await fireEvent.click(screen.getByLabelText("Eigen doelpunt"));
+    expect(scoreMutate).toHaveBeenCalledWith({ side: "home", delta: 1 });
   });
 
   it("shows the opponent score (away when we are home)", () => {

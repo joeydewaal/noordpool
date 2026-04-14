@@ -228,70 +228,47 @@
           class="mt-4 card preset-tonal-warning p-4"
           aria-label="Score adjuster"
         >
+          <h3 class="text-sm font-semibold mb-3">Score aanpassen</h3>
           {#if ownSide}
-            {@const opponentSide = ownSide === "home" ? "away" : "home"}
-            {@const opponentName =
-              ownSide === "home" ? g.awayTeam.name : g.homeTeam.name}
-            {@const opponentScore = ownSide === "home" ? awayScore : homeScore}
-            <h3 class="text-sm font-semibold mb-1">Tegenstander scoorde</h3>
             <p class="text-xs text-surface-400 mb-3">
               Eigen doelpunten registreer je hieronder als gebeurtenis.
             </p>
-            <div class="flex items-center justify-center gap-4">
-              <button
-                type="button"
-                class="btn btn-sm preset-filled-error-500"
-                onclick={() =>
-                  scoreMutation.mutate({ side: opponentSide, delta: -1 })}
-                disabled={opponentScore === 0 || scoreMutation.isPending}
-                aria-label="Doelpunt tegenstander intrekken"
-              >
-                &minus;
-              </button>
-              <div class="text-center">
-                <div class="text-xs text-surface-400">{opponentName}</div>
-                <div class="text-3xl font-bold">{opponentScore}</div>
-              </div>
-              <button
-                type="button"
-                class="btn btn-sm preset-filled-success-500"
-                onclick={() =>
-                  scoreMutation.mutate({ side: opponentSide, delta: 1 })}
-                disabled={scoreMutation.isPending}
-                aria-label="Doelpunt tegenstander"
-              >
-                +
-              </button>
-            </div>
-          {:else}
-            <h3 class="text-sm font-semibold mb-3">Score aanpassen</h3>
-            <div class="grid grid-cols-2 gap-4">
-              {#each [{ side: "home" as ScoreSide, name: g.homeTeam.name, score: homeScore }, { side: "away" as ScoreSide, name: g.awayTeam.name, score: awayScore }] as { side, name, score }}
-                <div class="flex flex-col items-center gap-1">
-                  <div class="text-xs text-surface-400">{name}</div>
-                  <div class="text-2xl font-bold">{score}</div>
-                  <div class="flex gap-2">
-                    <button
-                      type="button"
-                      class="btn btn-sm preset-filled-error-500"
-                      onclick={() => scoreMutation.mutate({ side, delta: -1 })}
-                      disabled={score === 0 || scoreMutation.isPending}
-                    >
-                      &minus;
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-sm preset-filled-success-500"
-                      onclick={() => scoreMutation.mutate({ side, delta: 1 })}
-                      disabled={scoreMutation.isPending}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              {/each}
-            </div>
           {/if}
+          <div class="grid grid-cols-2 gap-4">
+            {#each [{ side: "home" as ScoreSide, name: g.homeTeam.name, score: homeScore }, { side: "away" as ScoreSide, name: g.awayTeam.name, score: awayScore }] as { side, name, score }}
+              {@const isOwn = ownSide === side}
+              <div class="flex flex-col items-center gap-1">
+                <div class="text-xs text-surface-400">
+                  {name}{isOwn ? " (eigen)" : ""}
+                </div>
+                <div class="text-2xl font-bold">{score}</div>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm preset-filled-error-500"
+                    onclick={() => scoreMutation.mutate({ side, delta: -1 })}
+                    disabled={score === 0 || scoreMutation.isPending}
+                    aria-label={isOwn
+                      ? "Eigen doelpunt intrekken"
+                      : "Doelpunt tegenstander intrekken"}
+                  >
+                    &minus;
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm preset-filled-success-500"
+                    onclick={() => scoreMutation.mutate({ side, delta: 1 })}
+                    disabled={scoreMutation.isPending}
+                    aria-label={isOwn
+                      ? "Eigen doelpunt"
+                      : "Doelpunt tegenstander"}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
         </div>
       {/if}
 
