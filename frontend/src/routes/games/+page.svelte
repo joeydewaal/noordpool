@@ -7,6 +7,7 @@
   import type { Game, ScoreSide } from "$lib/api/types";
   import { Tabs } from "@skeletonlabs/skeleton-svelte";
   import { isThisWeek, isToday } from "$lib/utils/date";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const canManage = $derived(auth.isAdmin || auth.isModerator);
 
@@ -134,7 +135,7 @@
     </Tabs.List>
     <Tabs.Content value="upcoming">
       {#if upcomingQuery.isPending}
-        <p class="text-surface-400 text-sm">Laden...</p>
+        <Spinner />
       {:else if remainingUpcoming.length === 0 && !thisWeekMatch}
         <p class="text-surface-400 text-sm">
           Geen komende wedstrijden gepland.
@@ -190,7 +191,7 @@
     </Tabs.Content>
     <Tabs.Content value="results">
       {#if recentQuery.isPending}
-        <p class="text-surface-400 text-sm">Laden...</p>
+        <Spinner />
       {:else if !recentQuery.data || recentQuery.data.length === 0}
         <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
       {:else}

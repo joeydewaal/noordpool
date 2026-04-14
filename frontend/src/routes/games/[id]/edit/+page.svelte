@@ -10,6 +10,7 @@
     useQueryClient,
   } from "@tanstack/svelte-query";
   import type { Game, Team, UpdateGameRequest } from "$lib/api/types";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const canManage = $derived(auth.isAdmin || auth.isModerator);
   const id = page.params.id!;
@@ -83,7 +84,9 @@
     Geen toegang. Admin- of moderatorrol vereist.
   </p>
 {:else if gameQuery.isPending}
-  <p class="text-surface-400">Laden...</p>
+  <Spinner />
+{:else if gameQuery.isError}
+  <p class="text-error-500 text-sm">Kon wedstrijd niet laden</p>
 {:else if !gameQuery.data}
   <p class="text-surface-400">Wedstrijd niet gevonden.</p>
 {:else if game_state != null}

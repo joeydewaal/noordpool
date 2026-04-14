@@ -18,6 +18,7 @@
     isPushSupported,
   } from "$lib/push-subscribe";
   import { onMount } from "svelte";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   if (!auth.isAuthenticated) {
     goto("/auth/login");
@@ -184,7 +185,11 @@
           </div>
         </div>
 
-        {#if playerQuery.data}
+        {#if playerQuery.isPending}
+          <Spinner size="sm" />
+        {:else if playerQuery.isError}
+          <p class="text-error-500 text-sm">Kon speler niet laden</p>
+        {:else if playerQuery.data}
           {#if editingPlayer}
             <form
               onsubmit={handlePlayerSubmit}

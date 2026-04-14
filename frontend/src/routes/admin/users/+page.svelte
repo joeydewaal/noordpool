@@ -7,6 +7,7 @@
   import { auth } from "$lib/state/auth.svelte";
   import { listUsers, updateUser } from "$lib/api/users";
   import type { User } from "$lib/api/types";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const queryClient = useQueryClient();
 
@@ -42,7 +43,7 @@
   </div>
 
   {#if usersQuery.isPending}
-    <p class="text-surface-400 text-sm">Laden...</p>
+    <Spinner />
   {:else if usersQuery.isError}
     <p class="text-red-500 text-sm">Kon gebruikers niet laden</p>
   {:else if !usersQuery.data || usersQuery.data.length === 0}

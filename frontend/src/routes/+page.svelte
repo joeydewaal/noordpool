@@ -3,6 +3,7 @@
   import { auth } from "$lib/state/auth.svelte";
   import { getGamesSummary } from "$lib/api/games";
   import type { Game, ScoreSide } from "$lib/api/types";
+  import Spinner from "$lib/components/Spinner.svelte";
 
   const summaryQuery = createQuery(() => ({
     queryKey: ["games", "summary"],
@@ -46,7 +47,11 @@
             >Bekijk alles</a
           >
         </div>
-        {#if !summaryQuery.data?.upcoming || summaryQuery.data.upcoming.length === 0}
+        {#if summaryQuery.isPending}
+          <Spinner />
+        {:else if summaryQuery.isError}
+          <p class="text-error-500 text-sm">Kon wedstrijden niet laden</p>
+        {:else if !summaryQuery.data?.upcoming || summaryQuery.data.upcoming.length === 0}
           <p class="text-surface-400 text-sm">Geen komende wedstrijden.</p>
         {:else}
           <div class="space-y-3">
@@ -92,7 +97,11 @@
             >Bekijk alles</a
           >
         </div>
-        {#if !summaryQuery.data?.recent || summaryQuery.data.recent.length === 0}
+        {#if summaryQuery.isPending}
+          <Spinner />
+        {:else if summaryQuery.isError}
+          <p class="text-error-500 text-sm">Kon uitslagen niet laden</p>
+        {:else if !summaryQuery.data?.recent || summaryQuery.data.recent.length === 0}
           <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
         {:else}
           <div class="space-y-3">
@@ -147,7 +156,11 @@
           >Bekijk alles</a
         >
       </div>
-      {#if !summaryQuery.data?.upcoming || summaryQuery.data.upcoming.length === 0}
+      {#if summaryQuery.isPending}
+        <Spinner />
+      {:else if summaryQuery.isError}
+        <p class="text-error-500 text-sm">Kon wedstrijden niet laden</p>
+      {:else if !summaryQuery.data?.upcoming || summaryQuery.data.upcoming.length === 0}
         <p class="text-surface-400 text-sm">Geen komende wedstrijden.</p>
       {:else}
         <div class="space-y-3">
@@ -176,7 +189,11 @@
           >Bekijk alles</a
         >
       </div>
-      {#if !summaryQuery.data?.recent || summaryQuery.data.recent.length === 0}
+      {#if summaryQuery.isPending}
+        <Spinner />
+      {:else if summaryQuery.isError}
+        <p class="text-error-500 text-sm">Kon uitslagen niet laden</p>
+      {:else if !summaryQuery.data?.recent || summaryQuery.data.recent.length === 0}
         <p class="text-surface-400 text-sm">Nog geen uitslagen.</p>
       {:else}
         <div class="space-y-3">
