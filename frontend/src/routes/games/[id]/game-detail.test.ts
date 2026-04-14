@@ -27,7 +27,6 @@ vi.mock("$lib/state/auth.svelte", () => ({
 
 vi.mock("$lib/api/games", () => ({
   getGame: vi.fn(),
-  pollLive: vi.fn().mockResolvedValue({ body: null, etag: null }),
   adjustScore: vi.fn(),
 }));
 
@@ -40,8 +39,8 @@ vi.mock("$lib/api/players", () => ({
   getPlayers: vi.fn(),
 }));
 
-vi.mock("$lib/visibility-polling.svelte", () => ({
-  startVisibilityPolling: vi.fn(() => () => {}),
+vi.mock("$lib/live-match.svelte", () => ({
+  startLiveMatchStream: vi.fn(() => () => {}),
 }));
 
 vi.mock("@tanstack/svelte-query", () => ({

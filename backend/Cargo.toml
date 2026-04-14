@@ -3,12 +3,9 @@ name = "noordpool-backend"
 version = "0.1.0"
 edition = "2024"
 
-[features]
-prod = ["dep:lambda_http"]
-
 [dependencies]
 dotenvy = "0.15.7"
-axum = { version = "0.8.8", features = ["tokio"] }
+axum = { version = "0.8.8", features = ["tokio", "ws"] }
 tokio = { version = "1.50", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors"] }
@@ -23,8 +20,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 csv = "1"
 web-push = "0.11"
-
-lambda_http = { version = "1.1.2", optional = true }
 
 [build-dependencies]
 csv = "1"

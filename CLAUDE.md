@@ -21,7 +21,7 @@ Backend (port 3000):
 cd backend && cargo run
 ```
 
-Reads `backend/.env` for `DATABASE_URL`, `JWT_SECRET`, VAPID keys, etc. Defaults to `sqlite::memory:` if `DATABASE_URL` is unset. In dev mode, auto-migrates the schema and seeds an admin user (`admin@noordpool.be` / `Admin123`).
+Reads `backend/.env` for `DATABASE_URL`, `JWT_SECRET`, VAPID keys, etc. Defaults to `sqlite::memory:` if `DATABASE_URL` is unset. Schema auto-migration runs on every startup. Setting `NOORDPOOL_SEED=1` also seeds an admin user (`admin@noordpool.be` / `Admin123`) and demo data — leave it unset in production.
 
 Frontend (port 5173):
 
@@ -74,8 +74,8 @@ Handlers return `Result<impl IntoResponse, AppError>` where `AppError` is in `sr
 
 ## Deployment
 
-Deployed to **AWS Lambda** with the `prod` feature flag:
-- `cargo build --release --features prod` — enables `lambda_http` runtime, disables auto-migration
-- **No SSE/WebSockets** — Lambda does not support long-lived connections
-- Live match updates use HTTP polling with `ETag` / `304 Not Modified`
-- Push notifications use Web Push (fire-and-forget, works from Lambda)
+Deployed to **Fly.io** as a single persistent Axum binary.
+
+- Live match updates use a per-match **WebSocket** at `/api/games/:id/ws` — viewers receive `Snapshot` / `ScoreUpdate` / `EventAdded` / `EventDeleted` / `StatusChange` frames.
+- Mutations still go through the existing authenticated REST endpoints (e.g. `POST /api/games/:id/live/score`); the mutation handler publishes to the in-memory hub which fans out to connected sockets.
+- Push notifications use Web Push for OS-level alerts when the app is closed/backgrounded — WebSockets cover in-app live state, Web Push covers out-of-app delivery.

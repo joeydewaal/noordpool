@@ -1,7 +1,6 @@
 pub struct Config {
     pub database_url: String,
     pub jwt_secret: String,
-    #[allow(unused)]
     pub port: u16,
     pub google_client_id: Option<String>,
     pub google_client_secret: Option<String>,

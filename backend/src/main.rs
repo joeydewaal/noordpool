@@ -96,21 +96,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         jwt,
         google_oidc,
         vapid,
+        live_hub: games::live_ws::LiveHub::new(),
     };
 
     let app = routes::app(state);
 
-    #[cfg(feature = "prod")]
-    lambda_http::run(app).await.unwrap();
-
-    #[cfg(not(feature = "prod"))]
-    {
-        use tokio::net::TcpListener;
-
-        let listener = TcpListener::bind(("0.0.0.0", config.port)).await?;
-        tracing::info!("listening on {}", listener.local_addr()?);
-        axum::serve(listener, app).await?;
-    }
+    let listener = tokio::net::TcpListener::bind(("0.0.0.0", config.port)).await?;
+    tracing::info!("listening on {}", listener.local_addr()?);
+    axum::serve(listener, app).await?;
 
     Ok(())
 }

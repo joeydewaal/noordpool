@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
+    games::live_ws::LiveEvent,
     models::{EventType, Game, GameEvent, Player, Role},
     push,
 };
@@ -53,6 +54,13 @@ pub async fn create(
         .event_type(body.event_type)
         .minute(body.minute)
         .exec(&mut db)
+        .await?;
+
+    // We also need the player attached to this event. The create call has no way to do this
+    // currently so we refetch the newly inserted event.
+    let event = GameEvent::filter_by_id(event.id)
+        .include(GameEvent::fields().player())
+        .get(&mut db)
         .await?;
 
     // Touch the parent game so live pollers see the new event on
@@ -99,6 +107,21 @@ pub async fn create(
         update.set_away_score(new_away);
     }
     update.exec(&mut db).await?;
+
+    state
+        .live_hub
+        .publish(game_id, LiveEvent::EventAdded(event.clone()));
+    if is_goal {
+        state.live_hub.publish(
+            game_id,
+            LiveEvent::ScoreUpdate {
+                home: new_home,
+                away: new_away,
+                version: next_version,
+                updated_at: now,
+            },
+        );
+    }
 
     if was_live && is_goal {
         let fresh = Game::filter_by_id(game_id)
@@ -165,6 +188,21 @@ pub async fn delete(
         update.set_away_score(new_away);
     }
     update.exec(&mut db).await?;
+
+    state
+        .live_hub
+        .publish(game_id, LiveEvent::EventDeleted { id: event_id });
+    if was_goal {
+        state.live_hub.publish(
+            game_id,
+            LiveEvent::ScoreUpdate {
+                home: new_home,
+                away: new_away,
+                version: next_version,
+                updated_at: now,
+            },
+        );
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -7,7 +7,7 @@ use crate::common::TestApp;
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
-    for path in &[".id", ".playerId", "[].id", "[].playerId"] {
+    for path in &[".id", ".playerId", "[].id", "[].playerId", ".player.id"] {
         settings.add_redaction(
             path,
             insta::dynamic_redaction(|val, _| {
@@ -15,6 +15,7 @@ fn redact_settings() -> Settings {
             }),
         );
     }
+    settings.add_redaction(".player.createdAt", "[date]");
     settings
 }
 

@@ -7,6 +7,7 @@ import type {
   ScoreSide,
 } from "./types";
 import { api } from "./client";
+export type { LivePoll };
 
 export async function getGames(): Promise<Game[]> {
   return (await api.get<Game[]>("/games")).data;
@@ -49,35 +50,6 @@ export async function updateGame(
 
 export async function deleteGame(id: string): Promise<void> {
   await api.delete(`/games/${id}`);
-}
-
-/// Result of a live-poll request. `null` body means 304 Not Modified —
-/// the caller should keep its previous state. Always returns the latest
-/// `etag` so the caller can pass it back on the next request.
-export interface LivePollResult {
-  body: LivePoll | null;
-  etag: string | null;
-}
-
-export async function pollLive(
-  id: string,
-  etag: string | null,
-): Promise<LivePollResult> {
-  const headers: Record<string, string> = {};
-  if (etag) headers["If-None-Match"] = etag;
-
-  const res = await api.get<LivePoll>(`/games/${id}/live`, {
-    headers,
-    validateStatus: (s) => s === 200 || s === 304,
-  });
-
-  if (res.status === 304) {
-    return { body: null, etag };
-  }
-  return {
-    body: res.data,
-    etag: (res.headers["etag"] as string | undefined) ?? null,
-  };
 }
 
 /// Adjusts the live score for the specified side by +/-1.

@@ -1,9 +1,18 @@
 ---
 source: tests/events.rs
-expression: body
+expression: res.json_value().await
 ---
 {
   "eventType": "goal",
   "id": "[uuid]",
-  "minute": 25
+  "minute": 25,
+  "player": {
+    "active": true,
+    "createdAt": "[date]",
+    "firstName": "Scorer",
+    "id": "[uuid]",
+    "lastName": "",
+    "position": "Spits",
+    "shirtNumber": 9
+  }
 }
