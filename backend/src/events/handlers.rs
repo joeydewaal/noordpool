@@ -56,6 +56,13 @@ pub async fn create(
         .exec(&mut db)
         .await?;
 
+    // We also need the player attached to this event. The create call has no way to do this
+    // currently so we refetch the newly inserted event.
+    let event = GameEvent::filter_by_id(event.id)
+        .include(GameEvent::fields().player())
+        .get(&mut db)
+        .await?;
+
     // Touch the parent game so live pollers see the new event on
     // their next tick. A `Goal` event also bumps the correct side of
     // the score based on the player's team.
