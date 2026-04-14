@@ -9,12 +9,12 @@ use crate::models::Player;
 pub struct Team {
     #[key]
     #[auto]
-    id: Uuid,
+    pub id: Uuid,
 
     #[unique]
-    name: String,
+    pub name: String,
 
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]
-    players: HasMany<Player>,
+    pub players: HasMany<Player>,
 }

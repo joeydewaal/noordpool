@@ -36,6 +36,14 @@ fn redact_settings() -> Settings {
                 .unwrap_or(val.clone())
         }),
     );
+    settings.add_redaction(".homeTeam.id", "[uuid]");
+    settings.add_redaction(".awayTeam.id", "[uuid]");
+    settings.add_redaction(".homeTeamId", "[uuid]");
+    settings.add_redaction(".awayTeamId", "[uuid]");
+    settings.add_redaction("[].homeTeam.id", "[uuid]");
+    settings.add_redaction("[].awayTeam.id", "[uuid]");
+    settings.add_redaction("[].homeTeamId", "[uuid]");
+    settings.add_redaction("[].awayTeamId", "[uuid]");
     settings
 }
 
@@ -50,13 +58,16 @@ async fn list_games_empty() {
 #[tokio::test]
 async fn create_game_requires_auth() {
     let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+    let (home_id, away_id) = app.create_teams(&token, "Home FC", "Away FC").await;
+
     let res = app
         .post("/api/games")
         .json(json!({
-            "opponent": "FC Test",
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z",
-            "homeAway": "home"
+            "dateTime": "2026-06-15T18:00:00Z"
         }))
         .await;
     assert_eq!(res.status(), 401);
@@ -65,16 +76,18 @@ async fn create_game_requires_auth() {
 #[tokio::test]
 async fn create_game_forbidden_for_player_role() {
     let mut app = TestApp::new().await;
+    let admin_token = app.admin_token().await;
+    let (home_id, away_id) = app.create_teams(&admin_token, "Home FC", "Away FC").await;
     let token = app.player_token().await;
 
     let res = app
         .post("/api/games")
         .token(&token)
         .json(json!({
-            "opponent": "FC Test",
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z",
-            "homeAway": "home"
+            "dateTime": "2026-06-15T18:00:00Z"
         }))
         .await;
     assert_eq!(res.status(), 403);
@@ -84,15 +97,16 @@ async fn create_game_forbidden_for_player_role() {
 async fn create_and_get_game() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let (home_id, away_id) = app.create_teams(&token, "De Noordpool", "FC Test").await;
 
     let res = app
         .post("/api/games")
         .token(&token)
         .json(json!({
-            "opponent": "FC Test",
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z",
-            "homeAway": "home"
+            "dateTime": "2026-06-15T18:00:00Z"
         }))
         .await;
     assert_eq!(res.status(), 200);
@@ -114,16 +128,18 @@ async fn create_and_get_game() {
 #[tokio::test]
 async fn update_game() {
     let mut app = TestApp::new().await;
+    let admin = app.admin_token().await;
+    let (home_id, away_id) = app.create_teams(&admin, "De Noordpool", "FC Test").await;
     let token = app.moderator_token().await;
 
     let res = app
         .post("/api/games")
         .token(&token)
         .json(json!({
-            "opponent": "FC Test",
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z",
-            "homeAway": "home"
+            "dateTime": "2026-06-15T18:00:00Z"
         }))
         .await;
     let created = res.json_value().await;
@@ -149,15 +165,23 @@ async fn update_game() {
 async fn upcoming_and_recent() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let (home_id, future_id) = app.create_teams(&token, "De Noordpool", "FC Future").await;
+
+    let res = app
+        .post("/api/teams")
+        .token(&token)
+        .json(json!({ "name": "FC Past" }))
+        .await;
+    let past_id = res.json_value().await["id"].as_str().unwrap().to_string();
 
     // Create a scheduled match (future)
     app.post("/api/games")
         .token(&token)
         .json(json!({
-            "opponent": "FC Future",
+            "homeTeamId": home_id,
+            "awayTeamId": future_id,
             "location": "Home Stadium",
-            "dateTime": "2027-06-15T18:00:00Z",
-            "homeAway": "home"
+            "dateTime": "2027-06-15T18:00:00Z"
         }))
         .await;
 
@@ -165,10 +189,10 @@ async fn upcoming_and_recent() {
     app.post("/api/games")
         .token(&token)
         .json(json!({
-            "opponent": "FC Past",
+            "homeTeamId": past_id,
+            "awayTeamId": home_id,
             "location": "Away Stadium",
-            "dateTime": "2024-01-10T15:00:00Z",
-            "homeAway": "away"
+            "dateTime": "2024-01-10T15:00:00Z"
         }))
         .await;
 
@@ -178,7 +202,7 @@ async fn upcoming_and_recent() {
     let body = res.json_value().await;
     let arr = body.as_array().unwrap();
     assert_eq!(arr.len(), 1);
-    assert_eq!(arr[0]["opponent"], "FC Future");
+    assert_eq!(arr[0]["awayTeam"]["name"], "FC Future");
 
     // Check recent
     let res = app.get("/api/games/recent").send().await;
@@ -186,7 +210,7 @@ async fn upcoming_and_recent() {
     let body = res.json_value().await;
     let arr = body.as_array().unwrap();
     assert_eq!(arr.len(), 1);
-    assert_eq!(arr[0]["opponent"], "FC Past");
+    assert_eq!(arr[0]["homeTeam"]["name"], "FC Past");
 
     // Check limit
     let res = app.get("/api/games/upcoming?limit=0").send().await;
@@ -208,22 +232,21 @@ async fn get_game_not_found() {
 async fn delete_game() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let (home_id, away_id) = app.create_teams(&token, "De Noordpool", "FC Test").await;
 
-    // Create a match
     let res = app
         .post("/api/games")
         .token(&token)
         .json(json!({
-            "opponent": "FC Test",
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z",
-            "homeAway": "home"
+            "dateTime": "2026-06-15T18:00:00Z"
         }))
         .await;
     let created = res.json_value().await;
     let game_id = created["id"].as_str().unwrap();
 
-    // Delete
     let res = app
         .delete(format!("/api/games/{game_id}"))
         .token(&token)
@@ -231,7 +254,6 @@ async fn delete_game() {
         .await;
     assert_eq!(res.status(), 204);
 
-    // Verify gone
     let res = app.get(format!("/api/games/{game_id}")).send().await;
     assert_eq!(res.status(), 404);
 }
@@ -241,22 +263,23 @@ async fn delete_match_forbidden_for_moderator() {
     let mut app = TestApp::new().await;
     let admin_token = app.admin_token().await;
     let mod_token = app.moderator_token().await;
+    let (home_id, away_id) = app
+        .create_teams(&admin_token, "De Noordpool", "FC Test")
+        .await;
 
-    // Create a match as admin
     let res = app
         .post("/api/games")
         .token(&admin_token)
         .json(json!({
-            "opponent": "FC Test",
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z",
-            "homeAway": "home"
+            "dateTime": "2026-06-15T18:00:00Z"
         }))
         .await;
     let created = res.json_value().await;
     let game_id = created["id"].as_str().unwrap();
 
-    // Moderator should not be able to delete
     let res = app
         .delete(format!("/api/games/{game_id}"))
         .token(&mod_token)

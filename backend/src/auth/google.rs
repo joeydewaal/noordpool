@@ -7,7 +7,7 @@ use jiff::{Timestamp, ToSpan};
 use toasty::Db;
 
 use super::claims::Claims;
-use crate::models::User;
+use crate::models::{Player, User};
 
 pub struct GoogleHandler {
     pub db: Db,
@@ -77,12 +77,22 @@ async fn after_login(
         }
     };
 
+    let team_id = if let Some(pid) = user.player_id {
+        Player::get_by_id(&mut db, pid)
+            .await
+            .ok()
+            .and_then(|p| p.team_id)
+    } else {
+        None
+    };
+
     let claims = Claims {
         sub: user.id,
         email: user.email.clone(),
         first_name: user.first_name.clone(),
         last_name: user.last_name.clone(),
         player_id: user.player_id,
+        team_id,
         roles: roles.clone(),
         exp: Timestamp::now() + 24.days(),
     };

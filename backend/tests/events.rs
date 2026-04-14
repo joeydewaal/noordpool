@@ -9,7 +9,7 @@ fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
     for path in &[".id", ".playerId", "[].id", "[].playerId"] {
         settings.add_redaction(
-            *path,
+            path,
             insta::dynamic_redaction(|val, _| {
                 val.as_str().map(|_| "[uuid]".into()).unwrap_or(val.clone())
             }),
@@ -18,44 +18,51 @@ fn redact_settings() -> Settings {
     settings
 }
 
-async fn create_player(app: &mut TestApp, token: &str, first_name: &str, number: i32) -> String {
-    let res = app
-        .post("/api/players")
-        .token(token)
-        .json(json!({
-            "firstName": first_name,
-            "lastName": "",
-            "shirtNumber": number,
-            "position": "Spits"
-        }))
-        .await;
-
+async fn create_player(
+    app: &mut TestApp,
+    token: &str,
+    first_name: &str,
+    number: i32,
+    team_id: Option<&str>,
+) -> String {
+    let mut body = json!({
+        "firstName": first_name,
+        "lastName": "",
+        "shirtNumber": number,
+        "position": "Spits"
+    });
+    if let Some(tid) = team_id {
+        body["teamId"] = json!(tid);
+    }
+    let res = app.post("/api/players").token(token).json(body).await;
     let body = res.json_value().await;
     body["id"].as_str().unwrap().to_string()
 }
 
-async fn create_game(app: &mut TestApp, token: &str) -> String {
+/// Returns (game_id, home_team_id)
+async fn create_game(app: &mut TestApp, token: &str) -> (String, String) {
+    let (home_id, away_id) = app.create_teams(token, "De Noordpool", "FC Test").await;
     let res = app
         .post("/api/games")
         .token(token)
         .json(json!({
-            "opponent": "FC Test",
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z",
-            "homeAway": "home"
+            "dateTime": "2026-06-15T18:00:00Z"
         }))
         .await;
     let body = res.json_value().await;
-
-    body["id"].as_str().unwrap().to_string()
+    let game_id = body["id"].as_str().unwrap().to_string();
+    (game_id, home_id)
 }
 
 #[tokio::test]
 async fn create_and_list_events() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
-    let game_id = create_game(&mut app, &token).await;
-    let player_id = create_player(&mut app, &token, "Scorer", 9).await;
+    let (game_id, home_team_id) = create_game(&mut app, &token).await;
+    let player_id = create_player(&mut app, &token, "Scorer", 9, Some(&home_team_id)).await;
 
     // Create a goal event
     let res = app
@@ -111,8 +118,8 @@ async fn create_and_list_events() {
 async fn delete_event() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
-    let game_id = create_game(&mut app, &token).await;
-    let player_id = create_player(&mut app, &token, "Scorer", 9).await;
+    let (game_id, home_team_id) = create_game(&mut app, &token).await;
+    let player_id = create_player(&mut app, &token, "Scorer", 9, Some(&home_team_id)).await;
 
     let res = app
         .post(format!("/api/games/{game_id}/events"))
@@ -147,10 +154,10 @@ async fn create_event_requires_auth() {
     let mut test_app = TestApp::new().await;
 
     let token = test_app.admin_token().await;
-    let match_id = create_game(&mut test_app, &token).await;
+    let (game_id, _) = create_game(&mut test_app, &token).await;
 
     let res = test_app
-        .post(format!("/api/games/{match_id}/events"))
+        .post(format!("/api/games/{game_id}/events"))
         .json(json!({
             "playerId": "00000000-0000-0000-0000-000000000000",
             "eventType": "goal",
@@ -165,7 +172,7 @@ async fn create_event_requires_auth() {
 async fn list_events_empty() {
     let mut test_app = TestApp::new().await;
     let token = test_app.admin_token().await;
-    let game_id = create_game(&mut test_app, &token).await;
+    let (game_id, _) = create_game(&mut test_app, &token).await;
 
     let res = test_app
         .get(format!("/api/games/{game_id}/events"))

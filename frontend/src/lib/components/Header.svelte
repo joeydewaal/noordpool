@@ -111,7 +111,7 @@
               <span>Wedstrijden</span>
               {#if todaysGame}
                 <span class="text-xs text-surface-400">
-                  vs {todaysGame.opponent}
+                  {todaysGame.homeTeam.name} vs {todaysGame.awayTeam.name}
                 </span>
               {/if}
             </span>

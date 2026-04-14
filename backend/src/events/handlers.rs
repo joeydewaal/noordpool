@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{EventType, Game, GameEvent, HomeAway, Role},
+    models::{EventType, Game, GameEvent, Player, Role},
     push,
 };
 
@@ -56,23 +56,39 @@ pub async fn create(
         .await?;
 
     // Touch the parent game so live pollers see the new event on
-    // their next tick. A `Goal` event also bumps "our" side of the
-    // score — there is no separate increment counter anymore.
-    // Fire a goal push if the game is currently live.
+    // their next tick. A `Goal` event also bumps the correct side of
+    // the score based on the player's team.
     let now = Timestamp::now();
     let mut game = Game::get_by_id(&mut db, game_id).await?;
     let next_version = game.version + 1;
     let was_live = game.is_live(now);
     let is_goal = event.event_type == EventType::Goal;
-    let is_home = matches!(game.home_away, HomeAway::Home);
-    let (new_home, new_away) = if is_goal {
-        if is_home {
-            (game.home_score + 1, game.away_score)
+
+    let (new_home, new_away, goal_side) = if is_goal {
+        let player = Player::filter_by_id(body.player_id).get(&mut db).await?;
+        let team_id = player
+            .team_id
+            .ok_or_else(|| AppError::bad_request("player has no team"))?;
+
+        if team_id == game.home_team_id {
+            (
+                game.home_score + 1,
+                game.away_score,
+                Some(crate::games::live::ScoreSide::Home),
+            )
+        } else if team_id == game.away_team_id {
+            (
+                game.home_score,
+                game.away_score + 1,
+                Some(crate::games::live::ScoreSide::Away),
+            )
         } else {
-            (game.home_score, game.away_score + 1)
+            return Err(AppError::bad_request(
+                "player does not belong to either team in this game",
+            ));
         }
     } else {
-        (game.home_score, game.away_score)
+        (game.home_score, game.away_score, None)
     };
 
     let mut update = game.update();
@@ -85,8 +101,14 @@ pub async fn create(
     update.exec(&mut db).await?;
 
     if was_live && is_goal {
-        let fresh = Game::get_by_id(&mut db, game_id).await?;
-        push::notify_goal(&state, &fresh, None).await;
+        let fresh = Game::filter_by_id(game_id)
+            .include(Game::fields().home_team())
+            .include(Game::fields().away_team())
+            .get(&mut db)
+            .await?;
+        let home_name = &fresh.home_team.get().name;
+        let away_name = &fresh.away_team.get().name;
+        push::notify_goal(&state, &fresh, goal_side, home_name, away_name).await;
     }
 
     Ok(Json(event))
@@ -114,18 +136,21 @@ pub async fn delete(
         .exec(&mut db)
         .await?;
 
-    // Always bump the parent game so live pollers see the deletion
-    // (previously non-goal deletions were silently invisible until
-    // the next score change). Decrement the "us" side when a goal
-    // event is removed, clamped at zero.
+    // Always bump the parent game so live pollers see the deletion.
+    // Decrement the correct side when a goal event is removed, based on
+    // the player's team, clamped at zero.
     let now = Timestamp::now();
     let mut game = Game::get_by_id(&mut db, game_id).await?;
     let next_version = game.version + 1;
-    let is_home = matches!(game.home_away, HomeAway::Home);
+
     let (new_home, new_away) = if was_goal {
-        if is_home {
+        let player = Player::filter_by_id(event.player_id).get(&mut db).await?;
+        let team_id = player.team_id;
+
+        if team_id == Some(game.home_team_id) {
             ((game.home_score - 1).max(0), game.away_score)
         } else {
+            // Away side or unknown — decrement away
             (game.home_score, (game.away_score - 1).max(0))
         }
     } else {

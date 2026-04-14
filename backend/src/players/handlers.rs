@@ -19,8 +19,15 @@ use crate::{
     app_state::AppState,
     auth::claims::Claims,
     error::AppError,
-    models::{EventType, Game, HomeAway, Player, Position, Role},
+    models::{EventType, Game, Player, Position, Role, Team},
 };
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamSummary {
+    pub id: Uuid,
+    pub name: String,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,6 +36,7 @@ pub struct CreatePlayerRequest {
     pub last_name: String,
     pub shirt_number: i32,
     pub position: Position,
+    pub team_id: Option<Uuid>,
 }
 
 #[derive(Deserialize)]
@@ -45,9 +53,9 @@ pub struct UpdatePlayerRequest {
 #[serde(rename_all = "camelCase")]
 pub struct PlayerGoalMatchResponse {
     pub game_id: Uuid,
-    pub opponent: String,
+    pub home_team: TeamSummary,
+    pub away_team: TeamSummary,
     pub date_time: Timestamp,
-    pub home_away: HomeAway,
     pub home_score: i32,
     pub away_score: i32,
     pub minutes: Vec<i32>,
@@ -57,7 +65,8 @@ pub struct PlayerGoalMatchResponse {
 #[serde(rename_all = "camelCase")]
 pub struct GameTimelineEntry {
     pub game_id: Uuid,
-    pub opponent: String,
+    pub home_team: TeamSummary,
+    pub away_team: TeamSummary,
     pub date_time: Timestamp,
     pub goals: i32,
     pub assists: i32,
@@ -104,14 +113,17 @@ pub async fn create(
     Json(body): Json<CreatePlayerRequest>,
 ) -> Result<Json<Player>, AppError> {
     tracing::info!("players::create");
-    let player = toasty::create!(Player {
-        first_name: body.first_name,
-        last_name: body.last_name,
-        shirt_number: body.shirt_number,
-        position: body.position,
-    })
-    .exec(&mut state.db)
-    .await?;
+    let mut create = Player::create()
+        .first_name(body.first_name)
+        .last_name(body.last_name)
+        .shirt_number(body.shirt_number)
+        .position(body.position);
+
+    if let Some(team_id) = body.team_id {
+        create = create.team_id(team_id);
+    }
+
+    let player = create.exec(&mut state.db).await?;
 
     Ok(Json(player))
 }
@@ -195,6 +207,22 @@ pub async fn stats(
         .get(db)
         .await?;
 
+    // Team relations aren't loaded through the event→game include chain,
+    // so build a lookup map from all teams.
+    let all_teams = Team::all().exec(db).await?;
+    let team_map: HashMap<Uuid, TeamSummary> = all_teams
+        .into_iter()
+        .map(|t| {
+            (
+                t.id,
+                TeamSummary {
+                    id: t.id,
+                    name: t.name,
+                },
+            )
+        })
+        .collect();
+
     let events = player.game_events.get();
 
     let now = Timestamp::now();
@@ -232,15 +260,25 @@ pub async fn stats(
         }
     }
 
+    let unknown = TeamSummary {
+        id: Uuid::nil(),
+        name: "?".into(),
+    };
     let mut goal_matches: Vec<PlayerGoalMatchResponse> = goal_map
         .into_values()
         .map(|(mut minutes, game)| {
             minutes.sort_unstable();
             PlayerGoalMatchResponse {
                 game_id: game.id,
-                opponent: game.opponent.clone(),
+                home_team: team_map
+                    .get(&game.home_team_id)
+                    .cloned()
+                    .unwrap_or_else(|| unknown.clone()),
+                away_team: team_map
+                    .get(&game.away_team_id)
+                    .cloned()
+                    .unwrap_or_else(|| unknown.clone()),
                 date_time: game.date_time,
-                home_away: game.home_away,
                 home_score: game.home_score,
                 away_score: game.away_score,
                 minutes,
@@ -279,7 +317,14 @@ pub async fn stats(
             cum_assists += a;
             GameTimelineEntry {
                 game_id,
-                opponent: game.opponent.clone(),
+                home_team: team_map
+                    .get(&game.home_team_id)
+                    .cloned()
+                    .unwrap_or_else(|| unknown.clone()),
+                away_team: team_map
+                    .get(&game.away_team_id)
+                    .cloned()
+                    .unwrap_or_else(|| unknown.clone()),
                 date_time: game.date_time,
                 goals: g,
                 assists: a,
@@ -302,6 +347,5 @@ pub async fn stats(
         game_timeline,
     };
 
-    dbg!(&response);
     Ok(Json(response))
 }

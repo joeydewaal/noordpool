@@ -161,7 +161,7 @@ A PWA for football teams where players can view upcoming matches, match results 
 - [x] Polling endpoint: `GET /api/games/:id/live` — returns current score, events, status, and `version` for cheap change detection
   - ETag support (`W/"<id>-<version>"`) with `If-None-Match` / `304 Not Modified`
   - Version field incremented on every mutation (score change, event add/delete)
-- [x] `POST /api/games/:id/live/opponent_score` — moderator quick-action to adjust opponent score (±1), triggers goal push on +1
+- [x] `POST /api/games/:id/live/score` — moderator quick-action to adjust score by side (±1), triggers goal push on +1
 - [x] Push notification integration:
   - Database schema: `push_subscriptions` table (id, user_id, endpoint, p256dh, auth, notify_goal, created_at)
   - `POST /api/push/subscriptions` — upsert subscription by endpoint
@@ -233,57 +233,53 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
-## Phase 9: Multi-Team Support -- NOT STARTED
+## Phase 9: Multi-Team Support -- DONE
 
-> **Breaking change:** this phase replaces the single-team `opponent` + `home_away` model with explicit `home_team_id` / `away_team_id` foreign keys. A database migration is required. The `HomeAway` enum is removed.
+> **Breaking change:** this phase replaced the single-team `opponent` + `home_away` model with explicit `home_team_id` / `away_team_id` foreign keys. The `HomeAway` enum is removed. "Own side" is derived per-user from their linked player's team (stored in JWT `team_id` claim), not from an env var.
 
 ### Backend — Schema
 
-- [ ] Add `home_team_id: Uuid` and `away_team_id: Uuid` fields to `Game` model (both FK to `teams.id`)
-- [ ] Remove `opponent: String` and `home_away: HomeAway` fields from `Game` model
-- [ ] Remove `home_away.rs` module and all `HomeAway` references
-- [ ] Write migration: add columns, backfill from `opponent` + `home_away` (create team rows for each distinct opponent, set home/away team IDs), then drop old columns
+- [x] Add `home_team_id: Uuid` and `away_team_id: Uuid` fields to `Game` model (both FK to `teams.id`)
+- [x] Remove `opponent: String` and `home_away: HomeAway` fields from `Game` model
+- [x] Remove `home_away.rs` module and all `HomeAway` references
+- [x] Update seed data to use team FKs instead of opponent strings
 
 ### Backend — Handlers & Logic
 
-- [ ] Update `CreateGameRequest` / `UpdateGameRequest` — replace `opponent`/`homeAway` with `homeTeamId`/`awayTeamId`
-- [ ] Eager-load home/away team names in `GameResponse` (avoid N+1)
-- [ ] Rework `adjust_opponent_score` in `games/live.rs` — use team IDs instead of `HomeAway` enum
-- [ ] Score increment logic in event handlers: determine side by checking `player.team_id` against `game.home_team_id` / `game.away_team_id`
-- [ ] Add optional `?team_id=` query param to leaderboard endpoint for team filtering
-- [ ] Update push notification payloads — use team names instead of opponent string
-- [ ] Add `GET /api/teams` endpoint (public) for team selection in UI
-- [ ] Update seed data to use team FKs instead of opponent strings
+- [x] Update `CreateGameRequest` / `UpdateGameRequest` — replace `opponent`/`homeAway` with `homeTeamId`/`awayTeamId`
+- [x] Eager-load home/away team names in `GameResponse` (avoid N+1)
+- [x] Replace `adjust_opponent_score` with explicit-side `adjust_score` (`POST /{id}/live/score` with `{ side, delta }`)
+- [x] Score increment logic in event handlers: determine side by checking `player.team_id` against `game.home_team_id` / `game.away_team_id`
+- [x] Update push notification payloads — use team names instead of opponent string
+- [x] Add `GET /api/teams` (public) and `POST /api/teams` (admin) endpoints
+- [x] Add `team_id` to JWT claims for per-user own-side derivation
 
 ### Frontend — Types
 
-- [ ] Remove `HomeAway` type
-- [ ] Update `Game` interface — replace `opponent` + `homeAway` with `homeTeam: { id: string; name: string }` and `awayTeam: { id: string; name: string }`
-- [ ] Update `CreateGameRequest` / `UpdateGameRequest` with `homeTeamId` / `awayTeamId`
-- [ ] Add `Team` interface (`id: string`, `name: string`)
+- [x] Remove `HomeAway` type
+- [x] Update `Game` interface — replace `opponent` + `homeAway` with `homeTeam` / `awayTeam` objects
+- [x] Update `CreateGameRequest` / `UpdateGameRequest` with `homeTeamId` / `awayTeamId`
+- [x] Add `Team` interface and `ScoreSide` type
 
 ### Frontend — Pages & Components
 
-- [ ] Game create/edit: replace opponent text input + thuis/uit radio with two team selectors (dropdowns from `GET /api/teams`)
-- [ ] Match display: show both team names instead of `vs {opponent}`
-- [ ] Event form: allow selecting players from either team
-- [ ] Leaderboard: add optional team filter dropdown
-- [ ] Player stats: update game timeline entries with both team names
-- [ ] Push notification text: use team names instead of opponent string
-
-### Configuration
-
-- [ ] Add `OWN_TEAM_ID` env var to identify "our team" for UX shortcuts (opponent score adjuster, default leaderboard filter)
+- [x] Game create/edit: two team dropdowns populated from `GET /api/teams`, inline team creation
+- [x] Match display: `{homeTeam.name} vs {awayTeam.name}` on list, detail, and home pages
+- [x] Own-side (thuis/uit) chip derived per-user from `auth.teamId`
+- [x] Score adjuster: opponent-only panel when `ownSide !== null`, both-side controls for non-team moderators
+- [x] Header sidebar subtitle shows both team names for today's game
+- [x] Push notification text uses team names
+- [x] All frontend tests updated for new Game shape
 
 ### Verification
 
-- [ ] Create a match between two teams using the team selector UI
-- [ ] Score display shows both team names correctly
-- [ ] Goal events increment the correct side based on the player's team
-- [ ] Opponent score adjuster works correctly during live matches
-- [ ] Leaderboard shows stats for all players and filters by team
-- [ ] Push notifications fire with correct team names
-- [ ] Existing seed data migrates correctly
+- [x] `cargo fmt --check && cargo clippy -- -D warnings && cargo test` — all green
+- [x] `npx svelte-check && npx vitest run` — 0 errors, all tests pass
+- [x] Create a match between two teams using the team selector UI
+- [x] Score display shows both team names correctly
+- [x] Goal events increment the correct side based on the player's team
+- [x] Score adjuster works correctly during live matches
+- [x] Push notifications fire with correct team names
 
 ---
 
@@ -351,5 +347,5 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 8. ~~Phase 6.5 — CI/CD with GitHub Actions~~ DONE
 9. ~~Phase 7 — This week's match highlight in wedstrijden tab~~ DONE
 10. ~~Phase 8 — Admin user management UI~~ DONE
-11. Phase 9 — Multi-team support: explicit home/away team FKs, team-aware events & stats
+11. ~~Phase 9 — Multi-team support: explicit home/away team FKs, team-aware events & stats~~ DONE
 12. Phase 10 — Performance: Lambda-local cache, query optimization, compression, frontend bundle

@@ -251,7 +251,7 @@ async fn create_player_with_token(app: &mut TestApp) -> (String, String) {
     let body = res.json_value().await;
     let player_id = body["id"].as_str().unwrap().to_string();
     let uuid: Uuid = player_id.parse().unwrap();
-    let token = app.player_token_for(uuid);
+    let token = app.player_token_for(uuid, None);
     (player_id, token)
 }
 
@@ -353,7 +353,7 @@ async fn self_service_cannot_update_other_player() {
     let player_two_id = res.json_value().await["id"].as_str().unwrap().to_string();
 
     // Player one tries to update player two
-    let token = app.player_token_for(player_one_id);
+    let token = app.player_token_for(player_one_id, None);
     let res = app
         .put(format!("/api/players/{player_two_id}"))
         .token(&token)

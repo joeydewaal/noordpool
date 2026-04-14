@@ -84,7 +84,7 @@ pub async fn register(
     })?;
 
     let roles = user.get_roles();
-    let token = encode_token(&state.jwt, &user, &roles)?;
+    let token = encode_token(&state.jwt, &user, &roles, None)?;
     Ok(Json(AuthResponse { user, token }))
 }
 
@@ -113,7 +113,7 @@ pub async fn link_player(
     user.player_id = Some(player.id);
 
     let roles: Vec<Role> = user.get_roles();
-    let token = encode_token(&state.jwt, &user, &roles)?;
+    let token = encode_token(&state.jwt, &user, &roles, player.team_id)?;
 
     Ok(Json(AuthResponse { user, token }))
 }
@@ -145,7 +145,7 @@ pub async fn unlink_player(
     user.player_id = None;
 
     let roles: Vec<Role> = user.get_roles();
-    let token = encode_token(&state.jwt, &user, &roles)?;
+    let token = encode_token(&state.jwt, &user, &roles, None)?;
 
     Ok(Json(AuthResponse { user, token }))
 }
@@ -208,7 +208,15 @@ pub async fn login(
     }
 
     let roles: Vec<Role> = user.get_roles();
-    let token = encode_token(&state.jwt, &user, &roles)?;
+
+    let team_id = if let Some(pid) = user.player_id {
+        let p = Player::get_by_id(&mut db, pid).await?;
+        p.team_id
+    } else {
+        None
+    };
+
+    let token = encode_token(&state.jwt, &user, &roles, team_id)?;
     Ok(Json(AuthResponse { user, token }))
 }
 
@@ -232,13 +240,19 @@ pub async fn logout() -> StatusCode {
     StatusCode::OK
 }
 
-fn encode_token(jwt: &JwtContext<Claims>, user: &User, roles: &[Role]) -> Result<String, AppError> {
+fn encode_token(
+    jwt: &JwtContext<Claims>,
+    user: &User,
+    roles: &[Role],
+    team_id: Option<Uuid>,
+) -> Result<String, AppError> {
     let claims = Claims {
         sub: user.id,
         email: user.email.clone(),
         first_name: user.first_name.clone(),
         last_name: user.last_name.clone(),
         player_id: user.player_id,
+        team_id,
         roles: roles.to_vec(),
         exp: Timestamp::now() + 24.hours(),
     };

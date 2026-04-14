@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use axum::{
     body::Body,
     extract::Request,
@@ -178,7 +180,7 @@ impl TestApp {
     }
 
     pub async fn call(&mut self, req: Request) -> Response {
-        let resp = (&mut self.router).call(req).await.unwrap();
+        let resp = self.router.call(req).await.unwrap();
         Response { inner: resp }
     }
 
@@ -225,19 +227,40 @@ impl TestApp {
             first_name: format!("Test {:?}", role),
             last_name: String::new(),
             player_id: None,
+            team_id: None,
             roles: vec![Role::Player, role],
             exp: Timestamp::now() + 24.hour(),
         };
         self.state.jwt.encode_token(&claims).unwrap()
     }
 
-    pub fn player_token_for(&mut self, player_id: Uuid) -> String {
+    /// Create two teams and return (home_team_id, away_team_id).
+    pub async fn create_teams(&mut self, token: &str, home: &str, away: &str) -> (String, String) {
+        let res = self
+            .post("/api/teams")
+            .token(token)
+            .json(json!({ "name": home }))
+            .await;
+        let home_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+        let res = self
+            .post("/api/teams")
+            .token(token)
+            .json(json!({ "name": away }))
+            .await;
+        let away_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+        (home_id, away_id)
+    }
+
+    pub fn player_token_for(&mut self, player_id: Uuid, team_id: Option<Uuid>) -> String {
         let claims = Claims {
             sub: Uuid::new_v4(),
             email: format!("player-{}@example.com", player_id),
             first_name: "Test".to_string(),
             last_name: "Player".to_string(),
             player_id: Some(player_id),
+            team_id,
             roles: vec![Role::Player],
             exp: Timestamp::now() + 24.hour(),
         };

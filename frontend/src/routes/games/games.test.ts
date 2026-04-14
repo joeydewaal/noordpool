@@ -12,7 +12,7 @@ vi.mock("$lib/api/games", () => ({
 }));
 
 vi.mock("$lib/state/auth.svelte", () => ({
-  auth: { isAdmin: false, isModerator: false },
+  auth: { isAdmin: false, isModerator: false, teamId: null },
 }));
 
 vi.mock("$lib/utils/date", () => ({
@@ -26,10 +26,12 @@ import { isThisWeek, isToday } from "$lib/utils/date";
 
 const mockGame = {
   id: "1",
-  opponent: "Ajax",
+  homeTeamId: "team-home",
+  homeTeam: { id: "team-home", name: "Noordpool" },
+  awayTeamId: "team-away",
+  awayTeam: { id: "team-away", name: "Ajax" },
   location: "Sportpark Noord",
   dateTime: "2026-03-27T15:00:00Z",
-  homeAway: "home" as const,
   status: "scheduled" as const,
   homeScore: 0,
   awayScore: 0,
@@ -47,7 +49,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(isThisWeek).mockReturnValue(false);
   vi.mocked(isToday).mockReturnValue(false);
-  // Reset to default URL (upcoming tab)
   (page as { url: URL }).url = new URL("http://localhost/games");
 });
 
@@ -59,7 +60,6 @@ describe("games page loading states", () => {
 
     render(Page);
 
-    // Both tabs render (one hidden), each shows loading
     const loadingEls = screen.getAllByText("Laden...");
     expect(loadingEls.length).toBeGreaterThanOrEqual(1);
   });
@@ -71,12 +71,11 @@ describe("games page loading states", () => {
         successQuery([mockGame]) as ReturnType<typeof createQuery>,
       );
 
-    // Navigate to results tab
     (page as { url: URL }).url = new URL("http://localhost/games?tab=results");
 
     render(Page);
 
-    expect(screen.getByText("vs Ajax")).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs Ajax")).toBeInTheDocument();
   });
 
   it("shows empty state when results query returns no data", () => {
@@ -92,8 +91,6 @@ describe("games page loading states", () => {
   });
 
   it("shows loading (not empty) on results tab when recent query is still pending after back navigation", () => {
-    // This simulates the back navigation bug:
-    // upcoming query resolved (has data), but recent query cache was wiped and is still pending
     vi.mocked(createQuery)
       .mockReturnValueOnce(successQuery([]) as ReturnType<typeof createQuery>)
       .mockReturnValueOnce(pendingQuery() as ReturnType<typeof createQuery>);
@@ -120,7 +117,7 @@ describe("this week's match highlight", () => {
     render(Page);
 
     expect(screen.getByText("Deze week")).toBeInTheDocument();
-    expect(screen.getByText("vs Ajax")).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs Ajax")).toBeInTheDocument();
     expect(screen.getByText("Sportpark Noord")).toBeInTheDocument();
   });
 
@@ -183,7 +180,9 @@ describe("this week's match highlight", () => {
     const secondGame = {
       ...mockGame,
       id: "2",
-      opponent: "Feyenoord",
+      homeTeam: { id: "team-home", name: "Noordpool" },
+      awayTeam: { id: "team-fey", name: "Feyenoord" },
+      awayTeamId: "team-fey",
     };
 
     vi.mocked(createQuery)
@@ -195,10 +194,10 @@ describe("this week's match highlight", () => {
     render(Page);
 
     // Ajax appears once in the highlight, not in the regular list
-    const ajaxElements = screen.getAllByText("vs Ajax");
+    const ajaxElements = screen.getAllByText("Noordpool vs Ajax");
     expect(ajaxElements).toHaveLength(1);
 
     // Feyenoord appears in the regular list
-    expect(screen.getByText("vs Feyenoord")).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs Feyenoord")).toBeInTheDocument();
   });
 });

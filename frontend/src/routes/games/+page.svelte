@@ -4,7 +4,7 @@
   import { replaceState } from "$app/navigation";
   import { auth } from "$lib/state/auth.svelte";
   import { getUpcomingGames, getRecentResults } from "$lib/api/games";
-  import type { Game } from "$lib/api/types";
+  import type { Game, ScoreSide } from "$lib/api/types";
   import { Tabs } from "@skeletonlabs/skeleton-svelte";
   import { isThisWeek, isToday } from "$lib/utils/date";
 
@@ -48,6 +48,14 @@
     return `${game.homeScore} - ${game.awayScore}`;
   }
 
+  function ownSide(game: Game): ScoreSide | null {
+    const teamId = auth.teamId;
+    if (!teamId) return null;
+    if (game.homeTeam.id === teamId) return "home";
+    if (game.awayTeam.id === teamId) return "away";
+    return null;
+  }
+
   const thisWeekMatch: Game | null = $derived.by(() => {
     const games = upcomingQuery.data;
     if (!games || games.length === 0) return null;
@@ -73,6 +81,7 @@
 </div>
 
 {#if thisWeekMatch}
+  {@const side = ownSide(thisWeekMatch)}
   <a
     href="/games/{thisWeekMatch.id}"
     class="block card p-5 mb-6 border-l-4 border-primary-500 preset-tonal-primary hover:brightness-125 transition-all"
@@ -90,15 +99,19 @@
           Deze week
         {/if}
       </span>
-      <span
-        class="chip {thisWeekMatch.homeAway === 'home'
-          ? 'preset-filled-success-500'
-          : 'preset-filled-secondary-500'}"
-      >
-        {thisWeekMatch.homeAway === "home" ? "thuis" : "uit"}
-      </span>
+      {#if side}
+        <span
+          class="chip {side === 'home'
+            ? 'preset-filled-success-500'
+            : 'preset-filled-secondary-500'}"
+        >
+          {side === "home" ? "thuis" : "uit"}
+        </span>
+      {/if}
     </div>
-    <div class="text-lg font-bold">vs {thisWeekMatch.opponent}</div>
+    <div class="text-lg font-bold">
+      {thisWeekMatch.homeTeam.name} vs {thisWeekMatch.awayTeam.name}
+    </div>
     <div class="text-sm text-surface-400 mt-1">
       {formatDate(thisWeekMatch.dateTime)}
     </div>
@@ -133,6 +146,7 @@
       {:else}
         <div class="space-y-3">
           {#each remainingUpcoming as game}
+            {@const side = ownSide(game)}
             <a
               href="/games/{game.id}"
               class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"
@@ -140,7 +154,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <div class="font-semibold">
-                    vs {game.opponent}
+                    {game.homeTeam.name} vs {game.awayTeam.name}
                   </div>
                   <div class="text-sm text-surface-400 mt-1">
                     {formatDate(game.dateTime)}
@@ -158,13 +172,15 @@
                       LIVE {game.homeScore}–{game.awayScore}
                     </span>
                   {/if}
-                  <span
-                    class="chip {game.homeAway === 'home'
-                      ? 'preset-filled-success-500'
-                      : 'preset-filled-secondary-500'}"
-                  >
-                    {game.homeAway === "home" ? "thuis" : "uit"}
-                  </span>
+                  {#if side}
+                    <span
+                      class="chip {side === 'home'
+                        ? 'preset-filled-success-500'
+                        : 'preset-filled-secondary-500'}"
+                    >
+                      {side === "home" ? "thuis" : "uit"}
+                    </span>
+                  {/if}
                 </div>
               </div>
             </a>
@@ -180,6 +196,7 @@
       {:else}
         <div class="space-y-3">
           {#each recentQuery.data as game}
+            {@const side = ownSide(game)}
             <a
               href="/games/{game.id}"
               class="block card preset-tonal-surface p-4 hover:preset-tonal-primary transition-colors"
@@ -187,7 +204,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <div class="font-semibold">
-                    vs {game.opponent}
+                    {game.homeTeam.name} vs {game.awayTeam.name}
                   </div>
                   <div class="text-sm text-surface-400 mt-1">
                     {formatDate(game.dateTime)}
@@ -195,13 +212,15 @@
                 </div>
                 <div class="flex items-center gap-3">
                   <span class="font-bold">{formatScore(game)}</span>
-                  <span
-                    class="chip {game.homeAway === 'home'
-                      ? 'preset-filled-success-500'
-                      : 'preset-filled-secondary-500'}"
-                  >
-                    {game.homeAway === "home" ? "thuis" : "uit"}
-                  </span>
+                  {#if side}
+                    <span
+                      class="chip {side === 'home'
+                        ? 'preset-filled-success-500'
+                        : 'preset-filled-secondary-500'}"
+                    >
+                      {side === "home" ? "thuis" : "uit"}
+                    </span>
+                  {/if}
                 </div>
               </div>
             </a>

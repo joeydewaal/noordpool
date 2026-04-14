@@ -17,6 +17,7 @@ vi.mock("$lib/state/auth.svelte", () => ({
     isAdmin: false,
     isModerator: false,
     user: null,
+    teamId: null,
   },
 }));
 
@@ -45,10 +46,12 @@ function mockUpcoming(data: Game[]) {
 function makeGame(overrides: Partial<Game> = {}): Game {
   return {
     id: "game-1",
-    opponent: "Ajax",
+    homeTeamId: "team-home",
+    homeTeam: { id: "team-home", name: "Noordpool" },
+    awayTeamId: "team-away",
+    awayTeam: { id: "team-away", name: "Ajax" },
     location: "Stadium",
     dateTime: new Date().toISOString(),
-    homeAway: "home",
     cancelled: false,
     homeScore: 0,
     awayScore: 0,
@@ -83,13 +86,11 @@ describe("Header today-game indicator", () => {
       screen.queryByLabelText("Wedstrijd vandaag"),
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Wedstrijd live")).not.toBeInTheDocument();
-    expect(screen.queryByText(/^vs /)).not.toBeInTheDocument();
   });
 
   it("shows a static red dot for a scheduled game today", () => {
     mockUpcoming([
       makeGame({
-        opponent: "PSV",
         dateTime: todayAt(20, 0).toISOString(),
         status: "scheduled",
       }),
@@ -98,7 +99,6 @@ describe("Header today-game indicator", () => {
     render(Header);
 
     const dots = screen.getAllByLabelText("Wedstrijd vandaag");
-    // Both desktop sidebar and mobile bar render the dot.
     expect(dots.length).toBe(2);
     for (const dot of dots) {
       expect(dot.className).not.toContain("animate-pulse");
@@ -108,7 +108,6 @@ describe("Header today-game indicator", () => {
   it("shows a pulsing red dot for a live game today", () => {
     mockUpcoming([
       makeGame({
-        opponent: "Feyenoord",
         dateTime: todayAt(14, 0).toISOString(),
         status: "live",
       }),
@@ -123,10 +122,11 @@ describe("Header today-game indicator", () => {
     }
   });
 
-  it('renders the "vs Opponent" subtitle in the desktop sidebar only', () => {
+  it("renders the team names subtitle in the desktop sidebar only", () => {
     mockUpcoming([
       makeGame({
-        opponent: "Vitesse",
+        awayTeam: { id: "team-vit", name: "Vitesse" },
+        awayTeamId: "team-vit",
         dateTime: todayAt(15, 0).toISOString(),
         status: "scheduled",
       }),
@@ -134,12 +134,11 @@ describe("Header today-game indicator", () => {
 
     const { container } = render(Header);
 
-    // One match in the desktop sidebar (.hidden md:flex), zero in mobile.
     const subtitles = container.querySelectorAll(
       "span.text-xs.text-surface-400",
     );
     const matching = Array.from(subtitles).filter((el) =>
-      el.textContent?.includes("vs Vitesse"),
+      el.textContent?.includes("Noordpool vs Vitesse"),
     );
     expect(matching.length).toBe(1);
   });
@@ -148,13 +147,15 @@ describe("Header today-game indicator", () => {
     mockUpcoming([
       makeGame({
         id: "a",
-        opponent: "Early",
+        awayTeam: { id: "team-early", name: "Early" },
+        awayTeamId: "team-early",
         dateTime: todayAt(10, 0).toISOString(),
         status: "scheduled",
       }),
       makeGame({
         id: "b",
-        opponent: "NowPlaying",
+        awayTeam: { id: "team-now", name: "NowPlaying" },
+        awayTeamId: "team-now",
         dateTime: todayAt(14, 0).toISOString(),
         status: "live",
       }),
@@ -163,21 +164,22 @@ describe("Header today-game indicator", () => {
     render(Header);
 
     expect(screen.getAllByLabelText("Wedstrijd live").length).toBe(2);
-    // Subtitle picks the live game
-    expect(screen.getByText("vs NowPlaying")).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs NowPlaying")).toBeInTheDocument();
   });
 
   it("falls back to the earliest game today when none are live", () => {
     mockUpcoming([
       makeGame({
         id: "late",
-        opponent: "Late",
+        awayTeam: { id: "team-late", name: "Late" },
+        awayTeamId: "team-late",
         dateTime: todayAt(20, 0).toISOString(),
         status: "scheduled",
       }),
       makeGame({
         id: "early",
-        opponent: "Early",
+        awayTeam: { id: "team-early", name: "Early" },
+        awayTeamId: "team-early",
         dateTime: todayAt(12, 0).toISOString(),
         status: "scheduled",
       }),
@@ -185,7 +187,7 @@ describe("Header today-game indicator", () => {
 
     render(Header);
 
-    expect(screen.getByText("vs Early")).toBeInTheDocument();
+    expect(screen.getByText("Noordpool vs Early")).toBeInTheDocument();
   });
 
   it("ignores games on a different local date", () => {

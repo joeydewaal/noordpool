@@ -4,17 +4,18 @@ use common::TestApp;
 use jiff::{Timestamp, ToSpan};
 use serde_json::json;
 
-/// Helper: create a game whose date_time is `offset` from now.
+/// Helper: create two teams and a game whose date_time is `offset` from now.
 async fn create_game(app: &mut TestApp, token: &str, offset: jiff::Span) -> String {
+    let (home_id, away_id) = app.create_teams(token, "Home FC", "FC Live").await;
     let date_time = Timestamp::now() + offset;
     let res = app
         .post("/api/games")
         .token(token)
         .json(json!({
-            "opponent": "FC Live",
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": date_time.to_string(),
-            "homeAway": "home"
+            "dateTime": date_time.to_string()
         }))
         .await;
     assert_eq!(res.status(), 200);
@@ -81,54 +82,53 @@ async fn poll_live_marks_scheduled_game_as_scheduled() {
 }
 
 #[tokio::test]
-async fn adjust_opponent_score_when_not_live_returns_conflict() {
+async fn adjust_score_when_not_live_returns_conflict() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let id = create_game(&mut app, &token, 168.hours()).await;
 
     let res = app
-        .post(format!("/api/games/{id}/live/opponent_score"))
+        .post(format!("/api/games/{id}/live/score"))
         .token(&token)
-        .json(json!({ "delta": 1 }))
+        .json(json!({ "side": "away", "delta": 1 }))
         .await;
     assert_eq!(res.status(), 409);
 }
 
 #[tokio::test]
-async fn adjust_opponent_score_requires_admin_or_moderator() {
+async fn adjust_score_requires_admin_or_moderator() {
     let mut app = TestApp::new().await;
     let admin = app.admin_token().await;
     let id = create_game(&mut app, &admin, -5.minutes()).await;
 
     // No auth
     let res = app
-        .post(format!("/api/games/{id}/live/opponent_score"))
-        .json(json!({ "delta": 1 }))
+        .post(format!("/api/games/{id}/live/score"))
+        .json(json!({ "side": "away", "delta": 1 }))
         .await;
     assert_eq!(res.status(), 401);
 
     // Player role
     let player = app.player_token().await;
     let res = app
-        .post(format!("/api/games/{id}/live/opponent_score"))
+        .post(format!("/api/games/{id}/live/score"))
         .token(&player)
-        .json(json!({ "delta": 1 }))
+        .json(json!({ "side": "away", "delta": 1 }))
         .await;
     assert_eq!(res.status(), 403);
 }
 
 #[tokio::test]
-async fn moderator_can_adjust_opponent_score_during_live_match() {
+async fn moderator_can_adjust_score_during_live_match() {
     let mut app = TestApp::new().await;
     let admin = app.admin_token().await;
-    // Admin creates a live game; moderator should be able to update its score.
     let id = create_game(&mut app, &admin, -5.minutes()).await;
 
     let moderator = app.moderator_token().await;
     let res = app
-        .post(format!("/api/games/{id}/live/opponent_score"))
+        .post(format!("/api/games/{id}/live/score"))
         .token(&moderator)
-        .json(json!({ "delta": 1 }))
+        .json(json!({ "side": "away", "delta": 1 }))
         .await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
@@ -143,7 +143,6 @@ async fn moderator_can_update_live_game_via_put() {
     let admin = app.admin_token().await;
     let id = create_game(&mut app, &admin, -5.minutes()).await;
 
-    // Confirm the game is actually live before the moderator edits it.
     let res = app.get(format!("/api/games/{id}/live")).send().await;
     assert_eq!(res.status(), 200);
     assert_eq!(res.json_value().await["status"], "live");
@@ -163,16 +162,15 @@ async fn moderator_can_update_live_game_via_put() {
 }
 
 #[tokio::test]
-async fn adjust_opponent_score_increments_and_bumps_version() {
+async fn adjust_score_increments_and_bumps_version() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
-    // create_game uses homeAway: home, so opponent is the away side.
     let id = create_game(&mut app, &token, -5.minutes()).await;
 
     let res = app
-        .post(format!("/api/games/{id}/live/opponent_score"))
+        .post(format!("/api/games/{id}/live/score"))
         .token(&token)
-        .json(json!({ "delta": 1 }))
+        .json(json!({ "side": "away", "delta": 1 }))
         .await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
@@ -181,26 +179,26 @@ async fn adjust_opponent_score_increments_and_bumps_version() {
     assert_eq!(body["version"], 1);
 
     let res = app
-        .post(format!("/api/games/{id}/live/opponent_score"))
+        .post(format!("/api/games/{id}/live/score"))
         .token(&token)
-        .json(json!({ "delta": 1 }))
+        .json(json!({ "side": "home", "delta": 1 }))
         .await;
     let body = res.json_value().await;
-    assert_eq!(body["homeScore"], 0);
-    assert_eq!(body["awayScore"], 2);
+    assert_eq!(body["homeScore"], 1);
+    assert_eq!(body["awayScore"], 1);
     assert_eq!(body["version"], 2);
 }
 
 #[tokio::test]
-async fn adjust_opponent_score_minus_one_clamps_at_zero() {
+async fn adjust_score_minus_one_clamps_at_zero() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let id = create_game(&mut app, &token, -5.minutes()).await;
 
     let res = app
-        .post(format!("/api/games/{id}/live/opponent_score"))
+        .post(format!("/api/games/{id}/live/score"))
         .token(&token)
-        .json(json!({ "delta": -1 }))
+        .json(json!({ "side": "away", "delta": -1 }))
         .await;
     assert_eq!(res.status(), 200);
     let body = res.json_value().await;
@@ -208,15 +206,15 @@ async fn adjust_opponent_score_minus_one_clamps_at_zero() {
 }
 
 #[tokio::test]
-async fn adjust_opponent_score_rejects_invalid_delta() {
+async fn adjust_score_rejects_invalid_delta() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let id = create_game(&mut app, &token, -5.minutes()).await;
 
     let res = app
-        .post(format!("/api/games/{id}/live/opponent_score"))
+        .post(format!("/api/games/{id}/live/score"))
         .token(&token)
-        .json(json!({ "delta": 2 }))
+        .json(json!({ "side": "away", "delta": 2 }))
         .await;
     assert_eq!(res.status(), 409);
 }

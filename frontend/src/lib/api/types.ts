@@ -65,6 +65,7 @@ export interface CreatePlayerRequest {
   lastName: string;
   shirtNumber: number;
   position: Position;
+  teamId?: string;
 }
 
 export interface UpdatePlayerRequest {
@@ -75,17 +76,24 @@ export interface UpdatePlayerRequest {
   active?: boolean;
 }
 
+export interface Team {
+  id: string;
+  name: string;
+}
+
 /// Server-derived game status. Computed from `dateTime` + a fixed match
 /// window on the backend; the frontend never derives liveness itself.
 export type GameStatus = "scheduled" | "live" | "finished" | "cancelled";
-export type HomeAway = "home" | "away";
+export type ScoreSide = "home" | "away";
 
 export interface Game {
   id: string;
-  opponent: string;
+  homeTeamId: string;
+  homeTeam: Team;
+  awayTeamId: string;
+  awayTeam: Team;
   location: string;
   dateTime: string;
-  homeAway: HomeAway;
   cancelled: boolean;
   homeScore: number;
   awayScore: number;
@@ -108,9 +116,8 @@ export interface LivePoll {
   events: GameEvent[];
 }
 
-export type ScoreSide = "home" | "away";
-
-export interface AdjustOpponentScoreRequest {
+export interface AdjustScoreRequest {
+  side: ScoreSide;
   delta: 1 | -1;
 }
 
@@ -131,33 +138,23 @@ export interface SubscribeRequest {
 }
 
 export interface CreateGameRequest {
-  opponent: string;
+  homeTeamId: string;
+  awayTeamId: string;
   location: string;
   dateTime: Date;
-  homeAway: HomeAway;
 }
 
 export interface UpdateGameRequest {
-  opponent?: string;
+  homeTeamId?: string;
+  awayTeamId?: string;
   location?: string;
   dateTime?: string;
-  homeAway?: HomeAway;
   cancelled?: boolean;
   homeScore?: number;
   awayScore?: number;
 }
 
 export type EventType = "goal" | "assist" | "yellow_card" | "red_card";
-
-export interface Player {
-  id: string;
-  first_name: string;
-  last_name: string;
-  shirt_number: number;
-  position: Position;
-  active: boolean;
-  created_at: Date;
-}
 
 export interface GameEvent {
   id: string;
@@ -174,9 +171,15 @@ export interface CreateGameEventRequest {
   minute: number;
 }
 
+export interface TeamSummary {
+  id: string;
+  name: string;
+}
+
 export interface GameTimelineEntry {
   gameId: string;
-  opponent: string;
+  homeTeam: TeamSummary;
+  awayTeam: TeamSummary;
   dateTime: string;
   goals: number;
   assists: number;
@@ -186,6 +189,16 @@ export interface GameTimelineEntry {
   cumulativeAssists: number;
 }
 
+export interface PlayerGoalMatch {
+  gameId: string;
+  homeTeam: TeamSummary;
+  awayTeam: TeamSummary;
+  dateTime: string;
+  homeScore: number;
+  awayScore: number;
+  minutes: number[];
+}
+
 export interface PlayerStats {
   playerId: string;
   appearances: number;
@@ -193,6 +206,7 @@ export interface PlayerStats {
   assists: number;
   yellowCards: number;
   redCards: number;
+  goalMatches: PlayerGoalMatch[];
   gameTimeline: GameTimelineEntry[];
 }
 

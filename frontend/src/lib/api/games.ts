@@ -3,7 +3,8 @@ import type {
   CreateGameRequest,
   UpdateGameRequest,
   LivePoll,
-  AdjustOpponentScoreRequest,
+  AdjustScoreRequest,
+  ScoreSide,
 } from "./types";
 import { api } from "./client";
 
@@ -46,6 +47,10 @@ export async function updateGame(
   return (await api.put<Game>(`/games/${id}`, data)).data;
 }
 
+export async function deleteGame(id: string): Promise<void> {
+  await api.delete(`/games/${id}`);
+}
+
 /// Result of a live-poll request. `null` body means 304 Not Modified —
 /// the caller should keep its previous state. Always returns the latest
 /// `etag` so the caller can pass it back on the next request.
@@ -63,7 +68,6 @@ export async function pollLive(
 
   const res = await api.get<LivePoll>(`/games/${id}/live`, {
     headers,
-    // Treat 304 as a successful response so axios doesn't throw.
     validateStatus: (s) => s === 200 || s === 304,
   });
 
@@ -76,14 +80,12 @@ export async function pollLive(
   };
 }
 
-/// Bumps the **opponent's** live score by +/-1. Goals scored by our
-/// own team are recorded via the events endpoint, which also bumps
-/// the score — there is no longer a separate increment for "us".
-export async function adjustOpponentScore(
+/// Adjusts the live score for the specified side by +/-1.
+export async function adjustScore(
   id: string,
+  side: ScoreSide,
   delta: 1 | -1,
 ): Promise<LivePoll> {
-  const body: AdjustOpponentScoreRequest = { delta };
-  return (await api.post<LivePoll>(`/games/${id}/live/opponent_score`, body))
-    .data;
+  const body: AdjustScoreRequest = { side, delta };
+  return (await api.post<LivePoll>(`/games/${id}/live/score`, body)).data;
 }
