@@ -115,7 +115,10 @@ async fn run_socket(mut socket: WebSocket, hub: LiveHub, game_id: Uuid, snapshot
     let mut rx = subscribe(&hub, game_id);
 
     // Initial snapshot. If the client is gone already, bail out quickly.
-    if send(&mut socket, &LiveEvent::Snapshot(snapshot)).await.is_err() {
+    if send(&mut socket, &LiveEvent::Snapshot(snapshot))
+        .await
+        .is_err()
+    {
         prune(&hub, game_id);
         return;
     }
@@ -188,7 +191,11 @@ mod tests {
     async fn publish_without_subscribers_is_noop() {
         let hub = new_hub();
         let game_id = Uuid::new_v4();
-        publish(&hub, game_id, LiveEvent::EventDeleted { id: Uuid::new_v4() });
+        publish(
+            &hub,
+            game_id,
+            LiveEvent::EventDeleted { id: Uuid::new_v4() },
+        );
         assert!(hub.lock().unwrap().get(&game_id).is_none());
     }
 
