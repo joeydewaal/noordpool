@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    games::live_ws::{LiveEvent, publish},
+    games::live_ws::LiveEvent,
     models::{EventType, Game, GameEvent, Player, Role},
     push,
 };
@@ -101,14 +101,11 @@ pub async fn create(
     }
     update.exec(&mut db).await?;
 
-    publish(
-        &state.live_hub,
-        game_id,
-        LiveEvent::EventAdded(event.clone()),
-    );
+    state
+        .live_hub
+        .publish(game_id, LiveEvent::EventAdded(event.clone()));
     if is_goal {
-        publish(
-            &state.live_hub,
+        state.live_hub.publish(
             game_id,
             LiveEvent::ScoreUpdate {
                 home: new_home,
@@ -185,14 +182,11 @@ pub async fn delete(
     }
     update.exec(&mut db).await?;
 
-    publish(
-        &state.live_hub,
-        game_id,
-        LiveEvent::EventDeleted { id: event_id },
-    );
+    state
+        .live_hub
+        .publish(game_id, LiveEvent::EventDeleted { id: event_id });
     if was_goal {
-        publish(
-            &state.live_hub,
+        state.live_hub.publish(
             game_id,
             LiveEvent::ScoreUpdate {
                 home: new_home,

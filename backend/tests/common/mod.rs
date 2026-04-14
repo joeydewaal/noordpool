@@ -134,7 +134,7 @@ impl TestApp {
             jwt,
             google_oidc: None,
             vapid: None,
-            live_hub: noordpool_backend::games::live_ws::new_hub(),
+            live_hub: noordpool_backend::games::live_ws::LiveHub::new(),
         };
         let router = routes::app(state.clone());
         TestApp {

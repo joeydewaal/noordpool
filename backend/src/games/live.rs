@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    games::live_ws::{LiveEvent, publish},
+    games::live_ws::LiveEvent,
     models::{Game, GameEvent, Role},
     push,
 };
@@ -101,8 +101,7 @@ pub async fn adjust_score(
         .get(&mut db)
         .await?;
 
-    publish(
-        &state.live_hub,
+    state.live_hub.publish(
         id,
         LiveEvent::ScoreUpdate {
             home: fresh.home_score,

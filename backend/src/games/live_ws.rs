@@ -26,10 +26,51 @@ use crate::{
 /// that all connected viewers of that game receive from. Created lazily on
 /// first subscriber and dropped implicitly when the last `Sender`/`Receiver`
 /// pair goes away (we clean the map entry on disconnect — see `subscribe`).
-pub type LiveHub = Arc<Mutex<HashMap<Uuid, broadcast::Sender<LiveEvent>>>>;
+#[derive(Clone, Default)]
+pub struct LiveHub {
+    inner: Arc<Mutex<HashMap<Uuid, broadcast::Sender<LiveEvent>>>>,
+}
 
-pub fn new_hub() -> LiveHub {
-    Arc::new(Mutex::new(HashMap::new()))
+impl LiveHub {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Broadcast an event to all current subscribers of `game_id`. When
+    /// there are no subscribers (channel absent or zero receivers) this is
+    /// a no-op — mutation handlers can publish unconditionally without
+    /// caring whether anyone is listening.
+    pub fn publish(&self, game_id: Uuid, event: LiveEvent) {
+        let sender = {
+            let map = self.inner.lock().expect("live hub poisoned");
+            map.get(&game_id).cloned()
+        };
+        if let Some(tx) = sender {
+            let _ = tx.send(event);
+        }
+    }
+
+    /// Subscribe to a game's live channel, creating it on demand. Capacity
+    /// is small (32) — viewers that lag more than 32 events will miss some
+    /// frames and reconcile via a fresh snapshot on reconnect.
+    fn subscribe(&self, game_id: Uuid) -> broadcast::Receiver<LiveEvent> {
+        let mut map = self.inner.lock().expect("live hub poisoned");
+        let sender = map
+            .entry(game_id)
+            .or_insert_with(|| broadcast::channel::<LiveEvent>(32).0);
+        sender.subscribe()
+    }
+
+    /// Remove the per-game sender if nobody is listening anymore. Called
+    /// after a socket disconnects so the map doesn't grow unbounded.
+    fn prune(&self, game_id: Uuid) {
+        let mut map = self.inner.lock().expect("live hub poisoned");
+        if let Some(tx) = map.get(&game_id)
+            && tx.receiver_count() == 0
+        {
+            map.remove(&game_id);
+        }
+    }
 }
 
 /// Events broadcast to connected WebSocket clients for a specific game.
@@ -54,42 +95,6 @@ pub enum LiveEvent {
     },
 }
 
-/// Broadcast an event to all current subscribers of `game_id`. When there
-/// are no subscribers (channel absent or zero receivers) this is a no-op —
-/// mutation handlers can publish unconditionally without caring whether
-/// anyone is listening.
-pub fn publish(hub: &LiveHub, game_id: Uuid, event: LiveEvent) {
-    let sender = {
-        let map = hub.lock().expect("live hub poisoned");
-        map.get(&game_id).cloned()
-    };
-    if let Some(tx) = sender {
-        let _ = tx.send(event);
-    }
-}
-
-/// Subscribe to a game's live channel, creating it on demand. Capacity is
-/// small (32) — viewers that lag more than 32 events will miss some frames
-/// and reconcile via a fresh snapshot on reconnect.
-fn subscribe(hub: &LiveHub, game_id: Uuid) -> broadcast::Receiver<LiveEvent> {
-    let mut map = hub.lock().expect("live hub poisoned");
-    let sender = map
-        .entry(game_id)
-        .or_insert_with(|| broadcast::channel::<LiveEvent>(32).0);
-    sender.subscribe()
-}
-
-/// Remove the per-game sender if nobody is listening anymore. Called after
-/// a socket disconnects so the map doesn't grow unbounded.
-fn prune(hub: &LiveHub, game_id: Uuid) {
-    let mut map = hub.lock().expect("live hub poisoned");
-    if let Some(tx) = map.get(&game_id)
-        && tx.receiver_count() == 0
-    {
-        map.remove(&game_id);
-    }
-}
-
 /// GET /api/games/:id/ws — public, unauthenticated. Upgrades to a
 /// WebSocket, sends the current snapshot, then streams live events until
 /// the client disconnects.
@@ -112,14 +117,14 @@ pub async fn ws_live(
 }
 
 async fn run_socket(mut socket: WebSocket, hub: LiveHub, game_id: Uuid, snapshot: LiveSnapshot) {
-    let mut rx = subscribe(&hub, game_id);
+    let mut rx = hub.subscribe(game_id);
 
     // Initial snapshot. If the client is gone already, bail out quickly.
     if send(&mut socket, &LiveEvent::Snapshot(snapshot))
         .await
         .is_err()
     {
-        prune(&hub, game_id);
+        hub.prune(game_id);
         return;
     }
 
@@ -149,7 +154,7 @@ async fn run_socket(mut socket: WebSocket, hub: LiveHub, game_id: Uuid, snapshot
         }
     }
 
-    prune(&hub, game_id);
+    hub.prune(game_id);
 }
 
 async fn send(socket: &mut WebSocket, event: &LiveEvent) -> Result<(), axum::Error> {
@@ -163,12 +168,11 @@ mod tests {
 
     #[tokio::test]
     async fn publish_delivers_to_subscribers() {
-        let hub = new_hub();
+        let hub = LiveHub::new();
         let game_id = Uuid::new_v4();
-        let mut rx = subscribe(&hub, game_id);
+        let mut rx = hub.subscribe(game_id);
 
-        publish(
-            &hub,
+        hub.publish(
             game_id,
             LiveEvent::ScoreUpdate {
                 home: 1,
@@ -189,25 +193,21 @@ mod tests {
 
     #[tokio::test]
     async fn publish_without_subscribers_is_noop() {
-        let hub = new_hub();
+        let hub = LiveHub::new();
         let game_id = Uuid::new_v4();
-        publish(
-            &hub,
-            game_id,
-            LiveEvent::EventDeleted { id: Uuid::new_v4() },
-        );
-        assert!(hub.lock().unwrap().get(&game_id).is_none());
+        hub.publish(game_id, LiveEvent::EventDeleted { id: Uuid::new_v4() });
+        assert!(hub.inner.lock().unwrap().get(&game_id).is_none());
     }
 
     #[tokio::test]
     async fn prune_removes_entry_when_no_receivers() {
-        let hub = new_hub();
+        let hub = LiveHub::new();
         let game_id = Uuid::new_v4();
         {
-            let _rx = subscribe(&hub, game_id);
-            assert!(hub.lock().unwrap().contains_key(&game_id));
+            let _rx = hub.subscribe(game_id);
+            assert!(hub.inner.lock().unwrap().contains_key(&game_id));
         }
-        prune(&hub, game_id);
-        assert!(!hub.lock().unwrap().contains_key(&game_id));
+        hub.prune(game_id);
+        assert!(!hub.inner.lock().unwrap().contains_key(&game_id));
     }
 }

@@ -96,7 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         jwt,
         google_oidc,
         vapid,
-        live_hub: games::live_ws::new_hub(),
+        live_hub: games::live_ws::LiveHub::new(),
     };
 
     let app = routes::app(state);
