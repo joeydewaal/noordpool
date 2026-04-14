@@ -53,30 +53,30 @@
 {:else if playersQuery.isError}
   <p class="text-error-500 text-sm">Kon spelers niet laden</p>
 {:else}
-<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-  {#each filtered as player}
-    <a
-      href="/players/{player.id}"
-      class="card preset-tonal-surface p-5 flex items-center gap-4 hover:preset-tonal-primary transition-colors {!player.active
-        ? 'opacity-60'
-        : ''}"
-    >
-      <div class="text-2xl font-bold text-primary-500 w-12 text-center">
-        {player.shirtNumber}
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="font-semibold truncate">
-          {player.firstName}
-          {player.lastName}
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {#each filtered as player}
+      <a
+        href="/players/{player.id}"
+        class="card preset-tonal-surface p-5 flex items-center gap-4 hover:preset-tonal-primary transition-colors {!player.active
+          ? 'opacity-60'
+          : ''}"
+      >
+        <div class="text-2xl font-bold text-primary-500 w-12 text-center">
+          {player.shirtNumber}
         </div>
-        <span class="chip mt-1 {positionColor[player.position]}">
-          {player.position}
-        </span>
-        {#if !player.active}
-          <span class="chip mt-1 ml-1 preset-tonal-surface"> inactief </span>
-        {/if}
-      </div>
-    </a>
-  {/each}
-</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold truncate">
+            {player.firstName}
+            {player.lastName}
+          </div>
+          <span class="chip mt-1 {positionColor[player.position]}">
+            {player.position}
+          </span>
+          {#if !player.active}
+            <span class="chip mt-1 ml-1 preset-tonal-surface"> inactief </span>
+          {/if}
+        </div>
+      </a>
+    {/each}
+  </div>
 {/if}
