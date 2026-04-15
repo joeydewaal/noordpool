@@ -15,6 +15,8 @@ pub enum AppError {
     Conflict(String),
     Internal(String),
     Redirect(Redirect),
+    Io(std::io::Error),
+    Image(image::error::ImageError),
 }
 
 impl AppError {
@@ -54,6 +56,13 @@ impl IntoResponse for AppError {
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg),
             AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             AppError::Redirect(redirect) => return redirect.into_response(),
+            AppError::Io(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Could not perform io request: {err}"),
+            ),
+            AppError::Image(image_error) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, image_error.to_string())
+            }
         };
         match status {
             StatusCode::INTERNAL_SERVER_ERROR => {
@@ -74,6 +83,18 @@ impl From<toasty::Error> for AppError {
         } else {
             Self::Internal(value.to_string())
         }
+    }
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
+    }
+}
+
+impl From<image::error::ImageError> for AppError {
+    fn from(value: image::error::ImageError) -> Self {
+        Self::Image(value)
     }
 }
 
