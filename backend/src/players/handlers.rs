@@ -91,7 +91,10 @@ pub struct PlayerStatsResponse {
 
 #[tracing::instrument(skip(state))]
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Player>>, AppError> {
-    let players = Player::all_active().exec(&mut state.db).await?;
+    let players = Player::all_active()
+        .include(Player::fields().player())
+        .exec(&mut state.db)
+        .await?;
     Ok(Json(players))
 }
 

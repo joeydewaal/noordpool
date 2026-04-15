@@ -81,7 +81,11 @@ fn encode_and_write_file(file_content: Bytes, path: PathBuf) -> crate::Result<()
         image::imageops::FilterType::Lanczos3,
     );
 
-    let mut out_file = File::options().write(true).create(true).open(path)?;
+    let mut out_file = File::options()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(path)?;
 
     resized.write_to(&mut out_file, ImageFormat::WebP)?;
     Ok(())
