@@ -9,7 +9,7 @@ use std::io::Cursor;
 
 use crate::{app_state::AppState, auth::claims::Claims, error::AppError, models::User};
 
-const MAX_UPLOAD_BYTES: usize = 5 * 1024 * 1024;
+pub const MAX_UPLOAD_BYTES: usize = 5 * 1024 * 1024;
 const AVATAR_SIZE: u32 = 256;
 
 #[tracing::instrument(skip_all, fields(user_id = %claims.sub))]
@@ -30,9 +30,6 @@ pub async fn upload(
                 .bytes()
                 .await
                 .map_err(|e| AppError::bad_request(format!("Read field failed: {e}")))?;
-            if data.len() > MAX_UPLOAD_BYTES {
-                return Err(AppError::bad_request("Bestand is te groot (max 5MB)"));
-            }
             bytes = Some(data.to_vec());
             break;
         }
