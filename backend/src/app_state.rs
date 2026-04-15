@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use axum::extract::FromRef;
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
@@ -16,6 +16,7 @@ pub struct AppState {
     pub google_oidc: Option<OidcContext<GoogleHandler>>,
     pub vapid: Option<Arc<VapidConfig>>,
     pub live_hub: LiveHub,
+    pub avatar_dir: Arc<PathBuf>,
 }
 
 /// Loaded once at startup. If absent, push endpoints return 503.

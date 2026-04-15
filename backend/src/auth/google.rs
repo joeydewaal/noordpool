@@ -47,19 +47,12 @@ async fn after_login(
         .await
         .map_err(|_| Redirect::to(&format!("{}?error=db_error", this.frontend_url)))?;
 
-    // Try to find existing user by email
+    // Try to find existing user by email. `avatar_url` is only seeded from
+    // Google on first login (user creation) — subsequent logins leave it
+    // alone so a locally-uploaded avatar or a delete is preserved.
     let (roles, user) = match opt_user {
-        Some(mut user) => {
+        Some(user) => {
             let roles = user.get_roles();
-            if user.avatar_url != avatar_url {
-                let mut update = user.update();
-                update.set_avatar_url(avatar_url.clone());
-                update
-                    .exec(&mut db)
-                    .await
-                    .map_err(|_| Redirect::to(&format!("{}?error=db_error", this.frontend_url)))?;
-                user.avatar_url = avatar_url;
-            }
             (roles, user)
         }
         None => {

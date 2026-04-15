@@ -1,6 +1,6 @@
 use axum::Router;
 use axum_security::oidc::OidcExt as _;
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 use crate::{app_state::AppState, auth, events, games, players, push, stats, teams, users};
 
@@ -20,5 +20,8 @@ pub fn app(state: AppState) -> Router {
         app = app.with_oidc(google_oidc);
     }
 
-    app.layer(CorsLayer::permissive()).with_state(state)
+    let avatars = ServeDir::new(state.avatar_dir.as_path());
+    app.nest_service("/avatars", avatars)
+        .layer(CorsLayer::permissive())
+        .with_state(state)
 }

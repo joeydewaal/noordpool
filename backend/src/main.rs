@@ -13,7 +13,7 @@ mod stats;
 mod teams;
 mod users;
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use app_state::{AppState, VapidConfig};
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
@@ -91,12 +91,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
+    let avatar_dir =
+        PathBuf::from(std::env::var("AVATAR_DIR").unwrap_or_else(|_| "./avatar-data".into()));
+    std::fs::create_dir_all(&avatar_dir)?;
+    tracing::info!("avatar dir: {}", avatar_dir.display());
+
     let state = AppState {
         db,
         jwt,
         google_oidc,
         vapid,
         live_hub: games::live_ws::LiveHub::new(),
+        avatar_dir: Arc::new(avatar_dir),
     };
 
     let app = routes::app(state);
