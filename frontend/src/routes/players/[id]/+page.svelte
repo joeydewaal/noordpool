@@ -12,6 +12,7 @@
   import PlayerStatsBar from "$lib/components/charts/PlayerStatsBar.svelte";
   import PlayerTimeline from "$lib/components/charts/PlayerTimeline.svelte";
   import Spinner from "$lib/components/Spinner.svelte";
+  import PlayerAvatar from "$lib/components/PlayerAvatar.svelte";
 
   const id = page.params.id!;
   const queryClient = useQueryClient();
@@ -66,9 +67,12 @@
     >
     <div class="card p-6">
       <div class="flex items-center gap-4 mb-4">
-        <div class="text-4xl font-bold text-primary-500">
-          {playerQuery.data.shirtNumber}
-        </div>
+        <PlayerAvatar
+          avatarUrl={playerQuery.data.user?.avatarUrl}
+          shirtNumber={playerQuery.data.shirtNumber}
+          name="{playerQuery.data.firstName} {playerQuery.data.lastName}"
+          size="lg"
+        />
         <div>
           <h1 class="text-2xl font-bold">
             {playerQuery.data.firstName}

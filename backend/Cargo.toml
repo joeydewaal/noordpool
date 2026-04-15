@@ -8,10 +8,11 @@ prod = []
 
 [dependencies]
 dotenvy = "0.15.7"
-axum = { version = "0.8.8", features = ["tokio", "ws"] }
+axum = { version = "0.8.8", features = ["tokio", "ws", "multipart"] }
 tokio = { version = "1.50", features = ["full"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["cors"] }
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 toasty = { git = "https://github.com/tokio-rs/toasty.git", features = ["postgresql", "jiff", "sqlite", "serde"] }
 axum-security = { git = "https://github.com/joeydewaal/axum-security/", features = ["jwt", "rbac", "macros", "jiff", "oidc"] }
 serde = { version = "1", features = ["derive"] }

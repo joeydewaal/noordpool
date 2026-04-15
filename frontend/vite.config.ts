@@ -47,6 +47,9 @@ export default defineConfig({
         target: "http://localhost:3000",
         ws: true,
       },
+      "/avatars": {
+        target: "http://localhost:3000",
+      },
     },
     allowedHosts: true,
   },

@@ -3,6 +3,7 @@
   import { auth } from "$lib/state/auth.svelte";
   import { getPlayers } from "$lib/api/players";
   import Spinner from "$lib/components/Spinner.svelte";
+  import PlayerAvatar from "$lib/components/PlayerAvatar.svelte";
 
   const canManage = $derived(auth.isAdmin || auth.isModerator);
 
@@ -61,9 +62,11 @@
           ? 'opacity-60'
           : ''}"
       >
-        <div class="text-2xl font-bold text-primary-500 w-12 text-center">
-          {player.shirtNumber}
-        </div>
+        <PlayerAvatar
+          avatarUrl={player.user?.avatarUrl}
+          shirtNumber={player.shirtNumber}
+          name="{player.firstName} {player.lastName}"
+        />
         <div class="flex-1 min-w-0">
           <div class="font-semibold truncate">
             {player.firstName}

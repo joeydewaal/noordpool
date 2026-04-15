@@ -6,6 +6,11 @@ primary_region = "ams"
 [env]
   PORT = "3000"
   RUST_LOG = "info"
+  AVATAR_DIR = "/data/avatars"
+
+[[mounts]]
+  source = "noordpool_data"
+  destination = "/data"
 
 [http_service]
   internal_port = 3000

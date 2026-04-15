@@ -129,12 +129,20 @@ impl TestApp {
             .jwt_secret("test-secret")
             .build::<Claims>();
 
+        let avatar_dir = std::env::temp_dir().join(format!(
+            "noordpool-test-avatars-{}-{}",
+            std::process::id(),
+            TEST_DB_COUNTER.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&avatar_dir).unwrap();
+
         let state = AppState {
             db,
             jwt,
             google_oidc: None,
             vapid: None,
             live_hub: noordpool_backend::games::live_ws::LiveHub::new(),
+            avatar_dir: std::sync::Arc::new(avatar_dir),
         };
         let router = routes::app(state.clone());
         TestApp {

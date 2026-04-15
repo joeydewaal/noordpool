@@ -3,6 +3,7 @@
   import { pwa } from "$lib/state/pwa.svelte";
   import { theme } from "$lib/state/theme.svelte";
   import { logout, unlinkPlayer } from "$lib/api/auth";
+  import { deleteAvatar, uploadAvatar } from "$lib/api/users";
   import { getPlayer, updatePlayer } from "$lib/api/players";
   import { goto } from "$app/navigation";
   import {
@@ -40,6 +41,44 @@
       queryClient.invalidateQueries({ queryKey: ["players", playerId] });
     },
   }));
+
+  let avatarInput = $state<HTMLInputElement | null>(null);
+  let avatarBusy = $state(false);
+  let avatarError = $state<string | null>(null);
+
+  async function handleAvatarFile(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    avatarBusy = true;
+    avatarError = null;
+    try {
+      const user = await uploadAvatar(file);
+      auth.setUser(user);
+    } catch (err: any) {
+      avatarError =
+        err?.response?.data?.error ??
+        (err instanceof Error ? err.message : "Uploaden mislukt.");
+    } finally {
+      avatarBusy = false;
+      input.value = "";
+    }
+  }
+
+  async function handleAvatarDelete() {
+    avatarBusy = true;
+    avatarError = null;
+    try {
+      const user = await deleteAvatar();
+      auth.setUser(user);
+    } catch (err: any) {
+      avatarError =
+        err?.response?.data?.error ??
+        (err instanceof Error ? err.message : "Verwijderen mislukt.");
+    } finally {
+      avatarBusy = false;
+    }
+  }
 
   let editingPlayer = $state(false);
   let shirtNumber = $state(0);
@@ -132,18 +171,58 @@
 {#if auth.isAuthenticated}
   <div class="max-w-md mx-auto p-6 space-y-6">
     <div class="card p-6 flex flex-col items-center gap-4">
-      {#if auth.user?.avatarUrl}
-        <img
-          src={auth.user.avatarUrl}
-          alt="{auth.user.firstName} {auth.user.lastName}"
-          class="w-20 h-20 rounded-full object-cover"
-        />
-      {:else}
-        <div
-          class="w-20 h-20 rounded-full bg-surface-500 flex items-center justify-center text-3xl font-bold text-white"
+      <div class="relative">
+        {#if auth.user?.avatarUrl}
+          <img
+            src={auth.user.avatarUrl}
+            alt="{auth.user.firstName} {auth.user.lastName}"
+            class="w-20 h-20 rounded-full object-cover"
+          />
+        {:else}
+          <div
+            class="w-20 h-20 rounded-full bg-surface-500 flex items-center justify-center text-3xl font-bold text-white"
+          >
+            {auth.user?.firstName?.charAt(0).toUpperCase()}
+          </div>
+        {/if}
+        {#if avatarBusy}
+          <div
+            class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40"
+          >
+            <Spinner size="sm" />
+          </div>
+        {/if}
+      </div>
+
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        class="hidden"
+        bind:this={avatarInput}
+        onchange={handleAvatarFile}
+      />
+      <div class="flex gap-2">
+        <button
+          type="button"
+          class="btn btn-sm preset-filled-primary-500"
+          onclick={() => avatarInput?.click()}
+          disabled={avatarBusy}
         >
-          {auth.user?.firstName?.charAt(0).toUpperCase()}
-        </div>
+          Foto wijzigen
+        </button>
+        {#if auth.user?.avatarUrl}
+          <button
+            type="button"
+            class="btn btn-sm preset-outlined-surface-500"
+            onclick={handleAvatarDelete}
+            disabled={avatarBusy}
+          >
+            Verwijderen
+          </button>
+        {/if}
+      </div>
+      {#if avatarError}
+        <p class="text-xs text-error-500">{avatarError}</p>
       {/if}
 
       <div class="text-center">

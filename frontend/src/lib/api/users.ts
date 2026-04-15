@@ -15,3 +15,17 @@ export async function updateUser(
 ): Promise<User> {
   return (await api.patch<User>(`/users/${id}`, data)).data;
 }
+
+export async function uploadAvatar(file: File): Promise<User> {
+  const form = new FormData();
+  form.append("file", file);
+  return (
+    await api.post<User>("/users/me/avatar", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  ).data;
+}
+
+export async function deleteAvatar(): Promise<User> {
+  return (await api.delete<User>("/users/me/avatar")).data;
+}
