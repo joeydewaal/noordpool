@@ -56,8 +56,11 @@ pub async fn upload(
         let x = (img.width() - side) / 2;
         let y = (img.height() - side) / 2;
         let square = img.crop_imm(x, y, side, side);
-        let resized =
-            square.resize_exact(AVATAR_SIZE, AVATAR_SIZE, image::imageops::FilterType::Lanczos3);
+        let resized = square.resize_exact(
+            AVATAR_SIZE,
+            AVATAR_SIZE,
+            image::imageops::FilterType::Lanczos3,
+        );
         let mut out = Cursor::new(Vec::<u8>::new());
         resized
             .write_to(&mut out, ImageFormat::WebP)
@@ -76,10 +79,7 @@ pub async fn upload(
         .await
         .map_err(AppError::internal)?;
 
-    let url = format!(
-        "/avatars/{filename}?v={}",
-        Timestamp::now().as_second()
-    );
+    let url = format!("/avatars/{filename}?v={}", Timestamp::now().as_second());
 
     let mut user = User::filter_by_id(user_id)
         .first()
@@ -119,4 +119,3 @@ pub async fn delete(
     let fresh = User::filter_by_id(user_id).get(&mut state.db).await?;
     Ok(Json(fresh))
 }
-
