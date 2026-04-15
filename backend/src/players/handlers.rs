@@ -92,7 +92,7 @@ pub struct PlayerStatsResponse {
 #[tracing::instrument(skip(state))]
 pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<Player>>, AppError> {
     let players = Player::all_active()
-        .include(Player::fields().player())
+        .include(Player::fields().user())
         .exec(&mut state.db)
         .await?;
     Ok(Json(players))
@@ -104,7 +104,7 @@ pub async fn get_one(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Player>, AppError> {
     let player = Player::filter_by_id(id)
-        .include(Player::fields().player())
+        .include(Player::fields().user())
         .get(&mut state.db)
         .await?;
     Ok(Json(player))
