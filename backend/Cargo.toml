@@ -3,6 +3,9 @@ name = "noordpool-backend"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+prod = []
+
 [dependencies]
 dotenvy = "0.15.7"
 axum = { version = "0.8.8", features = ["tokio", "ws"] }
