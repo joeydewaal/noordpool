@@ -309,7 +309,7 @@ pub async fn stats(
     }
 
     let mut timeline_entries: Vec<_> = timeline_map.into_iter().collect();
-    timeline_entries.sort_by(|a, b| a.1.4.date_time.cmp(&b.1.4.date_time));
+    timeline_entries.sort_by_key(|a| a.1.4.date_time);
 
     let mut cum_goals = 0i32;
     let mut cum_assists = 0i32;
