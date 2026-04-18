@@ -348,18 +348,19 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
-## Phase 12: Player List UX -- NOT STARTED
+## Phase 12: Player List UX -- DONE
 
 > Sort the players page by position so that the most forward-facing positions appear first, matching how a football lineup is typically read.
 
 ### Frontend
-- [ ] Define a position sort order (e.g. Striker → Winger → Attacking Mid → Central Mid → Defensive Mid → Right Back → Left Back → Centre Back → Sweeper → Keeper)
-- [ ] Sort `players` list by this order on the players page; within the same position sort alphabetically by last name
-- [ ] Optionally group by position with a position header between groups (e.g. "Aanvallers", "Middenvelders", "Verdedigers", "Keeper")
+- [x] Define a position sort order (Spits → Linksvleugel → Rechtsvleugel → Aanvallende mid → Centrale mid → Defensieve mid → Linksback → Rechtsback → Centrale verdediger → Keeper)
+- [x] Sort `players` list by this order on the players page; within the same position sort alphabetically by last name
+- [x] Group by position with Dutch headers between groups ("Aanvallers", "Middenvelders", "Verdedigers", "Keeper")
 
 ### Verification
-- [ ] Players page shows forwards at the top and keeper at the bottom
-- [ ] Within each position group, players are sorted alphabetically
+- [x] Players page shows forwards at the top and keeper at the bottom
+- [x] Within each position group, players are sorted alphabetically
+- [x] 5 component tests covering group headers, sort order, alpha sort, loading state, and empty state
 
 ---
 
@@ -390,5 +391,5 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)
 10. ~~Phase 8 — Admin user management UI~~ DONE
 11. ~~Phase 9 — Multi-team support: explicit home/away team FKs, team-aware events & stats~~ DONE
 12. Phase 11 — Live tab cleanup: own goals, assist grouping, notification mock, Google OAuth CI test
-13. Phase 12 — Player list UX: sort by position (strikers first), optional position grouping
+13. ~~Phase 12 — Player list UX: sort by position (strikers first), position group headers~~ DONE
 14. Phase 10 — Performance: process-local cache, query optimization, compression, frontend bundle
