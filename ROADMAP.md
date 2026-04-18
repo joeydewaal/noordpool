@@ -154,13 +154,13 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ## Phase 6: Live Match & Push Notifications -- DONE
 
-> **Deployment note:** this app is deployed on **AWS Lambda**, which does not support long-lived connections (no SSE, no WebSockets). Live updates use **HTTP polling** from the client instead. Push notifications still work because Web Push is a fire-and-forget HTTP request from the server to the push service.
+> **Deployment note:** this app is deployed on **Fly.io** as a persistent Axum process. Live updates use per-match **WebSockets** at `/api/games/:id/ws`. Push notifications use Web Push for OS-level alerts when the app is closed/backgrounded.
 
 ### Backend
 - [x] Derived match status (`scheduled`/`live`/`finished`/`cancelled`) computed from `date_time` + 120-minute window
-- [x] Polling endpoint: `GET /api/games/:id/live` — returns current score, events, status, and `version` for cheap change detection
-  - ETag support (`W/"<id>-<version>"`) with `If-None-Match` / `304 Not Modified`
-  - Version field incremented on every mutation (score change, event add/delete)
+- [x] WebSocket endpoint: `GET /api/games/:id/ws` — streams `Snapshot` / `ScoreUpdate` / `EventAdded` / `EventDeleted` / `StatusChange` frames
+- [x] In-memory `LiveHub` that broadcasts events to all connected sockets for a given match
+- [x] Legacy polling endpoint: `GET /api/games/:id/live` with ETag / `304 Not Modified` support (kept as fallback)
 - [x] `POST /api/games/:id/live/score` — moderator quick-action to adjust score by side (±1), triggers goal push on +1
 - [x] Push notification integration:
   - Database schema: `push_subscriptions` table (id, user_id, endpoint, p256dh, auth, notify_goal, created_at)
@@ -169,12 +169,13 @@ A PWA for football teams where players can view upcoming matches, match results 
   - `GET /api/push/subscriptions/me` — list current user's subscriptions
   - `GET /api/push/vapid-public-key` — return server VAPID key
   - Web Push protocol (RFC 8030) with VAPID keys
-  - Push triggered on goal events and opponent score increments during live mode
+  - Push triggered on goal events and score increments during live mode
   - Expired endpoints pruned automatically (410/404/401)
 
 ### Frontend
-- [x] Live match view: auto-updating score and event timeline via visibility-aware polling (3s visible, 30s hidden, immediate on refocus)
-- [x] Moderator quick-actions: opponent score ±1 buttons visible during live matches
+- [x] Live match view: real-time score and event timeline via WebSocket with auto-reconnect (exponential backoff 1s → 30s)
+- [x] Visibility-aware: disconnects after 60s of tab being hidden, reconnects on focus
+- [x] Moderator quick-actions: ±1 score buttons per side visible during live matches
 - [x] Visual indicator: pulsing "LIVE" badge on match detail when active
 - [x] Service worker handles push events, displays goal notifications with game link
 - [x] Profile page: push notification toggle with permission/support status display
@@ -182,12 +183,12 @@ A PWA for football teams where players can view upcoming matches, match results 
 ### Not implemented (deferred)
 - Manual start/end live mode toggle (auto-detection from kickoff + 120min works well for now)
 - Match start/end push notifications (only goals trigger push)
-- Granular per-type notification preferences UI (notify_goal field exists but no UI beyond on/off)
+- Granular per-type notification preferences UI (`notify_goal` field exists but no UI beyond on/off)
 
 ### Verification
-- [x] Add a goal event during a live match, see it appear on another device within one poll interval
+- [x] Add a goal event during a live match, see it appear on another device instantly via WebSocket
 - [x] Receive push notification on mobile when a goal is scored
-- [x] Polling pauses/slows when the tab is hidden and resumes on focus
+- [x] WebSocket disconnects when tab is hidden and reconnects on focus
 
 ---
 
@@ -285,14 +286,13 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ## Phase 10: Performance -- NOT STARTED
 
-> **Goal:** reduce response times and payload sizes across the stack. Uses a Lambda-local in-memory cache (effective during warm container reuse, gracefully empty on cold starts) combined with query optimization and frontend bundle improvements.
+> **Goal:** reduce response times and payload sizes across the stack. Since we run on Fly.io as a persistent process, a process-local in-memory cache (e.g. `moka`) stays warm across requests and is the right tool here.
 
 ### Backend — In-Memory Cache
 
 - [ ] Add a process-local cache (e.g. `moka` or `mini-moka`) to `AppState` with TTL-based expiration
 - [ ] Cache frequently read, rarely written data: team list, player list, leaderboard, recent/upcoming games
 - [ ] Invalidate relevant cache entries on writes (game create/update, event add/delete, player update)
-- [ ] Keep cache miss path identical to current behavior — cold starts just skip the cache
 
 ### Backend — Query Optimization
 
@@ -325,15 +325,56 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
+---
+
+## Phase 11: Live Tab Cleanup -- NOT STARTED
+
+> Small but impactful refinements to the live match view. Items from the backlog: own goals, optional player on score adjustments, assist grouping, and notification smoke-testing.
+
+### Backend
+- [ ] Add `OwnGoal` variant to `EventType` enum (variant 5) — increments the *opposing* team's score when added as an event, so moderators don't need the ±1 score adjuster for own goals
+- [ ] Allow `player_id` to be `null` on `game_events` for own goals or anonymous score corrections
+
+### Frontend
+- [ ] Surface `own_goal` as a selectable event type in the add-event form ("Eigen doelpunt") with its own icon
+- [ ] Group assists with their adjacent goal in the event timeline: show assist indented under the goal it belongs to (same minute, different player), rather than as a separate standalone row
+- [ ] Notification mock: add a button in the profile page (visible only in dev/staging, or gated behind a flag) that triggers a test push notification so moderators can verify their subscription is working without waiting for a real goal
+- [ ] Google OAuth integration test: add at least a CI smoke-test that walks through the OIDC redirect flow using a mock identity provider — the happy path is wired up but never tested in CI
+
+### Verification
+- [ ] Add an own-goal event; confirm it increments the opponent's score, not the player's team
+- [ ] Add a goal + assist at the same minute; confirm assist is grouped under the goal in the UI
+- [ ] Trigger test notification from profile page; confirm OS notification appears on device
+
+---
+
+## Phase 12: Player List UX -- NOT STARTED
+
+> Sort the players page by position so that the most forward-facing positions appear first, matching how a football lineup is typically read.
+
+### Frontend
+- [ ] Define a position sort order (e.g. Striker → Winger → Attacking Mid → Central Mid → Defensive Mid → Right Back → Left Back → Centre Back → Sweeper → Keeper)
+- [ ] Sort `players` list by this order on the players page; within the same position sort alphabetically by last name
+- [ ] Optionally group by position with a position header between groups (e.g. "Aanvallers", "Middenvelders", "Verdedigers", "Keeper")
+
+### Verification
+- [ ] Players page shows forwards at the top and keeper at the bottom
+- [ ] Within each position group, players are sorted alphabetically
+
+---
+
 ## Data Model Summary
 
 ```
-users (id, email, password_hash, first_name, last_name, player_id, avatar_url, is_admin, is_moderator, created_at)
-players (id, user_id?, first_name, last_name, shirt_number, position, active, team_id, created_at)
-games (id, home_team_id, away_team_id, location, date_time, home_score, away_score, cancelled, version, updated_at, created_at)
-game_events (id, game_id, player_id, event_type, minute, created_at)
-push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  -- Phase 6
+users        (id, email, password_hash, first_name, last_name, player_id, avatar_url, is_admin, is_moderator, created_at)
+teams        (id, name, created_at)
+players      (id, user_id?, first_name, last_name, shirt_number, position, active, team_id, created_at)
+games        (id, home_team_id, away_team_id, location, date_time, home_score, away_score, cancelled, version, updated_at, created_at)
+game_events  (id, game_id, player_id?, event_type, minute, created_at)  -- player_id nullable after Phase 11
+push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)
 ```
+
+> `avatar_url` on users is already fully implemented: multipart upload endpoint, 256×256 WebP resize, Google OAuth seeds it on first login, `PlayerAvatar` component used throughout the frontend.
 
 ## Suggested Implementation Order
 
@@ -343,9 +384,11 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)  --
 4. ~~Phase 4 — Match Events & Stats~~ DONE
 5. ~~Phase 5 — Polish & PWA enhancements~~ DONE
 6. ~~Phase 5.5 — Player self-service (users update own shirt number & position)~~ DONE
-7. ~~Phase 6 — Live match mode with polling + push notifications on goals~~ DONE
+7. ~~Phase 6 — Live match mode with WebSockets + push notifications on goals~~ DONE
 8. ~~Phase 6.5 — CI/CD with GitHub Actions~~ DONE
 9. ~~Phase 7 — This week's match highlight in wedstrijden tab~~ DONE
 10. ~~Phase 8 — Admin user management UI~~ DONE
 11. ~~Phase 9 — Multi-team support: explicit home/away team FKs, team-aware events & stats~~ DONE
-12. Phase 10 — Performance: Lambda-local cache, query optimization, compression, frontend bundle
+12. Phase 11 — Live tab cleanup: own goals, assist grouping, notification mock, Google OAuth CI test
+13. Phase 12 — Player list UX: sort by position (strikers first), optional position grouping
+14. Phase 10 — Performance: process-local cache, query optimization, compression, frontend bundle
