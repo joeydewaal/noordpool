@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{cmp::Reverse, collections::HashSet};
 
 use axum::{Json, extract::State};
 use serde::Serialize;
@@ -95,13 +95,13 @@ pub async fn leaderboard(
         .collect();
 
     let mut top_scorers = entries.clone();
-    top_scorers.sort_by(|a, b| b.goals.cmp(&a.goals));
+    top_scorers.sort_by_key(|a| Reverse(a.goals));
 
     let mut top_assisters = entries.clone();
-    top_assisters.sort_by(|a, b| b.assists.cmp(&a.assists));
+    top_assisters.sort_by_key(|a| Reverse(a.assists));
 
     let mut most_carded = entries;
-    most_carded.sort_by(|a, b| b.total_cards.cmp(&a.total_cards));
+    most_carded.sort_by_key(|a| Reverse(a.total_cards));
 
     let response = LeaderboardResponse {
         top_scorers,
