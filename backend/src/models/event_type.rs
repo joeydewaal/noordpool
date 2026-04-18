@@ -12,4 +12,6 @@ pub enum EventType {
     YellowCard,
     #[column(variant = 4)]
     RedCard,
+    #[column(variant = 5)]
+    OwnGoal,
 }

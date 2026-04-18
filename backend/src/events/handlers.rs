@@ -64,45 +64,73 @@ pub async fn create(
         .await?;
 
     // Touch the parent game so live pollers see the new event on
-    // their next tick. A `Goal` event also bumps the correct side of
+    // their next tick. Goal/OwnGoal events also bump the correct side of
     // the score based on the player's team.
     let now = Timestamp::now();
     let mut game = Game::get_by_id(&mut db, game_id).await?;
     let next_version = game.version + 1;
     let was_live = game.is_live(now);
-    let is_goal = event.event_type == EventType::Goal;
 
-    let (new_home, new_away, goal_side) = if is_goal {
-        let player = Player::filter_by_id(body.player_id).get(&mut db).await?;
-        let team_id = player
-            .team_id
-            .ok_or_else(|| AppError::bad_request("player has no team"))?;
+    let score_change: Option<(i32, i32, Option<crate::games::live::ScoreSide>)> =
+        match event.event_type {
+            EventType::Goal => {
+                let player = Player::filter_by_id(body.player_id).get(&mut db).await?;
+                let team_id = player
+                    .team_id
+                    .ok_or_else(|| AppError::bad_request("player has no team"))?;
+                if team_id == game.home_team_id {
+                    Some((
+                        game.home_score + 1,
+                        game.away_score,
+                        Some(crate::games::live::ScoreSide::Home),
+                    ))
+                } else if team_id == game.away_team_id {
+                    Some((
+                        game.home_score,
+                        game.away_score + 1,
+                        Some(crate::games::live::ScoreSide::Away),
+                    ))
+                } else {
+                    return Err(AppError::bad_request(
+                        "player does not belong to either team in this game",
+                    ));
+                }
+            }
+            EventType::OwnGoal => {
+                let player = Player::filter_by_id(body.player_id).get(&mut db).await?;
+                let team_id = player
+                    .team_id
+                    .ok_or_else(|| AppError::bad_request("player has no team"))?;
+                // Own goal: the opposing team gets the point
+                if team_id == game.home_team_id {
+                    Some((
+                        game.home_score,
+                        game.away_score + 1,
+                        Some(crate::games::live::ScoreSide::Away),
+                    ))
+                } else if team_id == game.away_team_id {
+                    Some((
+                        game.home_score + 1,
+                        game.away_score,
+                        Some(crate::games::live::ScoreSide::Home),
+                    ))
+                } else {
+                    return Err(AppError::bad_request(
+                        "player does not belong to either team in this game",
+                    ));
+                }
+            }
+            _ => None,
+        };
 
-        if team_id == game.home_team_id {
-            (
-                game.home_score + 1,
-                game.away_score,
-                Some(crate::games::live::ScoreSide::Home),
-            )
-        } else if team_id == game.away_team_id {
-            (
-                game.home_score,
-                game.away_score + 1,
-                Some(crate::games::live::ScoreSide::Away),
-            )
-        } else {
-            return Err(AppError::bad_request(
-                "player does not belong to either team in this game",
-            ));
-        }
-    } else {
-        (game.home_score, game.away_score, None)
-    };
+    let (new_home, new_away, goal_side) =
+        score_change.unwrap_or((game.home_score, game.away_score, None));
+    let scores_changed = score_change.is_some();
 
     let mut update = game.update();
     update.set_version(next_version);
     update.set_updated_at(now);
-    if is_goal {
+    if scores_changed {
         update.set_home_score(new_home);
         update.set_away_score(new_away);
     }
@@ -111,7 +139,7 @@ pub async fn create(
     state
         .live_hub
         .publish(game_id, LiveEvent::EventAdded(event.clone()));
-    if is_goal {
+    if scores_changed {
         state.live_hub.publish(
             game_id,
             LiveEvent::ScoreUpdate {
@@ -123,7 +151,7 @@ pub async fn create(
         );
     }
 
-    if was_live && is_goal {
+    if was_live && scores_changed {
         let fresh = Game::filter_by_id(game_id)
             .include(Game::fields().home_team())
             .include(Game::fields().away_team())
@@ -151,7 +179,6 @@ pub async fn delete(
         .filter(GameEvent::fields().game_id().eq(game_id))
         .get(&mut db)
         .await?;
-    let was_goal = event.event_type == EventType::Goal;
 
     GameEvent::filter_by_id(event_id)
         .filter(GameEvent::fields().game_id().eq(game_id))
@@ -160,30 +187,42 @@ pub async fn delete(
         .await?;
 
     // Always bump the parent game so live pollers see the deletion.
-    // Decrement the correct side when a goal event is removed, based on
-    // the player's team, clamped at zero.
+    // Decrement the correct side when a goal/own-goal event is removed,
+    // based on the player's team, clamped at zero.
     let now = Timestamp::now();
     let mut game = Game::get_by_id(&mut db, game_id).await?;
     let next_version = game.version + 1;
 
-    let (new_home, new_away) = if was_goal {
-        let player = Player::filter_by_id(event.player_id).get(&mut db).await?;
-        let team_id = player.team_id;
-
-        if team_id == Some(game.home_team_id) {
-            ((game.home_score - 1).max(0), game.away_score)
-        } else {
-            // Away side or unknown — decrement away
-            (game.home_score, (game.away_score - 1).max(0))
+    let score_change: Option<(i32, i32)> = match event.event_type {
+        EventType::Goal => {
+            let player = Player::filter_by_id(event.player_id).get(&mut db).await?;
+            let team_id = player.team_id;
+            if team_id == Some(game.home_team_id) {
+                Some(((game.home_score - 1).max(0), game.away_score))
+            } else {
+                Some((game.home_score, (game.away_score - 1).max(0)))
+            }
         }
-    } else {
-        (game.home_score, game.away_score)
+        EventType::OwnGoal => {
+            let player = Player::filter_by_id(event.player_id).get(&mut db).await?;
+            let team_id = player.team_id;
+            // Own goal credited the opponent, so decrement the opponent's score
+            if team_id == Some(game.home_team_id) {
+                Some((game.home_score, (game.away_score - 1).max(0)))
+            } else {
+                Some(((game.home_score - 1).max(0), game.away_score))
+            }
+        }
+        _ => None,
     };
+
+    let (new_home, new_away) = score_change.unwrap_or((game.home_score, game.away_score));
+    let scores_changed = score_change.is_some();
 
     let mut update = game.update();
     update.set_version(next_version);
     update.set_updated_at(now);
-    if was_goal {
+    if scores_changed {
         update.set_home_score(new_home);
         update.set_away_score(new_away);
     }
@@ -192,7 +231,7 @@ pub async fn delete(
     state
         .live_hub
         .publish(game_id, LiveEvent::EventDeleted { id: event_id });
-    if was_goal {
+    if scores_changed {
         state.live_hub.publish(
             game_id,
             LiveEvent::ScoreUpdate {

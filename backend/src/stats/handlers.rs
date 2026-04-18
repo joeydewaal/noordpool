@@ -76,6 +76,7 @@ pub async fn leaderboard(
                     EventType::Assist => assists += 1,
                     EventType::YellowCard => yellow_cards += 1,
                     EventType::RedCard => red_cards += 1,
+                    EventType::OwnGoal => {}
                 }
             }
 

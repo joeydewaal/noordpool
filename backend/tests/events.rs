@@ -170,6 +170,71 @@ async fn create_event_requires_auth() {
 }
 
 #[tokio::test]
+async fn own_goal_increments_opponent_score() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+    let (game_id, home_team_id) = create_game(&mut app, &token).await;
+    let player_id = create_player(&mut app, &token, "HomePlayer", 5, Some(&home_team_id)).await;
+
+    let res = app
+        .post(format!("/api/games/{game_id}/events"))
+        .token(&token)
+        .json(json!({
+            "playerId": player_id,
+            "eventType": "own_goal",
+            "minute": 33
+        }))
+        .await;
+
+    assert_eq!(res.status(), 200);
+    let event = res.json_value().await;
+    assert_eq!(event["eventType"], "own_goal");
+
+    // Game score: home player scored an own goal → away score should be 1, home 0
+    let game_res = app.get(format!("/api/games/{game_id}")).send().await;
+    let game = game_res.json_value().await;
+    assert_eq!(game["homeScore"], 0);
+    assert_eq!(game["awayScore"], 1);
+}
+
+#[tokio::test]
+async fn delete_own_goal_decrements_opponent_score() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+    let (game_id, home_team_id) = create_game(&mut app, &token).await;
+    let player_id = create_player(&mut app, &token, "HomePlayer", 5, Some(&home_team_id)).await;
+
+    let res = app
+        .post(format!("/api/games/{game_id}/events"))
+        .token(&token)
+        .json(json!({
+            "playerId": player_id,
+            "eventType": "own_goal",
+            "minute": 33
+        }))
+        .await;
+    let event_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
+    // Away score is 1 after own goal
+    let game_res = app.get(format!("/api/games/{game_id}")).send().await;
+    assert_eq!(game_res.json_value().await["awayScore"], 1);
+
+    // Delete the own goal
+    let del = app
+        .delete(format!("/api/games/{game_id}/events/{event_id}"))
+        .token(&token)
+        .send()
+        .await;
+    assert_eq!(del.status(), 204);
+
+    // Away score reverts to 0
+    let game_res = app.get(format!("/api/games/{game_id}")).send().await;
+    let game = game_res.json_value().await;
+    assert_eq!(game["homeScore"], 0);
+    assert_eq!(game["awayScore"], 0);
+}
+
+#[tokio::test]
 async fn list_events_empty() {
     let mut test_app = TestApp::new().await;
     let token = test_app.admin_token().await;
