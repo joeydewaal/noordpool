@@ -124,9 +124,7 @@ pub async fn create(
         };
 
     let (new_home, new_away, goal_side) =
-        score_change
-            .map(|(h, a, s)| (h, a, s))
-            .unwrap_or((game.home_score, game.away_score, None));
+        score_change.unwrap_or((game.home_score, game.away_score, None));
     let scores_changed = score_change.is_some();
 
     let mut update = game.update();
