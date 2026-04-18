@@ -156,7 +156,12 @@ export interface UpdateGameRequest {
   awayScore?: number;
 }
 
-export type EventType = "goal" | "own_goal" | "assist" | "yellow_card" | "red_card";
+export type EventType =
+  | "goal"
+  | "own_goal"
+  | "assist"
+  | "yellow_card"
+  | "red_card";
 
 export interface GameEvent {
   id: string;
