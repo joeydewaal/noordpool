@@ -121,6 +121,7 @@
 
   const eventLabels: Record<EventType, string> = {
     goal: "Doelpunt",
+    own_goal: "Eigen doelpunt",
     assist: "Assist",
     yellow_card: "Gele kaart",
     red_card: "Rode kaart",
@@ -128,6 +129,7 @@
 
   const eventIcons: Record<EventType, string> = {
     goal: "\u26BD",
+    own_goal: "\uD83D\uDD34\u26BD",
     assist: "\uD83D\uDC5F",
     yellow_card: "\uD83D\uDFE8",
     red_card: "\uD83D\uDFE5",
@@ -351,6 +353,7 @@
                 </select>
                 <select bind:value={newEventType} class="select">
                   <option value="goal">Doelpunt</option>
+                  <option value="own_goal">Eigen doelpunt</option>
                   <option value="assist">Assist</option>
                   <option value="yellow_card">Gele kaart</option>
                   <option value="red_card">Rode kaart</option>

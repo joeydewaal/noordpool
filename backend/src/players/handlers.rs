@@ -263,6 +263,7 @@ pub async fn stats(
             EventType::Assist => assists += 1,
             EventType::YellowCard => yellow_cards += 1,
             EventType::RedCard => red_cards += 1,
+            EventType::OwnGoal => {}
         }
     }
 
@@ -308,6 +309,7 @@ pub async fn stats(
             EventType::Assist => entry.1 += 1,
             EventType::YellowCard => entry.2 += 1,
             EventType::RedCard => entry.3 += 1,
+            EventType::OwnGoal => {}
         }
     }
 
