@@ -14,10 +14,57 @@
     queryFn: getPlayers,
   }));
 
-  const filtered = $derived(
-    showInactive
-      ? (playersQuery.data ?? [])
-      : (playersQuery.data ?? []).filter((p) => p.active),
+  const POSITION_ORDER: Record<string, number> = {
+    Spits: 1,
+    Linksvleugel: 2,
+    Rechtsvleugel: 3,
+    "Aanvallende middenvelder": 4,
+    "Centrale middenvelder": 5,
+    "Defensieve middenvelder": 6,
+    Linksback: 7,
+    Rechtsback: 8,
+    "Centrale verdediger": 9,
+    Keeper: 10,
+  };
+
+  const POSITION_GROUP: Record<string, string> = {
+    Spits: "Aanvallers",
+    Linksvleugel: "Aanvallers",
+    Rechtsvleugel: "Aanvallers",
+    "Aanvallende middenvelder": "Middenvelders",
+    "Centrale middenvelder": "Middenvelders",
+    "Defensieve middenvelder": "Middenvelders",
+    Linksback: "Verdedigers",
+    Rechtsback: "Verdedigers",
+    "Centrale verdediger": "Verdedigers",
+    Keeper: "Keeper",
+  };
+
+  const sorted = $derived(
+    [
+      ...(showInactive
+        ? (playersQuery.data ?? [])
+        : (playersQuery.data ?? []).filter((p) => p.active)),
+    ].sort((a, b) => {
+      const orderDiff =
+        (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99);
+      if (orderDiff !== 0) return orderDiff;
+      return a.lastName.localeCompare(b.lastName, "nl");
+    }),
+  );
+
+  type Player = NonNullable<typeof playersQuery.data>[number];
+  const grouped = $derived(
+    sorted.reduce<{ group: string; players: Player[] }[]>((acc, player) => {
+      const group = POSITION_GROUP[player.position] ?? "Overig";
+      const last = acc[acc.length - 1];
+      if (last?.group === group) {
+        last.players.push(player);
+      } else {
+        acc.push({ group, players: [player] });
+      }
+      return acc;
+    }, []),
   );
 
   const positionColor: Record<string, string> = {
@@ -55,31 +102,40 @@
   <p class="text-error-500 text-sm">Kon spelers niet laden</p>
 {:else}
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {#each filtered as player}
-      <a
-        href="/players/{player.id}"
-        class="card preset-tonal-surface p-5 flex items-center gap-4 hover:preset-tonal-primary transition-colors {!player.active
-          ? 'opacity-60'
-          : ''}"
+    {#each grouped as { group, players }}
+      <h2
+        class="col-span-full text-sm font-semibold text-surface-400 uppercase tracking-wide mt-4 first:mt-0"
       >
-        <PlayerAvatar
-          avatarUrl={player.user?.avatarUrl}
-          shirtNumber={player.shirtNumber}
-          name="{player.firstName} {player.lastName}"
-        />
-        <div class="flex-1 min-w-0">
-          <div class="font-semibold truncate">
-            {player.firstName}
-            {player.lastName}
+        {group}
+      </h2>
+      {#each players as player}
+        <a
+          href="/players/{player.id}"
+          class="card preset-tonal-surface p-5 flex items-center gap-4 hover:preset-tonal-primary transition-colors {!player.active
+            ? 'opacity-60'
+            : ''}"
+        >
+          <PlayerAvatar
+            avatarUrl={player.user?.avatarUrl}
+            shirtNumber={player.shirtNumber}
+            name="{player.firstName} {player.lastName}"
+          />
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold truncate">
+              {player.firstName}
+              {player.lastName}
+            </div>
+            <span class="chip mt-1 {positionColor[player.position]}">
+              {player.position}
+            </span>
+            {#if !player.active}
+              <span class="chip mt-1 ml-1 preset-tonal-surface">
+                inactief
+              </span>
+            {/if}
           </div>
-          <span class="chip mt-1 {positionColor[player.position]}">
-            {player.position}
-          </span>
-          {#if !player.active}
-            <span class="chip mt-1 ml-1 preset-tonal-surface"> inactief </span>
-          {/if}
-        </div>
-      </a>
+        </a>
+      {/each}
     {/each}
   </div>
 {/if}
