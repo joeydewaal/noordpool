@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    cmp::Reverse,
+    collections::{HashMap, HashSet},
+};
 
 use axum::{
     Json,
@@ -288,7 +291,7 @@ pub async fn stats(
             }
         })
         .collect();
-    goal_matches.sort_by(|a, b| b.date_time.cmp(&a.date_time));
+    goal_matches.sort_by_key(|a| Reverse(a.date_time));
 
     // Build per-game timeline for charts
     let mut timeline_map: HashMap<Uuid, (i32, i32, i32, i32, &Game)> = HashMap::new();
@@ -309,7 +312,7 @@ pub async fn stats(
     }
 
     let mut timeline_entries: Vec<_> = timeline_map.into_iter().collect();
-    timeline_entries.sort_by(|a, b| a.1.4.date_time.cmp(&b.1.4.date_time));
+    timeline_entries.sort_by_key(|a| a.1.4.date_time);
 
     let mut cum_goals = 0i32;
     let mut cum_assists = 0i32;
