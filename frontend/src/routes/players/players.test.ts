@@ -34,7 +34,15 @@ function makePlayer(
   lastName: string,
   position: string,
 ) {
-  return { id, firstName, lastName, position, shirtNumber: 1, active: true, user: null };
+  return {
+    id,
+    firstName,
+    lastName,
+    position,
+    shirtNumber: 1,
+    active: true,
+    user: null,
+  };
 }
 
 describe("Players list page — sorting and grouping", () => {
@@ -52,7 +60,9 @@ describe("Players list page — sorting and grouping", () => {
 
     render(Page);
 
-    const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent?.trim());
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((h) => h.textContent?.trim());
     expect(headings).toContain("Aanvallers");
     expect(headings).toContain("Verdedigers");
     expect(headings).toContain("Keeper");

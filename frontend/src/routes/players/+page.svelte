@@ -47,8 +47,7 @@
         : (playersQuery.data ?? []).filter((p) => p.active)),
     ].sort((a, b) => {
       const orderDiff =
-        (POSITION_ORDER[a.position] ?? 99) -
-        (POSITION_ORDER[b.position] ?? 99);
+        (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99);
       if (orderDiff !== 0) return orderDiff;
       return a.lastName.localeCompare(b.lastName, "nl");
     }),
