@@ -17,7 +17,10 @@ use noordpool_backend::{
 };
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::json;
-use std::sync::{Arc, Mutex, atomic::{AtomicU64, Ordering}};
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicU64, Ordering},
+};
 use tower::Service;
 use uuid::Uuid;
 

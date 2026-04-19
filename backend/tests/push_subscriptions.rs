@@ -224,7 +224,10 @@ async fn broadcast_captures_notification_for_all_subscribers() {
 
     // Subscribe two users so we can verify the notification is sent to all.
     let alice = app
-        .role_token("alice2@example.com", noordpool_backend::models::Role::Player)
+        .role_token(
+            "alice2@example.com",
+            noordpool_backend::models::Role::Player,
+        )
         .await;
     app.post("/api/push/subscriptions")
         .token(&alice)
@@ -259,9 +262,7 @@ async fn broadcast_captures_notification_for_all_subscribers() {
 // ---------------------------------------------------------------------------
 
 async fn create_live_game(app: &mut TestApp, token: &str) -> (String, String, String) {
-    let (home_id, away_id) = app
-        .create_teams(token, "De Noordpool", "FC Test")
-        .await;
+    let (home_id, away_id) = app.create_teams(token, "De Noordpool", "FC Test").await;
 
     // Start 5 minutes ago so it is currently live.
     let date_time = jiff::Timestamp::now() - 5.minutes();
@@ -275,10 +276,7 @@ async fn create_live_game(app: &mut TestApp, token: &str) -> (String, String, St
             "dateTime": date_time.to_string(),
         }))
         .await;
-    let game_id = res.json_value().await["id"]
-        .as_str()
-        .unwrap()
-        .to_string();
+    let game_id = res.json_value().await["id"].as_str().unwrap().to_string();
     (game_id, home_id, away_id)
 }
 
@@ -301,10 +299,7 @@ async fn goal_event_on_live_match_captures_goal_notification() {
             "teamId": home_id,
         }))
         .await;
-    let player_id = res.json_value().await["id"]
-        .as_str()
-        .unwrap()
-        .to_string();
+    let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
 
     // Subscribe a user with notify_goal = true (default).
     let player = app.player_token().await;

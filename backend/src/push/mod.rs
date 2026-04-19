@@ -20,10 +20,7 @@ use axum::{
     http::StatusCode,
     routing::{get, patch, post},
 };
-use axum_security::{
-    jwt::Jwt,
-    rbac::requires,
-};
+use axum_security::{jwt::Jwt, rbac::requires};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
@@ -159,11 +156,9 @@ async fn send_real(notification: Notification, state: &AppState) {
         .to_string()
         .into_bytes(),
 
-        Notification::Broadcast { message } => {
-            json!({ "type": "broadcast", "message": message })
-                .to_string()
-                .into_bytes()
-        }
+        Notification::Broadcast { message } => json!({ "type": "broadcast", "message": message })
+            .to_string()
+            .into_bytes(),
     };
 
     let client = match IsahcWebPushClient::new() {
@@ -179,11 +174,12 @@ async fn send_real(notification: Notification, state: &AppState) {
     for sub in &subs {
         let sub_info = SubscriptionInfo::new(&sub.endpoint, &sub.p256dh, &sub.auth);
 
-        let sig = match VapidSignatureBuilder::from_base64(&vapid.private_key, &sub_info)
-            .and_then(|mut b| {
+        let sig = match VapidSignatureBuilder::from_base64(&vapid.private_key, &sub_info).and_then(
+            |mut b| {
                 b.add_claim("sub", vapid.subject.clone());
                 b.build()
-            }) {
+            },
+        ) {
             Ok(s) => s,
             Err(err) => {
                 tracing::error!(error = %err, sub_id = %sub.id, "push: vapid sign failed");
@@ -410,7 +406,12 @@ pub async fn broadcast(
 ) -> Result<StatusCode, AppError> {
     state
         .push
-        .notify(Notification::Broadcast { message: body.message }, &state)
+        .notify(
+            Notification::Broadcast {
+                message: body.message,
+            },
+            &state,
+        )
         .await;
     Ok(StatusCode::NO_CONTENT)
 }
