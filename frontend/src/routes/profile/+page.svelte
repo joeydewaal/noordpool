@@ -5,6 +5,7 @@
   import { logout, unlinkPlayer } from "$lib/api/auth";
   import { deleteAvatar, uploadAvatar } from "$lib/api/users";
   import { getPlayer, updatePlayer } from "$lib/api/players";
+  import { broadcastPush } from "$lib/api/push";
   import { goto } from "$app/navigation";
   import {
     createQuery,
@@ -167,19 +168,25 @@
     }
   }
 
-  let testBusy = $state(false);
-  let testError = $state<string | null>(null);
+  let broadcastMessage = $state("");
+  let broadcastBusy = $state(false);
+  let broadcastError = $state<string | null>(null);
+  let broadcastSent = $state(false);
 
-  async function handleTestPush() {
-    testBusy = true;
-    testError = null;
+  async function handleBroadcast() {
+    if (!broadcastMessage.trim()) return;
+    broadcastBusy = true;
+    broadcastError = null;
+    broadcastSent = false;
     try {
-      const { testPush } = await import("$lib/api/push");
-      await testPush();
+      await broadcastPush(broadcastMessage.trim());
+      broadcastSent = true;
+      broadcastMessage = "";
     } catch (err) {
-      testError = err instanceof Error ? err.message : "Testmelding mislukt.";
+      broadcastError =
+        err instanceof Error ? err.message : "Versturen mislukt.";
     } finally {
-      testBusy = false;
+      broadcastBusy = false;
     }
   }
 </script>
@@ -420,22 +427,13 @@
         {:else if pushPermission === "denied"}
           <span class="chip preset-filled-error-500">Geblokkeerd</span>
         {:else if pushSubscribed}
-          <div class="flex gap-2">
-            <button
-              class="btn btn-sm preset-outlined-surface-500"
-              onclick={handleTestPush}
-              disabled={pushBusy || testBusy}
-            >
-              Test
-            </button>
-            <button
-              class="btn btn-sm preset-filled-warning-500"
-              onclick={handleDisablePush}
-              disabled={pushBusy}
-            >
-              Uitschakelen
-            </button>
-          </div>
+          <button
+            class="btn btn-sm preset-filled-warning-500"
+            onclick={handleDisablePush}
+            disabled={pushBusy}
+          >
+            Uitschakelen
+          </button>
         {:else}
           <button
             class="btn btn-sm preset-filled-primary-500"
@@ -455,10 +453,44 @@
       {#if pushError}
         <p class="text-xs text-error-500">{pushError}</p>
       {/if}
-      {#if testError}
-        <p class="text-xs text-error-500">{testError}</p>
-      {/if}
     </div>
+
+    {#if auth.isAdmin}
+      <div class="card p-4 space-y-3">
+        <p class="font-medium">Melding versturen</p>
+        <p class="text-sm text-surface-400">
+          Stuur een pushmelding naar alle abonnees.
+        </p>
+        <form
+          onsubmit={(e) => {
+            e.preventDefault();
+            handleBroadcast();
+          }}
+          class="flex gap-2"
+        >
+          <input
+            type="text"
+            bind:value={broadcastMessage}
+            placeholder="Bericht..."
+            class="input flex-1"
+            disabled={broadcastBusy}
+          />
+          <button
+            type="submit"
+            class="btn btn-sm preset-filled-primary-500"
+            disabled={broadcastBusy || !broadcastMessage.trim()}
+          >
+            Versturen
+          </button>
+        </form>
+        {#if broadcastSent}
+          <p class="text-xs text-success-500">Melding verstuurd.</p>
+        {/if}
+        {#if broadcastError}
+          <p class="text-xs text-error-500">{broadcastError}</p>
+        {/if}
+      </div>
+    {/if}
 
     {#if pwa.installable}
       <button

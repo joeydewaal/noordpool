@@ -10,6 +10,9 @@
 //!   DELETE /subscriptions         → delete one of current user's subs by endpoint
 //!   GET    /subscriptions/me      → list current user's subs
 //!   PATCH  /subscriptions/{id}    → update notify_* prefs (must own row)
+//!   POST   /broadcast             → admin-only, send a message to all subscribers
+
+use std::sync::{Arc, Mutex};
 
 use axum::{
     Json, Router,
@@ -17,7 +20,10 @@ use axum::{
     http::StatusCode,
     routing::{get, patch, post},
 };
-use axum_security::jwt::Jwt;
+use axum_security::{
+    jwt::Jwt,
+    rbac::requires,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
@@ -31,7 +37,7 @@ use crate::{
     auth::claims::Claims,
     error::AppError,
     games::live::ScoreSide,
-    models::{Game, PushSubscription},
+    models::{Game, PushSubscription, Role},
 };
 
 pub fn router() -> Router<AppState> {
@@ -39,9 +45,221 @@ pub fn router() -> Router<AppState> {
         .route("/vapid-public-key", get(vapid_public_key))
         .route("/subscriptions", post(subscribe).delete(unsubscribe))
         .route("/subscriptions/me", get(list_mine))
-        .route("/subscriptions/test", post(send_test))
         .route("/subscriptions/{id}", patch(update_prefs))
+        .route("/broadcast", post(broadcast))
 }
+
+// ---------------------------------------------------------------------------
+// Notification types
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone)]
+pub enum Notification {
+    Goal {
+        game_id: Uuid,
+        home_team_id: Uuid,
+        away_team_id: Uuid,
+        home_team_name: String,
+        away_team_name: String,
+        home_score: i32,
+        away_score: i32,
+        side: Option<ScoreSide>,
+    },
+    Broadcast {
+        message: String,
+    },
+}
+
+// ---------------------------------------------------------------------------
+// PushBackend — real vs. mock
+// ---------------------------------------------------------------------------
+
+#[derive(Clone)]
+pub enum PushBackend {
+    Isahc,
+    Mock(Arc<Mutex<Vec<Notification>>>),
+}
+
+impl PushBackend {
+    /// Returns a mock backend and a shared handle to inspect captured notifications.
+    pub fn new_mock() -> (Self, Arc<Mutex<Vec<Notification>>>) {
+        let store = Arc::new(Mutex::new(Vec::new()));
+        (PushBackend::Mock(Arc::clone(&store)), store)
+    }
+
+    /// Dispatch a notification. Mock variant captures it; Isahc variant sends for real.
+    pub async fn notify(&self, notification: Notification, state: &AppState) {
+        match self {
+            PushBackend::Mock(store) => {
+                store.lock().unwrap().push(notification);
+            }
+            PushBackend::Isahc => {
+                send_real(notification, state).await;
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Real-send logic (Isahc path only)
+// ---------------------------------------------------------------------------
+
+async fn send_real(notification: Notification, state: &AppState) {
+    let Some(vapid) = state.vapid.as_ref() else {
+        tracing::debug!("push: VAPID not configured, skipping");
+        return;
+    };
+
+    let mut db = state.db.clone();
+
+    let notify_goal_only = matches!(notification, Notification::Goal { .. });
+    let subs = if notify_goal_only {
+        PushSubscription::all()
+            .filter(PushSubscription::fields().notify_goal().eq(true))
+            .exec(&mut db)
+            .await
+    } else {
+        PushSubscription::all().exec(&mut db).await
+    };
+    let subs = match subs {
+        Ok(s) => s,
+        Err(err) => {
+            tracing::error!(error = %err, "push: failed to load subscriptions");
+            return;
+        }
+    };
+
+    if subs.is_empty() {
+        return;
+    }
+
+    let payload_bytes = match &notification {
+        Notification::Goal {
+            game_id,
+            home_team_id,
+            away_team_id,
+            home_team_name,
+            away_team_name,
+            home_score,
+            away_score,
+            side,
+        } => json!({
+            "type": "goal",
+            "gameId": game_id,
+            "homeTeam": { "id": home_team_id, "name": home_team_name },
+            "awayTeam": { "id": away_team_id, "name": away_team_name },
+            "homeScore": home_score,
+            "awayScore": away_score,
+            "side": match side {
+                Some(ScoreSide::Home) => Some("home"),
+                Some(ScoreSide::Away) => Some("away"),
+                None => None,
+            },
+        })
+        .to_string()
+        .into_bytes(),
+
+        Notification::Broadcast { message } => {
+            json!({ "type": "broadcast", "message": message })
+                .to_string()
+                .into_bytes()
+        }
+    };
+
+    let client = match IsahcWebPushClient::new() {
+        Ok(c) => c,
+        Err(err) => {
+            tracing::error!(error = %err, "push: failed to build web push client");
+            return;
+        }
+    };
+
+    let mut to_delete: Vec<Uuid> = Vec::new();
+
+    for sub in &subs {
+        let sub_info = SubscriptionInfo::new(&sub.endpoint, &sub.p256dh, &sub.auth);
+
+        let sig = match VapidSignatureBuilder::from_base64(&vapid.private_key, &sub_info)
+            .and_then(|mut b| {
+                b.add_claim("sub", vapid.subject.clone());
+                b.build()
+            }) {
+            Ok(s) => s,
+            Err(err) => {
+                tracing::error!(error = %err, sub_id = %sub.id, "push: vapid sign failed");
+                continue;
+            }
+        };
+
+        let mut builder = WebPushMessageBuilder::new(&sub_info);
+        builder.set_payload(ContentEncoding::Aes128Gcm, &payload_bytes);
+        builder.set_vapid_signature(sig);
+
+        let message = match builder.build() {
+            Ok(m) => m,
+            Err(err) => {
+                tracing::error!(error = %err, sub_id = %sub.id, "push: build message failed");
+                continue;
+            }
+        };
+
+        match client.send(message).await {
+            Ok(()) => {
+                tracing::debug!(sub_id = %sub.id, "push: sent");
+            }
+            Err(WebPushError::EndpointNotValid(_))
+            | Err(WebPushError::EndpointNotFound(_))
+            | Err(WebPushError::Unauthorized(_)) => {
+                tracing::info!(sub_id = %sub.id, "push: pruning expired endpoint");
+                to_delete.push(sub.id);
+            }
+            Err(err) => {
+                tracing::warn!(error = %err, sub_id = %sub.id, "push: send failed");
+            }
+        }
+    }
+
+    for id in to_delete {
+        if let Ok(sub) = PushSubscription::get_by_id(&mut db, id).await
+            && let Err(err) = sub.delete().exec(&mut db).await
+        {
+            tracing::warn!(error = %err, sub_id = %id, "push: prune delete failed");
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Public helper — called by event/score handlers
+// ---------------------------------------------------------------------------
+
+pub async fn notify_goal(
+    state: &AppState,
+    game: &Game,
+    side: Option<ScoreSide>,
+    home_team_name: &str,
+    away_team_name: &str,
+) {
+    state
+        .push
+        .notify(
+            Notification::Goal {
+                game_id: game.id,
+                home_team_id: game.home_team_id,
+                away_team_id: game.away_team_id,
+                home_team_name: home_team_name.to_string(),
+                away_team_name: away_team_name.to_string(),
+                home_score: game.home_score,
+                away_score: game.away_score,
+                side,
+            },
+            state,
+        )
+        .await;
+}
+
+// ---------------------------------------------------------------------------
+// HTTP handlers
+// ---------------------------------------------------------------------------
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -177,154 +395,22 @@ pub async fn update_prefs(
     Ok(Json(fresh))
 }
 
-/// Send a test push notification to all of the current user's subscriptions.
-#[tracing::instrument(skip(state))]
-pub async fn send_test(
-    State(state): State<AppState>,
-    Jwt(claims): Jwt<Claims>,
-) -> Result<StatusCode, AppError> {
-    let Some(vapid) = state.vapid.as_ref() else {
-        return Err(AppError::Internal("Web Push not configured".into()));
-    };
-
-    let mut db = state.db.clone();
-    let subs = PushSubscription::filter_by_user_id(claims.sub)
-        .exec(&mut db)
-        .await?;
-
-    let payload = serde_json::json!({ "type": "test", "message": "Testmelding werkt!" });
-    let payload_bytes = payload.to_string().into_bytes();
-
-    let client = IsahcWebPushClient::new().map_err(|e| AppError::Internal(e.to_string()))?;
-
-    for sub in &subs {
-        let sub_info = SubscriptionInfo::new(&sub.endpoint, &sub.p256dh, &sub.auth);
-        let sig =
-            VapidSignatureBuilder::from_base64(&vapid.private_key, &sub_info).and_then(|mut b| {
-                b.add_claim("sub", vapid.subject.clone());
-                b.build()
-            });
-        let Ok(sig) = sig else { continue };
-
-        let mut builder = WebPushMessageBuilder::new(&sub_info);
-        builder.set_payload(ContentEncoding::Aes128Gcm, &payload_bytes);
-        builder.set_vapid_signature(sig);
-        if let Ok(msg) = builder.build() {
-            let _ = client.send(msg).await;
-        }
-    }
-
-    Ok(StatusCode::NO_CONTENT)
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct BroadcastRequest {
+    pub message: String,
 }
 
-/// Send a "GOAL!" push notification to every subscription that has
-/// `notify_goal = true`. Awaited on purpose — Lambda freezes the
-/// runtime once the HTTP response goes back.
-///
-/// Subscriptions that come back as `EndpointNotValid` (410 Gone) or
-/// `EndpointNotFound` (404) are pruned from the database.
-pub async fn notify_goal(
-    state: &AppState,
-    game: &Game,
-    side: Option<ScoreSide>,
-    home_team_name: &str,
-    away_team_name: &str,
-) {
-    let Some(vapid) = state.vapid.as_ref() else {
-        tracing::debug!("notify_goal: VAPID not configured, skipping");
-        return;
-    };
-
-    let mut db = state.db.clone();
-    let subs = match PushSubscription::all()
-        .filter(PushSubscription::fields().notify_goal().eq(true))
-        .exec(&mut db)
-        .await
-    {
-        Ok(s) => s,
-        Err(err) => {
-            tracing::error!(error = %err, "notify_goal: failed to load subscriptions");
-            return;
-        }
-    };
-
-    if subs.is_empty() {
-        return;
-    }
-
-    let payload = json!({
-        "type": "goal",
-        "gameId": game.id,
-        "homeTeam": { "id": game.home_team_id, "name": home_team_name },
-        "awayTeam": { "id": game.away_team_id, "name": away_team_name },
-        "homeScore": game.home_score,
-        "awayScore": game.away_score,
-        "side": side.map(|s| match s {
-            ScoreSide::Home => "home",
-            ScoreSide::Away => "away",
-        }),
-    });
-    let payload_bytes = payload.to_string().into_bytes();
-
-    let client = match IsahcWebPushClient::new() {
-        Ok(c) => c,
-        Err(err) => {
-            tracing::error!(error = %err, "notify_goal: failed to build web push client");
-            return;
-        }
-    };
-
-    let mut to_delete: Vec<Uuid> = Vec::new();
-
-    for sub in &subs {
-        let sub_info = SubscriptionInfo::new(&sub.endpoint, &sub.p256dh, &sub.auth);
-
-        let sig = match VapidSignatureBuilder::from_base64(&vapid.private_key, &sub_info).and_then(
-            |mut b| {
-                b.add_claim("sub", vapid.subject.clone());
-                b.build()
-            },
-        ) {
-            Ok(s) => s,
-            Err(err) => {
-                tracing::error!(error = %err, sub_id = %sub.id, "notify_goal: vapid sign failed");
-                continue;
-            }
-        };
-
-        let mut builder = WebPushMessageBuilder::new(&sub_info);
-        builder.set_payload(ContentEncoding::Aes128Gcm, &payload_bytes);
-        builder.set_vapid_signature(sig);
-
-        let message = match builder.build() {
-            Ok(m) => m,
-            Err(err) => {
-                tracing::error!(error = %err, sub_id = %sub.id, "notify_goal: build message failed");
-                continue;
-            }
-        };
-
-        match client.send(message).await {
-            Ok(()) => {
-                tracing::debug!(sub_id = %sub.id, "notify_goal: sent");
-            }
-            Err(WebPushError::EndpointNotValid(_))
-            | Err(WebPushError::EndpointNotFound(_))
-            | Err(WebPushError::Unauthorized(_)) => {
-                tracing::info!(sub_id = %sub.id, "notify_goal: pruning expired endpoint");
-                to_delete.push(sub.id);
-            }
-            Err(err) => {
-                tracing::warn!(error = %err, sub_id = %sub.id, "notify_goal: send failed");
-            }
-        }
-    }
-
-    for id in to_delete {
-        if let Ok(sub) = PushSubscription::get_by_id(&mut db, id).await
-            && let Err(err) = sub.delete().exec(&mut db).await
-        {
-            tracing::warn!(error = %err, sub_id = %id, "notify_goal: prune delete failed");
-        }
-    }
+/// Admin-only: send a push notification with a configurable message to all subscribers.
+#[requires(Role::Admin)]
+#[tracing::instrument(skip(state, body))]
+pub async fn broadcast(
+    State(state): State<AppState>,
+    Json(body): Json<BroadcastRequest>,
+) -> Result<StatusCode, AppError> {
+    state
+        .push
+        .notify(Notification::Broadcast { message: body.message }, &state)
+        .await;
+    Ok(StatusCode::NO_CONTENT)
 }

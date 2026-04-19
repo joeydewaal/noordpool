@@ -1,6 +1,8 @@
 mod common;
 
 use common::TestApp;
+use jiff::ToSpan;
+use noordpool_backend::push::Notification;
 use serde_json::json;
 
 fn sub_payload(endpoint: &str) -> serde_json::Value {
@@ -183,4 +185,147 @@ async fn update_prefs_only_for_own_subscription() {
         .await;
     assert_eq!(res.status(), 200);
     assert_eq!(res.json_value().await["notifyGoal"], false);
+}
+
+// ---------------------------------------------------------------------------
+// Broadcast (admin-only, configurable message, all subscribers)
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn broadcast_requires_admin() {
+    let mut app = TestApp::new().await;
+
+    // No auth
+    let res = app
+        .post("/api/push/broadcast")
+        .json(json!({ "message": "Hallo" }))
+        .await;
+    assert_eq!(res.status(), 401);
+
+    // Non-admin (moderator)
+    let moderator = app
+        .role_token(
+            "mod@example.com",
+            noordpool_backend::models::Role::Moderator,
+        )
+        .await;
+    let res = app
+        .post("/api/push/broadcast")
+        .token(&moderator)
+        .json(json!({ "message": "Hallo" }))
+        .await;
+    assert_eq!(res.status(), 403);
+}
+
+#[tokio::test]
+async fn broadcast_captures_notification_for_all_subscribers() {
+    let mut app = TestApp::new().await;
+    let admin = app.admin_token().await;
+
+    // Subscribe two users so we can verify the notification is sent to all.
+    let alice = app
+        .role_token("alice2@example.com", noordpool_backend::models::Role::Player)
+        .await;
+    app.post("/api/push/subscriptions")
+        .token(&alice)
+        .json(sub_payload("https://example.com/endpoint/alice2"))
+        .await;
+
+    let bob = app
+        .role_token("bob2@example.com", noordpool_backend::models::Role::Player)
+        .await;
+    app.post("/api/push/subscriptions")
+        .token(&bob)
+        .json(sub_payload("https://example.com/endpoint/bob2"))
+        .await;
+
+    let res = app
+        .post("/api/push/broadcast")
+        .token(&admin)
+        .json(json!({ "message": "Test bericht" }))
+        .await;
+    assert_eq!(res.status(), 204);
+
+    let captured = app.notifications.lock().unwrap();
+    assert_eq!(captured.len(), 1);
+    let Notification::Broadcast { message } = &captured[0] else {
+        panic!("expected Broadcast notification, got {:?}", captured[0]);
+    };
+    assert_eq!(message, "Test bericht");
+}
+
+// ---------------------------------------------------------------------------
+// Goal notifications via mock push backend
+// ---------------------------------------------------------------------------
+
+async fn create_live_game(app: &mut TestApp, token: &str) -> (String, String, String) {
+    let (home_id, away_id) = app
+        .create_teams(token, "De Noordpool", "FC Test")
+        .await;
+
+    // Start 5 minutes ago so it is currently live.
+    let date_time = jiff::Timestamp::now() - 5.minutes();
+    let res = app
+        .post("/api/games")
+        .token(token)
+        .json(json!({
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
+            "location": "Stadion",
+            "dateTime": date_time.to_string(),
+        }))
+        .await;
+    let game_id = res.json_value().await["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    (game_id, home_id, away_id)
+}
+
+#[tokio::test]
+async fn goal_event_on_live_match_captures_goal_notification() {
+    let mut app = TestApp::new().await;
+    let admin = app.admin_token().await;
+
+    let (game_id, home_id, _away_id) = create_live_game(&mut app, &admin).await;
+
+    // Create a player on the home team.
+    let res = app
+        .post("/api/players")
+        .token(&admin)
+        .json(json!({
+            "firstName": "Scorer",
+            "lastName": "",
+            "shirtNumber": 9,
+            "position": "Spits",
+            "teamId": home_id,
+        }))
+        .await;
+    let player_id = res.json_value().await["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Subscribe a user with notify_goal = true (default).
+    let player = app.player_token().await;
+    app.post("/api/push/subscriptions")
+        .token(&player)
+        .json(sub_payload("https://example.com/endpoint/fan"))
+        .await;
+
+    // Add a goal event.
+    let res = app
+        .post(format!("/api/games/{game_id}/events"))
+        .token(&admin)
+        .json(json!({
+            "playerId": player_id,
+            "eventType": "goal",
+            "minute": 10,
+        }))
+        .await;
+    assert_eq!(res.status(), 200);
+
+    let captured = app.notifications.lock().unwrap();
+    assert_eq!(captured.len(), 1);
+    assert!(matches!(captured[0], Notification::Goal { .. }));
 }

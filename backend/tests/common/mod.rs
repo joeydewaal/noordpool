@@ -12,11 +12,12 @@ use noordpool_backend::{
     app_state::AppState,
     auth::claims::Claims,
     models::{Role, build_db},
+    push::{Notification, PushBackend},
     routes,
 };
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::json;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, atomic::{AtomicU64, Ordering}};
 use tower::Service;
 use uuid::Uuid;
 
@@ -29,6 +30,8 @@ pub struct TestApp {
     test_db: Option<String>,
     /// Base connection URL for creating/dropping databases.
     base_url: Option<String>,
+    /// Captured notifications (always populated — TestApp always uses mock push).
+    pub notifications: Arc<Mutex<Vec<Notification>>>,
 }
 
 pub struct Response {
@@ -136,13 +139,16 @@ impl TestApp {
         ));
         std::fs::create_dir_all(&avatar_dir).unwrap();
 
+        let (push, notifications) = PushBackend::new_mock();
+
         let state = AppState {
             db,
             jwt,
             google_oidc: None,
             vapid: None,
             live_hub: noordpool_backend::games::live_ws::LiveHub::new(),
-            avatar_dir: std::sync::Arc::new(avatar_dir),
+            avatar_dir: Arc::new(avatar_dir),
+            push,
         };
         let router = routes::app(state.clone());
         TestApp {
@@ -150,6 +156,7 @@ impl TestApp {
             router,
             test_db,
             base_url,
+            notifications,
         }
     }
 

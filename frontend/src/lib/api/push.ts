@@ -33,6 +33,6 @@ export async function updatePushPrefs(
   ).data;
 }
 
-export async function testPush(): Promise<void> {
-  await api.post("/push/subscriptions/test", {});
+export async function broadcastPush(message: string): Promise<void> {
+  await api.post("/push/broadcast", { message });
 }

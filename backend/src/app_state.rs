@@ -7,6 +7,7 @@ use toasty::Db;
 use crate::{
     auth::{claims::Claims, google::GoogleHandler},
     games::live_ws::LiveHub,
+    push::PushBackend,
 };
 
 #[derive(Clone)]
@@ -17,6 +18,7 @@ pub struct AppState {
     pub vapid: Option<Arc<VapidConfig>>,
     pub live_hub: LiveHub,
     pub avatar_dir: Arc<PathBuf>,
+    pub push: PushBackend,
 }
 
 /// Loaded once at startup. If absent, push endpoints return 503.

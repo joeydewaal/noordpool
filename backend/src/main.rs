@@ -103,6 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         vapid,
         live_hub: games::live_ws::LiveHub::new(),
         avatar_dir: Arc::new(avatar_dir),
+        push: push::PushBackend::Isahc,
     };
 
     let app = routes::app(state);
