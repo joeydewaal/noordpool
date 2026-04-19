@@ -14,10 +14,7 @@ if [ -n "$RUST_STAGED" ]; then
   echo "pre-commit: cargo fmt"
   cargo fmt --manifest-path "$ROOT/backend/Cargo.toml"
 
-  echo "pre-commit: cargo clippy --fix"
-  cargo clippy --fix --allow-staged --manifest-path "$ROOT/backend/Cargo.toml" -- -D warnings
-
-  echo "pre-commit: cargo clippy (verify)"
+  echo "pre-commit: cargo clippy"
   cargo clippy --manifest-path "$ROOT/backend/Cargo.toml" -- -D warnings
 fi
 
