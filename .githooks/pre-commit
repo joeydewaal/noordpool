@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+# Capture staged paths before formatters touch anything.
+STAGED=$(git diff --cached --name-only)
+
+RUST_STAGED=$(printf '%s\n' "$STAGED" | grep -E '^backend/' || true)
+FRONTEND_STAGED=$(printf '%s\n' "$STAGED" | grep -E '^frontend/' || true)
+
+# ── Rust ──────────────────────────────────────────────────────
+if [ -n "$RUST_STAGED" ]; then
+  echo "pre-commit: cargo fmt"
+  cargo fmt --manifest-path "$ROOT/backend/Cargo.toml"
+
+  echo "pre-commit: cargo clippy"
+  cargo clippy --manifest-path "$ROOT/backend/Cargo.toml" -- -D warnings
+fi
+
+# ── Frontend ──────────────────────────────────────────────────
+if [ -n "$FRONTEND_STAGED" ]; then
+  echo "pre-commit: prettier"
+  (cd "$ROOT/frontend" && npx prettier --write .)
+fi
+
+# Re-stage any files the formatters changed that were already in the index.
+if [ -n "$STAGED" ]; then
+  while IFS= read -r file; do
+    [ -f "$ROOT/$file" ] && git add -- "$ROOT/$file"
+  done <<< "$STAGED"
+fi
