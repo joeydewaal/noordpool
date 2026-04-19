@@ -7,6 +7,7 @@ use toasty::Db;
 use crate::{
     auth::{claims::Claims, google::GoogleHandler},
     games::live_ws::LiveHub,
+    push::PushBackend,
 };
 
 #[derive(Clone)]
@@ -14,20 +15,9 @@ pub struct AppState {
     pub db: Db,
     pub jwt: JwtContext<Claims>,
     pub google_oidc: Option<OidcContext<GoogleHandler>>,
-    pub vapid: Option<Arc<VapidConfig>>,
     pub live_hub: LiveHub,
     pub avatar_dir: Arc<PathBuf>,
-}
-
-/// Loaded once at startup. If absent, push endpoints return 503.
-pub struct VapidConfig {
-    /// Base64url-encoded P-256 public key (raw, uncompressed, 65 bytes).
-    /// Sent verbatim to the browser for `pushManager.subscribe`.
-    pub public_key: String,
-    /// Base64url-encoded P-256 private key (32 bytes).
-    pub private_key: String,
-    /// `mailto:` or `https:` URI per RFC 8292.
-    pub subject: String,
+    pub push: PushBackend,
 }
 
 impl FromRef<AppState> for JwtContext<Claims> {

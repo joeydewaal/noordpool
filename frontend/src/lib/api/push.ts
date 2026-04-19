@@ -32,3 +32,7 @@ export async function updatePushPrefs(
     await api.patch<PushSubscriptionRecord>(`/push/subscriptions/${id}`, prefs)
   ).data;
 }
+
+export async function broadcastPush(message: string): Promise<void> {
+  await api.post("/push/broadcast", { message });
+}

@@ -138,6 +138,8 @@ pub async fn init_db(db: &mut Db, config: &Config) -> Result<(), Box<dyn Error>>
         } else {
             (opponent_team.id, noordpool.id)
         };
+        // Store only the opponent's goals as adjustments. Noordpool player
+        // goals are tracked via events and computed by compute_scores.
         let game = create!(Game {
             home_team_id: home_team_id,
             away_team_id: away_team_id,
@@ -147,8 +149,8 @@ pub async fn init_db(db: &mut Db, config: &Config) -> Result<(), Box<dyn Error>>
                 .parse::<Timestamp>()
                 .ok()
                 .unwrap_or(Timestamp::UNIX_EPOCH),
-            home_score: m.home_score,
-            away_score: m.away_score,
+            home_score: if m.is_home { 0 } else { m.home_score },
+            away_score: if m.is_home { m.away_score } else { 0 },
         })
         .exec(&mut tx)
         .await?;
@@ -172,6 +174,7 @@ pub async fn init_db(db: &mut Db, config: &Config) -> Result<(), Box<dyn Error>>
                 create!(GameEvent {
                     game: game.clone(),
                     player: player.clone(),
+                    team_id: noordpool.id,
                     event_type: EventType::Goal,
                     minute: 0,
                 })

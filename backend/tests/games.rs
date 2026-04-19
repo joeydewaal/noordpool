@@ -4,6 +4,73 @@ use common::TestApp;
 use insta::{Settings, assert_json_snapshot};
 use serde_json::json;
 
+/// Creates a finished game (past date), adds goal events for players on known
+/// teams, and verifies that GET /api/games/summary returns the correct scores
+/// computed from those events rather than the zero-value stored adjustments.
+#[tokio::test]
+async fn recent_games_score_computed_from_events() {
+    let mut app = TestApp::new().await;
+    let token = app.admin_token().await;
+
+    let (home_id, away_id) = app
+        .create_teams(&token, "De Noordpool", "FC Tegenstander")
+        .await;
+
+    // Create a player on the home team
+    let player_res = app
+        .post("/api/players")
+        .token(&token)
+        .json(json!({
+            "firstName": "Scorer",
+            "lastName": "",
+            "shirtNumber": 9,
+            "position": "Spits",
+            "teamId": home_id
+        }))
+        .await;
+    let player_id = player_res.json_value().await["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Game in the past → status "finished"
+    let game_res = app
+        .post("/api/games")
+        .token(&token)
+        .json(json!({
+            "homeTeamId": home_id,
+            "awayTeamId": away_id,
+            "location": "Veld",
+            "dateTime": "2024-03-01T15:00:00Z"
+        }))
+        .await;
+    let game_id = game_res.json_value().await["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Two home goals by the home player
+    for minute in [20, 55] {
+        app.post(format!("/api/games/{game_id}/events"))
+            .token(&token)
+            .json(json!({ "playerId": player_id, "eventType": "goal", "minute": minute }))
+            .await;
+    }
+    // One own goal by the home player (counts for away)
+    app.post(format!("/api/games/{game_id}/events"))
+        .token(&token)
+        .json(json!({ "playerId": player_id, "eventType": "own_goal", "minute": 70 }))
+        .await;
+
+    let summary = app.get("/api/games/summary").send().await;
+    assert_eq!(summary.status(), 200);
+    let body = summary.json_value().await;
+    let recent = body["recent"].as_array().unwrap();
+    assert_eq!(recent.len(), 1);
+    assert_eq!(recent[0]["homeScore"], 2, "two home goals from events");
+    assert_eq!(recent[0]["awayScore"], 1, "one own-goal counts for away");
+}
+
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
     settings.add_redaction(".dateTime", "[dateTime]");

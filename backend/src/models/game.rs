@@ -3,8 +3,24 @@ use serde::Serialize;
 use toasty::{BelongsTo, HasMany};
 use uuid::Uuid;
 
-use super::GameEvent;
+use super::{EventType, GameEvent};
 use crate::models::team::Team;
+
+/// Compute `(home_goals, away_goals)` from a slice of events.
+pub fn compute_scores(events: &[GameEvent], home_team_id: Uuid) -> (i32, i32) {
+    let mut home = 0i32;
+    let mut away = 0i32;
+    for e in events {
+        match e.event_type {
+            EventType::Goal if e.team_id == home_team_id => home += 1,
+            EventType::Goal => away += 1,
+            EventType::OwnGoal if e.team_id == home_team_id => away += 1,
+            EventType::OwnGoal => home += 1,
+            _ => {}
+        }
+    }
+    (home, away)
+}
 
 /// How long after kickoff we still consider a match "live". Covers
 /// 2x 45 min halves + halftime + stoppage + buffer.
@@ -61,6 +77,20 @@ pub struct Game {
 }
 
 impl Game {
+    /// Applies event-computed goals on top of the stored adjustment values.
+    /// `home_score`/`away_score` in the DB are now opponent-only adjustments
+    /// (changed only by the ±1 score adjuster). Call this before serialising.
+    /// No-op when events are not loaded.
+    pub fn apply_computed_scores(&mut self) {
+        if self.events.is_unloaded() {
+            return;
+        }
+        let events = self.events.get().to_vec();
+        let (ch, ca) = compute_scores(&events, self.home_team_id);
+        self.home_score += ch;
+        self.away_score += ca;
+    }
+
     /// Returns true when `now` is inside `[date_time, date_time + MATCH_DURATION]`
     /// and the game is not cancelled.
     pub fn is_live(&self, now: Timestamp) -> bool {

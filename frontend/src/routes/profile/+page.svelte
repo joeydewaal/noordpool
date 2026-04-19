@@ -5,6 +5,7 @@
   import { logout, unlinkPlayer } from "$lib/api/auth";
   import { deleteAvatar, uploadAvatar } from "$lib/api/users";
   import { getPlayer, updatePlayer } from "$lib/api/players";
+  import { broadcastPush } from "$lib/api/push";
   import { goto } from "$app/navigation";
   import {
     createQuery,
@@ -164,6 +165,28 @@
       pushError = err instanceof Error ? err.message : "Uitschakelen mislukt.";
     } finally {
       pushBusy = false;
+    }
+  }
+
+  let broadcastMessage = $state("");
+  let broadcastBusy = $state(false);
+  let broadcastError = $state<string | null>(null);
+  let broadcastSent = $state(false);
+
+  async function handleBroadcast() {
+    if (!broadcastMessage.trim()) return;
+    broadcastBusy = true;
+    broadcastError = null;
+    broadcastSent = false;
+    try {
+      await broadcastPush(broadcastMessage.trim());
+      broadcastSent = true;
+      broadcastMessage = "";
+    } catch (err) {
+      broadcastError =
+        err instanceof Error ? err.message : "Versturen mislukt.";
+    } finally {
+      broadcastBusy = false;
     }
   }
 </script>
@@ -431,6 +454,43 @@
         <p class="text-xs text-error-500">{pushError}</p>
       {/if}
     </div>
+
+    {#if auth.isAdmin}
+      <div class="card p-4 space-y-3">
+        <p class="font-medium">Melding versturen</p>
+        <p class="text-sm text-surface-400">
+          Stuur een pushmelding naar alle abonnees.
+        </p>
+        <form
+          onsubmit={(e) => {
+            e.preventDefault();
+            handleBroadcast();
+          }}
+          class="flex gap-2"
+        >
+          <input
+            type="text"
+            bind:value={broadcastMessage}
+            placeholder="Bericht..."
+            class="input flex-1"
+            disabled={broadcastBusy}
+          />
+          <button
+            type="submit"
+            class="btn btn-sm preset-filled-primary-500"
+            disabled={broadcastBusy || !broadcastMessage.trim()}
+          >
+            Versturen
+          </button>
+        </form>
+        {#if broadcastSent}
+          <p class="text-xs text-success-500">Melding verstuurd.</p>
+        {/if}
+        {#if broadcastError}
+          <p class="text-xs text-error-500">{broadcastError}</p>
+        {/if}
+      </div>
+    {/if}
 
     {#if pwa.installable}
       <button
