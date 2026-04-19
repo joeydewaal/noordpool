@@ -14,7 +14,6 @@ use crate::{
     games::live::{LiveSnapshot, ScoreSide},
     games::live_ws::LiveEvent,
     models::{EventType, Game, GameEvent, Role, game::compute_scores},
-    push,
 };
 
 #[derive(Deserialize)]
@@ -119,14 +118,10 @@ pub async fn create(
             let mut game_for_push = fresh.clone();
             game_for_push.home_score = snapshot.home_score;
             game_for_push.away_score = snapshot.away_score;
-            push::notify_goal(
-                &state.push,
-                &game_for_push,
-                goal_side,
-                &home_name,
-                &away_name,
-            )
-            .await;
+            state
+                .push
+                .notify_goal(&game_for_push, goal_side, &home_name, &away_name)
+                .await;
         }
     }
 

@@ -124,6 +124,26 @@ impl PushBackend {
             PushBackend::Disabled => {}
         }
     }
+
+    pub async fn notify_goal(
+        &self,
+        game: &Game,
+        side: Option<ScoreSide>,
+        home_team_name: &str,
+        away_team_name: &str,
+    ) {
+        self.notify(Notification::Goal {
+            game_id: game.id,
+            home_team_id: game.home_team_id,
+            away_team_id: game.away_team_id,
+            home_team_name: home_team_name.to_string(),
+            away_team_name: away_team_name.to_string(),
+            home_score: game.home_score,
+            away_score: game.away_score,
+            side,
+        })
+        .await;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -246,30 +266,6 @@ async fn send_real(notification: Notification, db: &Db, vapid: &VapidConfig) {
             tracing::warn!(error = %err, sub_id = %id, "push: prune delete failed");
         }
     }
-}
-
-// ---------------------------------------------------------------------------
-// Public helper — called by event/score handlers
-// ---------------------------------------------------------------------------
-
-pub async fn notify_goal(
-    push: &PushBackend,
-    game: &Game,
-    side: Option<ScoreSide>,
-    home_team_name: &str,
-    away_team_name: &str,
-) {
-    push.notify(Notification::Goal {
-        game_id: game.id,
-        home_team_id: game.home_team_id,
-        away_team_id: game.away_team_id,
-        home_team_name: home_team_name.to_string(),
-        away_team_name: away_team_name.to_string(),
-        home_score: game.home_score,
-        away_score: game.away_score,
-        side,
-    })
-    .await;
 }
 
 // ---------------------------------------------------------------------------

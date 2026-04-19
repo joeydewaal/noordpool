@@ -12,7 +12,6 @@ use crate::{
     error::AppError,
     games::live_ws::LiveEvent,
     models::{Game, GameEvent, Role, game::compute_scores},
-    push,
 };
 
 /// Snapshot of a match's live state, used as both the initial WebSocket
@@ -119,14 +118,10 @@ pub async fn adjust_score(
         let mut game_for_push = fresh.clone();
         game_for_push.home_score = snapshot.home_score;
         game_for_push.away_score = snapshot.away_score;
-        push::notify_goal(
-            &state.push,
-            &game_for_push,
-            Some(body.side),
-            home_name,
-            away_name,
-        )
-        .await;
+        state
+            .push
+            .notify_goal(&game_for_push, Some(body.side), home_name, away_name)
+            .await;
     }
 
     Ok(Json(snapshot))
