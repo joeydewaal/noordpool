@@ -73,7 +73,7 @@ pub async fn leaderboard(
                 game_ids.insert(event.game_id);
                 match event.event_type {
                     EventType::Goal => goals += 1,
-                    EventType::Assist => assists += 1,
+                    EventType::Assist { .. } => assists += 1,
                     EventType::YellowCard => yellow_cards += 1,
                     EventType::RedCard => red_cards += 1,
                     EventType::OwnGoal => {}
