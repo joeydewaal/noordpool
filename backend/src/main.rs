@@ -5,6 +5,7 @@ mod error;
 mod events;
 mod games;
 mod import;
+mod lineup;
 mod models;
 mod players;
 mod push;

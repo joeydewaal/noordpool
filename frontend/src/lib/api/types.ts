@@ -236,3 +236,45 @@ export interface Leaderboard {
   topAssisters: LeaderboardEntry[];
   mostCarded: LeaderboardEntry[];
 }
+
+export type Formation =
+  | "4-4-2"
+  | "4-3-3"
+  | "4-2-3-1"
+  | "3-5-2"
+  | "5-3-2"
+  | "4-1-4-1";
+
+export interface LineupPlayer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  shirtNumber: number;
+  avatarUrl: string | null;
+}
+
+export interface LineupSlot {
+  slot: number;
+  captain: boolean;
+  player: LineupPlayer;
+}
+
+export interface GameLineup {
+  id: string;
+  gameId: string;
+  formation: Formation;
+  published: boolean;
+  updatedAt: string;
+  slots: LineupSlot[];
+}
+
+export interface SaveLineupSlot {
+  slot: number;
+  playerId: string;
+  captain: boolean;
+}
+
+export interface SaveLineupRequest {
+  formation: Formation;
+  slots: SaveLineupSlot[];
+}

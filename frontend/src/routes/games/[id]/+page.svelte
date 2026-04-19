@@ -18,11 +18,13 @@
     Game,
     GameEvent,
   } from "$lib/api/types";
+  import { getLineup } from "$lib/api/lineup";
   import { startLiveMatchStream } from "$lib/live-match.svelte";
   import { Dialog } from "@skeletonlabs/skeleton-svelte";
   import { toaster } from "$lib/state/toaster";
   import Spinner from "$lib/components/Spinner.svelte";
   import PlayerAvatar from "$lib/components/PlayerAvatar.svelte";
+  import PitchView from "$lib/components/PitchView.svelte";
 
   const id = page.params.id!;
   const queryClient = useQueryClient();
@@ -107,6 +109,37 @@
     queryFn: getPlayers,
     enabled: canManage,
   }));
+
+  const lineupQuery = createQuery(() => ({
+    queryKey: ["lineup", id],
+    queryFn: () => getLineup(id),
+  }));
+
+  const lineupPitchSlots = $derived(
+    Array.from({ length: 11 }, (_, i) => {
+      const s = lineupQuery.data?.slots.find((s) => s.slot === i);
+      if (!s) return null;
+      return {
+        lastName: s.player.lastName,
+        shirtNumber: s.player.shirtNumber,
+        avatarUrl: s.player.avatarUrl,
+        captain: s.captain,
+      };
+    }),
+  );
+
+  const lineupBenchSlots = $derived(
+    Array.from({ length: 7 }, (_, i) => {
+      const s = lineupQuery.data?.slots.find((s) => s.slot === 11 + i);
+      if (!s) return null;
+      return {
+        lastName: s.player.lastName,
+        shirtNumber: s.player.shirtNumber,
+        avatarUrl: s.player.avatarUrl,
+        captain: s.captain,
+      };
+    }),
+  );
 
   const addEventMutation = createMutation(() => ({
     mutationFn: (data: CreateGameEventRequest) => createGameEvent(id, data),
@@ -421,11 +454,42 @@
         </div>
       {/if}
 
+      <!-- Opstelling -->
+      <div
+        class="mt-4 pt-4 border-t border-surface-200 dark:border-surface-800"
+      >
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold">Opstelling</h2>
+          {#if canManage}
+            <a
+              href="/games/{g.id}/lineup"
+              class="text-sm text-primary-500 hover:underline"
+            >
+              Bewerken
+            </a>
+          {/if}
+        </div>
+        {#if lineupQuery.data}
+          <div class="mb-2">
+            <span class="chip preset-tonal-surface text-xs"
+              >{lineupQuery.data.formation}</span
+            >
+          </div>
+          <PitchView
+            formation={lineupQuery.data.formation}
+            slots={lineupPitchSlots}
+            bench={lineupBenchSlots}
+          />
+        {:else if !lineupQuery.isPending}
+          <p class="text-sm text-surface-400">Geen opstelling gepubliceerd.</p>
+        {:else}
+          <Spinner />
+        {/if}
+      </div>
+
       <!-- Moderator controls -->
       {#if canManage}
-        <div
-          class="mt-5 pt-4 border-t border-surface-200 dark:border-surface-800 flex items-center justify-between"
-        >
+        <div class="mt-4 flex items-center justify-between">
           <a
             href="/games/{g.id}/edit"
             class="btn btn-sm preset-outlined-surface-500">Bewerken</a
