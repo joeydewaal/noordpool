@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
 import type { Game } from "$lib/api/types";
 
-const { mockAuth, mockState, scoreMutate, addEventMutate } = vi.hoisted(() => {
+const { mockAuth, mockState, addEventMutate } = vi.hoisted(() => {
   const mockAuth = {
     isAdmin: false,
     isModerator: false,
@@ -12,9 +12,8 @@ const { mockAuth, mockState, scoreMutate, addEventMutate } = vi.hoisted(() => {
     gameData: null as Game | null,
     playersData: [] as unknown[],
   };
-  const scoreMutate = vi.fn();
   const addEventMutate = vi.fn();
-  return { mockAuth, mockState, scoreMutate, addEventMutate };
+  return { mockAuth, mockState, addEventMutate };
 });
 
 vi.mock("$app/state", () => ({
@@ -27,7 +26,6 @@ vi.mock("$lib/state/auth.svelte", () => ({
 
 vi.mock("$lib/api/games", () => ({
   getGame: vi.fn(),
-  adjustScore: vi.fn(),
 }));
 
 vi.mock("$lib/api/events", () => ({
@@ -59,38 +57,17 @@ vi.mock("@tanstack/svelte-query", () => ({
       },
     };
   },
-  createMutation: (_optsFn: () => { mutationFn: unknown }) => {
-    const calls = (createMutation as unknown as { _n?: number })._n ?? 0;
-    (createMutation as unknown as { _n?: number })._n = calls + 1;
-    if (calls === 0) {
-      return {
-        mutate: scoreMutate,
-        get isPending() {
-          return false;
-        },
-      };
-    }
-    if (calls === 1) {
-      return {
-        mutate: addEventMutate,
-        get isPending() {
-          return false;
-        },
-      };
-    }
-    return {
-      mutate: vi.fn(),
-      get isPending() {
-        return false;
-      },
-    };
-  },
+  createMutation: () => ({
+    mutate: addEventMutate,
+    get isPending() {
+      return false;
+    },
+  }),
   useQueryClient: () => ({
     invalidateQueries: vi.fn(),
   }),
 }));
 
-import { createMutation } from "@tanstack/svelte-query";
 import Page from "./+page.svelte";
 
 function makeGame(overrides: Partial<Game> = {}): Game {
@@ -114,6 +91,19 @@ function makeGame(overrides: Partial<Game> = {}): Game {
   };
 }
 
+function makePlayer(id: string, name: string, teamId: string, shirtNumber = 9) {
+  return {
+    id,
+    firstName: name,
+    lastName: "",
+    shirtNumber,
+    active: true,
+    userId: null,
+    position: "Spits" as const,
+    teamId,
+  };
+}
+
 async function openCommands() {
   const toggle = screen.getByRole("button", { name: /wedstrijdbeheer/i });
   await fireEvent.click(toggle);
@@ -126,14 +116,15 @@ beforeEach(() => {
   mockAuth.teamId = null;
   mockState.gameData = null;
   mockState.playersData = [];
-  (createMutation as unknown as { _n?: number })._n = 0;
 });
 
-describe("game detail — score adjuster", () => {
-  it("does not render the score adjuster for a non-moderator", () => {
+describe("game detail — command panel visibility", () => {
+  it("does not render the command toggle for a non-moderator", () => {
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
-    expect(screen.queryByLabelText("Score adjuster")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /wedstrijdbeheer/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("does not render the command toggle when the game is not live", () => {
@@ -145,188 +136,145 @@ describe("game detail — score adjuster", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("score adjuster is hidden by default and shown after toggle", async () => {
+  it("command panel is hidden by default and shown after toggle", async () => {
     mockAuth.isModerator = true;
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
-    expect(screen.queryByLabelText("Score adjuster")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Wedstrijdbeheer")).not.toBeInTheDocument();
     await openCommands();
-    expect(screen.getByLabelText("Score adjuster")).toBeInTheDocument();
-  });
-
-  it("shows both-side controls when user belongs to a team in this game", async () => {
-    mockAuth.isModerator = true;
-    mockAuth.teamId = "team-home";
-    mockState.gameData = makeGame({ status: "live" });
-    render(Page);
-    await openCommands();
-
-    expect(screen.getByLabelText("Score adjuster")).toBeInTheDocument();
-    expect(screen.getByLabelText("Doelpunt tegenstander")).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Doelpunt tegenstander intrekken"),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText("Eigen doelpunt")).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Eigen doelpunt intrekken"),
-    ).toBeInTheDocument();
-  });
-
-  it("own-side + button mutates own side", async () => {
-    mockAuth.isModerator = true;
-    mockAuth.teamId = "team-home";
-    mockState.gameData = makeGame({ status: "live" });
-    render(Page);
-    await openCommands();
-
-    await fireEvent.click(screen.getByLabelText("Eigen doelpunt"));
-    expect(scoreMutate).toHaveBeenCalledWith({ side: "home", delta: 1 });
-  });
-
-  it("shows the opponent score (away when we are home)", async () => {
-    mockAuth.isModerator = true;
-    mockAuth.teamId = "team-home";
-    mockState.gameData = makeGame({
-      status: "live",
-      homeScore: 3,
-      awayScore: 1,
-    });
-    render(Page);
-    await openCommands();
-
-    const panel = screen.getByLabelText("Score adjuster");
-    expect(panel.textContent).toContain("1");
-    expect(panel.textContent).toContain("PSV");
-  });
-
-  it("shows the opponent score (home when we are away)", async () => {
-    mockAuth.isModerator = true;
-    mockAuth.teamId = "team-away";
-    mockState.gameData = makeGame({
-      status: "live",
-      homeScore: 2,
-      awayScore: 4,
-    });
-    render(Page);
-    await openCommands();
-
-    const panel = screen.getByLabelText("Score adjuster");
-    expect(panel.textContent).toContain("2");
-  });
-
-  it("shows both-side controls when user is not on either team", async () => {
-    mockAuth.isModerator = true;
-    mockAuth.teamId = null;
-    mockState.gameData = makeGame({ status: "live" });
-    render(Page);
-    await openCommands();
-
-    const panel = screen.getByLabelText("Score adjuster");
-    expect(panel).toBeInTheDocument();
-    expect(panel.textContent).toContain("Noordpool");
-    expect(panel.textContent).toContain("PSV");
-  });
-
-  it("opponent + button mutates with side and delta", async () => {
-    mockAuth.isModerator = true;
-    mockAuth.teamId = "team-home";
-    mockState.gameData = makeGame({ status: "live" });
-    render(Page);
-    await openCommands();
-
-    await fireEvent.click(screen.getByLabelText("Doelpunt tegenstander"));
-    expect(scoreMutate).toHaveBeenCalledWith({ side: "away", delta: 1 });
-  });
-
-  it("opponent - button mutates with delta = -1", async () => {
-    mockAuth.isModerator = true;
-    mockAuth.teamId = "team-home";
-    mockState.gameData = makeGame({
-      status: "live",
-      awayScore: 2,
-    });
-    render(Page);
-    await openCommands();
-
-    await fireEvent.click(
-      screen.getByLabelText("Doelpunt tegenstander intrekken"),
-    );
-    expect(scoreMutate).toHaveBeenCalledWith({ side: "away", delta: -1 });
-  });
-
-  it("opponent - button is disabled at score 0", async () => {
-    mockAuth.isModerator = true;
-    mockAuth.teamId = "team-home";
-    mockState.gameData = makeGame({
-      status: "live",
-      awayScore: 0,
-    });
-    render(Page);
-    await openCommands();
-
-    const minusBtn = screen.getByLabelText(
-      "Doelpunt tegenstander intrekken",
-    ) as HTMLButtonElement;
-    expect(minusBtn.disabled).toBe(true);
+    expect(screen.getByLabelText("Wedstrijdbeheer")).toBeInTheDocument();
   });
 });
 
-describe("game detail — event form drives goal score", () => {
-  it("renders the event form with a Doelpunt option for moderators", async () => {
+describe("game detail — player picker (step 1)", () => {
+  it("shows home and away team sections after opening commands", async () => {
     mockAuth.isModerator = true;
-    mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({ status: "live" });
     mockState.playersData = [
-      {
-        id: "p1",
-        firstName: "Jan",
-        lastName: "de Boer",
-        shirtNumber: 9,
-        active: true,
-      },
+      makePlayer("p1", "Jan", "team-home"),
+      makePlayer("p2", "Piet", "team-away"),
     ];
+    render(Page);
+    await openCommands();
+
+    // Both player buttons are visible (one per team section)
+    expect(screen.getByRole("button", { name: /jan/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /piet/i })).toBeInTheDocument();
+  });
+
+  it("shows 'Geen spelers' when a team has no players", async () => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({ status: "live" });
+    mockState.playersData = [makePlayer("p1", "Jan", "team-home")];
+    render(Page);
+    await openCommands();
+
+    expect(screen.getByText("Geen spelers")).toBeInTheDocument();
+  });
+
+  it("opponent player appears in the away section", async () => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({ status: "live" });
+    mockState.playersData = [makePlayer("p2", "Ronaldo", "team-away", 7)];
     render(Page);
     await openCommands();
 
     expect(
-      screen.getByRole("option", { name: "Doelpunt" }),
+      screen.getByRole("button", { name: /ronaldo/i }),
     ).toBeInTheDocument();
   });
 
-  it("submitting a goal event calls the addEvent mutation", async () => {
+  it("action buttons are not shown before a player is selected", async () => {
     mockAuth.isModerator = true;
-    mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({ status: "live" });
-    mockState.playersData = [
-      {
-        id: "p1",
-        firstName: "Jan",
-        lastName: "de Boer",
-        shirtNumber: 9,
-        active: true,
-      },
-    ];
+    mockState.playersData = [makePlayer("p1", "Jan", "team-home")];
     render(Page);
     await openCommands();
 
-    const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
-    await fireEvent.change(selects[0], { target: { value: "p1" } });
+    expect(
+      screen.queryByRole("button", { name: /doelpunt$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /toevoegen/i }),
+    ).not.toBeInTheDocument();
+  });
+});
 
-    await fireEvent.click(screen.getByRole("button", { name: "Toevoegen" }));
+describe("game detail — action picker (step 2)", () => {
+  beforeEach(() => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({ status: "live" });
+    mockState.playersData = [makePlayer("p1", "Jan", "team-home")];
+  });
+
+  async function selectJan() {
+    await openCommands();
+    await fireEvent.click(screen.getByRole("button", { name: /jan/i }));
+  }
+
+  it("shows action buttons and player name after selecting a player", async () => {
+    render(Page);
+    await selectJan();
+
+    expect(screen.getByText("Jan")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /terug/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /eigen doelpunt/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /assist/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /gele kaart/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /rode kaart/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /toevoegen/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("back button returns to the player picker", async () => {
+    render(Page);
+    await selectJan();
+
+    await fireEvent.click(screen.getByRole("button", { name: /terug/i }));
+
+    expect(
+      screen.queryByRole("button", { name: /doelpunt$/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /jan/i })).toBeInTheDocument();
+  });
+
+  it("submitting calls addEvent with the correct payload", async () => {
+    render(Page);
+    await selectJan();
+
+    await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
 
     await waitFor(() => {
       expect(addEventMutate).toHaveBeenCalled();
     });
     const [arg] = addEventMutate.mock.calls[0];
-    expect(arg).toMatchObject({
-      playerId: "p1",
-      eventType: "goal",
+    expect(arg).toMatchObject({ playerId: "p1", eventType: "goal" });
+  });
+
+  it("selecting a different action updates the submitted eventType", async () => {
+    render(Page);
+    await selectJan();
+
+    await fireEvent.click(screen.getByRole("button", { name: /gele kaart/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
+
+    await waitFor(() => {
+      expect(addEventMutate).toHaveBeenCalled();
     });
+    const [arg] = addEventMutate.mock.calls[0];
+    expect(arg).toMatchObject({ playerId: "p1", eventType: "yellow_card" });
   });
 });
 
 describe("game detail — live overlay status display", () => {
-  it("renders the bezig (live) badge", () => {
+  it("renders the LIVE badge", () => {
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
     expect(screen.getByText("LIVE")).toBeInTheDocument();

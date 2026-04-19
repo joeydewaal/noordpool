@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { auth } from "$lib/state/auth.svelte";
-  import { getGame, adjustScore } from "$lib/api/games";
+  import { getGame } from "$lib/api/games";
   import { createGameEvent, deleteGameEvent } from "$lib/api/events";
   import { getPlayers } from "$lib/api/players";
   import {
@@ -16,11 +16,11 @@
     LivePoll,
     GameStatus,
     Game,
-    ScoreSide,
     GameEvent,
   } from "$lib/api/types";
   import { startLiveMatchStream } from "$lib/live-match.svelte";
   import Spinner from "$lib/components/Spinner.svelte";
+  import PlayerAvatar from "$lib/components/PlayerAvatar.svelte";
 
   const id = page.params.id!;
   const queryClient = useQueryClient();
@@ -45,14 +45,6 @@
   const homeScore = $derived(liveOverlay?.homeScore ?? game?.homeScore ?? 0);
   const awayScore = $derived(liveOverlay?.awayScore ?? game?.awayScore ?? 0);
   const events = $derived(liveOverlay?.events ?? game?.events ?? []);
-
-  const ownSide: ScoreSide | null = $derived.by(() => {
-    const teamId = auth.teamId;
-    if (!teamId || !game) return null;
-    if (game.homeTeam.id === teamId) return "home";
-    if (game.awayTeam.id === teamId) return "away";
-    return null;
-  });
 
   // Auto-computed match minute (1–90), updated every 30 s while live.
   let now = $state(Date.now());
@@ -108,14 +100,6 @@
     });
   });
 
-  const scoreMutation = createMutation(() => ({
-    mutationFn: ({ side, delta }: { side: ScoreSide; delta: 1 | -1 }) =>
-      adjustScore(id, side, delta),
-    onSuccess: (data) => {
-      liveOverlay = data;
-    },
-  }));
-
   const playersQuery = createQuery(() => ({
     queryKey: ["players"],
     queryFn: getPlayers,
@@ -152,29 +136,43 @@
     red_card: "\uD83D\uDFE5",
   };
 
-  let newPlayerId = $state("");
-  let newEventType: EventType = $state("goal");
+  // Command panel state — step 1: pick player, step 2: pick action.
+  let selectedPlayer = $state<Player | null>(null);
+  let selectedAction: EventType = $state("goal");
   let newMinute = $state(1);
 
-  // Reset form defaults when command panel opens.
   $effect(() => {
-    if (showCommands) {
-      newMinute = matchMinute;
-    }
+    if (showCommands) newMinute = matchMinute;
   });
 
-  function playerName(player: Player): string {
-    return `${player.firstName} ${player.lastName}`.trim();
+  const allPlayers = $derived(
+    (playersQuery.data ?? []).filter((p) => p.active),
+  );
+  const homePlayers = $derived(
+    allPlayers.filter((p) => p.teamId === game?.homeTeamId),
+  );
+  const awayPlayers = $derived(
+    allPlayers.filter((p) => p.teamId === game?.awayTeamId),
+  );
+
+  function selectPlayer(p: Player) {
+    selectedPlayer = p;
+    selectedAction = "goal";
+    newMinute = matchMinute;
   }
 
   function handleAddEvent() {
-    if (!newPlayerId) return;
+    if (!selectedPlayer) return;
     addEventMutation.mutate(
-      { playerId: newPlayerId, eventType: newEventType, minute: newMinute },
+      {
+        playerId: selectedPlayer.id,
+        eventType: selectedAction,
+        minute: newMinute,
+      },
       {
         onSuccess: () => {
-          newPlayerId = "";
-          newEventType = "goal";
+          selectedPlayer = null;
+          selectedAction = "goal";
           newMinute = matchMinute;
         },
       },
@@ -183,6 +181,10 @@
 
   function handleDeleteEvent(eventId: string) {
     deleteEventMutation.mutate(eventId);
+  }
+
+  function playerName(player: Player): string {
+    return `${player.firstName} ${player.lastName}`.trim();
   }
 
   function formatDate(dateTime: string): string {
@@ -212,6 +214,14 @@
       groups.push({ main: ev });
     }
     return groups;
+  });
+
+  const ownSide = $derived.by(() => {
+    const teamId = auth.teamId;
+    if (!teamId || !game) return null;
+    if (game.homeTeam.id === teamId) return "home";
+    if (game.awayTeam.id === teamId) return "away";
+    return null;
   });
 </script>
 
@@ -306,7 +316,6 @@
           {:else}
             <div class="space-y-1">
               {#each groupedEvents as group}
-                <!-- Main event row -->
                 <div class="flex items-center gap-3 text-sm">
                   <span
                     class="inline-flex items-center justify-center w-10 h-6 preset-tonal-surface font-mono text-xs rounded shrink-0"
@@ -330,7 +339,6 @@
                     >
                   {/if}
                 </div>
-                <!-- Assist row (indented) -->
                 {#if group.assist}
                   <div class="flex items-center gap-3 text-sm pl-4">
                     <span
@@ -362,7 +370,7 @@
         </div>
       {/if}
 
-      <!-- Moderator command toggle -->
+      <!-- Moderator controls -->
       {#if canManage}
         <div
           class="mt-5 pt-4 border-t border-surface-200 dark:border-surface-800 flex items-center justify-between"
@@ -377,7 +385,10 @@
               class="btn btn-sm {showCommands
                 ? 'preset-filled-warning-500'
                 : 'preset-outlined-warning-500'}"
-              onclick={() => (showCommands = !showCommands)}
+              onclick={() => {
+                showCommands = !showCommands;
+                if (!showCommands) selectedPlayer = null;
+              }}
             >
               {showCommands ? "Verberg beheer" : "Wedstrijdbeheer"}
             </button>
@@ -385,87 +396,94 @@
         </div>
 
         {#if showCommands && status === "live"}
-          <!-- Score adjuster -->
           <div
             class="mt-4 card preset-tonal-warning p-4"
-            aria-label="Score adjuster"
+            aria-label="Wedstrijdbeheer"
           >
-            <h3 class="text-sm font-semibold mb-3">Score aanpassen</h3>
-            <div class="grid grid-cols-2 gap-4">
-              {#each [{ side: "home" as ScoreSide, name: g.homeTeam.name, score: homeScore }, { side: "away" as ScoreSide, name: g.awayTeam.name, score: awayScore }] as { side, name, score }}
-                {@const isOwn = ownSide === side}
-                <div class="flex flex-col items-center gap-1">
-                  <div class="text-xs text-surface-400">
-                    {name}{isOwn ? " (eigen)" : ""}
+            {#if !selectedPlayer}
+              <!-- Step 1: pick a player -->
+              <div class="grid grid-cols-2 gap-4">
+                {#each [{ label: g.homeTeam.name, players: homePlayers }, { label: g.awayTeam.name, players: awayPlayers }] as team}
+                  <div>
+                    <p class="text-xs font-semibold text-surface-400 mb-2">
+                      {team.label}
+                    </p>
+                    {#if team.players.length === 0}
+                      <p class="text-xs text-surface-400 italic">
+                        Geen spelers
+                      </p>
+                    {:else}
+                      <div class="flex flex-col gap-1">
+                        {#each team.players as p}
+                          <button
+                            type="button"
+                            class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start"
+                            onclick={() => selectPlayer(p)}
+                          >
+                            <PlayerAvatar
+                              avatarUrl={p.user?.avatarUrl}
+                              shirtNumber={p.shirtNumber}
+                              size="sm"
+                            />
+                            <span class="text-xs truncate">{playerName(p)}</span
+                            >
+                          </button>
+                        {/each}
+                      </div>
+                    {/if}
                   </div>
-                  <div class="text-2xl font-bold">{score}</div>
-                  <div class="flex gap-2">
-                    <button
-                      type="button"
-                      class="btn btn-sm preset-filled-error-500"
-                      onclick={() => scoreMutation.mutate({ side, delta: -1 })}
-                      disabled={score === 0 || scoreMutation.isPending}
-                      aria-label={isOwn
-                        ? "Eigen doelpunt intrekken"
-                        : "Doelpunt tegenstander intrekken"}>&minus;</button
-                    >
-                    <button
-                      type="button"
-                      class="btn btn-sm preset-filled-success-500"
-                      onclick={() => scoreMutation.mutate({ side, delta: 1 })}
-                      disabled={scoreMutation.isPending}
-                      aria-label={isOwn
-                        ? "Eigen doelpunt"
-                        : "Doelpunt tegenstander"}>+</button
-                    >
-                  </div>
-                </div>
-              {/each}
-            </div>
-          </div>
-
-          <!-- Add event form -->
-          <div class="mt-4 card preset-tonal-surface p-4">
-            <h3 class="text-sm font-semibold mb-2">Gebeurtenis toevoegen</h3>
-            <form
-              onsubmit={(e) => {
-                e.preventDefault();
-                handleAddEvent();
-              }}
-              class="flex flex-wrap gap-2 items-end"
-            >
-              <select
-                bind:value={newPlayerId}
-                class="select flex-1 min-w-[140px]"
-              >
-                <option value="">Speler...</option>
-                {#each (playersQuery.data ?? []).filter((p) => p.active) as p}
-                  <option value={p.id}>{playerName(p)}</option>
                 {/each}
-              </select>
-              <select bind:value={newEventType} class="select">
-                <option value="goal">Doelpunt</option>
-                <option value="own_goal">Eigen doelpunt</option>
-                <option value="assist">Assist</option>
-                <option value="yellow_card">Gele kaart</option>
-                <option value="red_card">Rode kaart</option>
-              </select>
-              <input
-                type="number"
-                bind:value={newMinute}
-                min="1"
-                max="120"
-                class="input w-16"
-                placeholder="min"
-              />
-              <button
-                type="submit"
-                disabled={!newPlayerId}
-                class="btn btn-sm preset-filled-primary-500 disabled:opacity-50"
-              >
-                Toevoegen
-              </button>
-            </form>
+              </div>
+            {:else}
+              <!-- Step 2: pick action -->
+              <div class="mb-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm preset-outlined-surface-500"
+                  onclick={() => (selectedPlayer = null)}>&larr; Terug</button
+                >
+                <span class="text-sm font-semibold"
+                  >{playerName(selectedPlayer)}</span
+                >
+              </div>
+
+              <div class="flex flex-wrap gap-2 mb-4">
+                {#each ["goal", "own_goal", "assist", "yellow_card", "red_card"] as EventType[] as action}
+                  <button
+                    type="button"
+                    class="btn btn-sm {selectedAction === action
+                      ? 'preset-filled-warning-500'
+                      : 'preset-outlined-surface-500'}"
+                    onclick={() => (selectedAction = action)}
+                  >
+                    {eventIcons[action]}
+                    {eventLabels[action]}
+                  </button>
+                {/each}
+              </div>
+
+              <div class="flex items-center gap-3">
+                <label class="text-xs text-surface-400" for="event-minute"
+                  >Minuut</label
+                >
+                <input
+                  id="event-minute"
+                  type="number"
+                  bind:value={newMinute}
+                  min="1"
+                  max="120"
+                  class="input w-16 text-sm"
+                />
+                <button
+                  type="button"
+                  class="btn btn-sm preset-filled-primary-500"
+                  disabled={addEventMutation.isPending}
+                  onclick={handleAddEvent}
+                >
+                  Toevoegen
+                </button>
+              </div>
+            {/if}
           </div>
         {/if}
       {/if}

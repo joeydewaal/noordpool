@@ -39,7 +39,7 @@ pub struct CreatePlayerRequest {
     pub last_name: String,
     pub shirt_number: i32,
     pub position: Position,
-    pub team_id: Option<Uuid>,
+    pub team_id: Uuid,
 }
 
 #[derive(Deserialize)]
@@ -119,17 +119,14 @@ pub async fn create(
     Json(body): Json<CreatePlayerRequest>,
 ) -> Result<Json<Player>, AppError> {
     tracing::info!("players::create");
-    let mut create = Player::create()
+    let player = Player::create()
         .first_name(body.first_name)
         .last_name(body.last_name)
         .shirt_number(body.shirt_number)
-        .position(body.position);
-
-    if let Some(team_id) = body.team_id {
-        create = create.team_id(team_id);
-    }
-
-    let player = create.exec(&mut state.db).await?;
+        .position(body.position)
+        .team_id(body.team_id)
+        .exec(&mut state.db)
+        .await?;
 
     Ok(Json(player))
 }

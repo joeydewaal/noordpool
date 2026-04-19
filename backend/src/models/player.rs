@@ -28,12 +28,11 @@ pub struct Player {
     pub active: bool,
 
     #[index]
-    #[serde(skip)]
-    pub team_id: Option<Uuid>,
+    pub team_id: Uuid,
 
     #[belongs_to(key = team_id, references = id)]
     #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub team: BelongsTo<Option<Team>>,
+    pub team: BelongsTo<Team>,
 
     #[has_many]
     #[serde(skip_serializing_if = "HasMany::is_unloaded")]

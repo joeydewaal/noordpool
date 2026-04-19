@@ -13,6 +13,7 @@ expression: res.json_value().await
     "id": "[uuid]",
     "lastName": "",
     "position": "Spits",
-    "shirtNumber": 9
+    "shirtNumber": 9,
+    "teamId": "[uuid]"
   }
 }

@@ -252,6 +252,16 @@ impl TestApp {
         self.state.jwt.encode_token(&claims).unwrap()
     }
 
+    /// Create a single team and return its id.
+    pub async fn create_team(&mut self, token: &str, name: &str) -> String {
+        let res = self
+            .post("/api/teams")
+            .token(token)
+            .json(json!({ "name": name }))
+            .await;
+        res.json_value().await["id"].as_str().unwrap().to_string()
+    }
+
     /// Create two teams and return (home_team_id, away_team_id).
     pub async fn create_teams(&mut self, token: &str, home: &str, away: &str) -> (String, String) {
         let res = self

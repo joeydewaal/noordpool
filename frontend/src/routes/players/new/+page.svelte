@@ -2,7 +2,12 @@
   import { goto } from "$app/navigation";
   import { auth } from "$lib/state/auth.svelte";
   import { createPlayer } from "$lib/api/players";
-  import { createMutation, useQueryClient } from "@tanstack/svelte-query";
+  import { listTeams } from "$lib/api/teams";
+  import {
+    createMutation,
+    createQuery,
+    useQueryClient,
+  } from "@tanstack/svelte-query";
   import type { Position, CreatePlayerRequest } from "$lib/api/types";
 
   const canManage = $derived(auth.isAdmin || auth.isModerator);
@@ -12,6 +17,12 @@
   let lastName = $state("");
   let shirtNumber = $state(0);
   let position: Position = $state("Centrale middenvelder");
+  let teamId = $state("");
+
+  const teamsQuery = createQuery(() => ({
+    queryKey: ["teams"],
+    queryFn: listTeams,
+  }));
 
   const createMut = createMutation(() => ({
     mutationFn: (data: CreatePlayerRequest) => createPlayer(data),
@@ -23,7 +34,7 @@
 
   function handleSubmit(e: Event) {
     e.preventDefault();
-    createMut.mutate({ firstName, lastName, shirtNumber, position });
+    createMut.mutate({ firstName, lastName, shirtNumber, position, teamId });
   }
 </script>
 
@@ -85,6 +96,15 @@
           <option value="Linksvleugel">Linksvleugel</option>
           <option value="Rechtsvleugel">Rechtsvleugel</option>
           <option value="Spits">Spits</option>
+        </select>
+      </div>
+      <div>
+        <label for="teamId" class="label-text">Team</label>
+        <select id="teamId" bind:value={teamId} required class="select">
+          <option value="" disabled>Kies een team</option>
+          {#each teamsQuery.data ?? [] as team}
+            <option value={team.id}>{team.name}</option>
+          {/each}
         </select>
       </div>
       <button type="submit" class="btn w-full preset-filled-primary-500">

@@ -49,9 +49,7 @@ pub async fn create(
     let mut db = state.db.clone();
 
     let player = Player::get_by_id(&mut db, body.player_id).await?;
-    let team_id = player
-        .team_id
-        .ok_or_else(|| AppError::bad_request("player has no team"))?;
+    let team_id = player.team_id;
 
     let event = GameEvent::create()
         .game_id(game_id)
@@ -107,17 +105,13 @@ pub async fn create(
 
         if was_live {
             let player = event.player.get();
-            let goal_side = if let Some(tid) = player.team_id {
-                let side = match event.event_type {
-                    EventType::Goal if tid == fresh.home_team_id => ScoreSide::Home,
-                    EventType::Goal => ScoreSide::Away,
-                    _ if tid == fresh.home_team_id => ScoreSide::Away, // OwnGoal
-                    _ => ScoreSide::Home,
-                };
-                Some(side)
-            } else {
-                None
-            };
+            let tid = player.team_id;
+            let goal_side = Some(match event.event_type {
+                EventType::Goal if tid == fresh.home_team_id => ScoreSide::Home,
+                EventType::Goal => ScoreSide::Away,
+                _ if tid == fresh.home_team_id => ScoreSide::Away, // OwnGoal
+                _ => ScoreSide::Home,
+            });
 
             let home_name = fresh.home_team.get().name.clone();
             let away_name = fresh.away_team.get().name.clone();

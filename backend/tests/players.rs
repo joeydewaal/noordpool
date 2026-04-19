@@ -9,6 +9,7 @@ fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
     settings.add_redaction(".id", "[uuid]");
     settings.add_redaction(".playerId", "[uuid]");
+    settings.add_redaction(".teamId", "[uuid]");
     settings.add_redaction(".createdAt", "[createdAt]");
     settings
 }
@@ -48,7 +49,8 @@ async fn create_player_forbidden_for_player_role() {
             "firstName": "Jan",
             "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "Centrale middenvelder"
+            "position": "Centrale middenvelder",
+            "teamId": "00000000-0000-0000-0000-000000000001"
         }))
         .await;
     assert_eq!(res.status(), 403);
@@ -58,6 +60,7 @@ async fn create_player_forbidden_for_player_role() {
 async fn create_and_get_player() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let team_id = app.create_team(&token, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -66,7 +69,8 @@ async fn create_and_get_player() {
             "firstName": "Jan",
             "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "Centrale middenvelder"
+            "position": "Centrale middenvelder",
+            "teamId": team_id
         }))
         .await;
     assert_eq!(res.status(), 200);
@@ -89,6 +93,8 @@ async fn create_and_get_player() {
 async fn update_player() {
     let mut app = TestApp::new().await;
     let token = app.moderator_token().await;
+    let admin_token = app.admin_token().await;
+    let team_id = app.create_team(&admin_token, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -97,7 +103,8 @@ async fn update_player() {
             "firstName": "Jan",
             "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "Centrale middenvelder"
+            "position": "Centrale middenvelder",
+            "teamId": team_id
         }))
         .await;
     let created = res.json_value().await;
@@ -133,6 +140,7 @@ async fn get_player_not_found() {
 async fn player_stats_empty() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let team_id = app.create_team(&token, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -141,7 +149,8 @@ async fn player_stats_empty() {
             "firstName": "Jan",
             "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "Centrale middenvelder"
+            "position": "Centrale middenvelder",
+            "teamId": team_id
         }))
         .await;
     let created = res.json_value().await;
@@ -163,6 +172,7 @@ async fn player_stats_empty() {
 async fn delete_player_soft_deletes() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let team_id = app.create_team(&token, "Test Team").await;
 
     // Create a player
     let res = app
@@ -172,7 +182,8 @@ async fn delete_player_soft_deletes() {
             "firstName": "Jan",
             "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "Centrale middenvelder"
+            "position": "Centrale middenvelder",
+            "teamId": team_id
         }))
         .await;
     let created = res.json_value().await;
@@ -209,6 +220,7 @@ async fn delete_player_forbidden_for_moderator() {
     let mut app = TestApp::new().await;
     let admin_token = app.admin_token().await;
     let mod_token = app.moderator_token().await;
+    let team_id = app.create_team(&admin_token, "Test Team").await;
 
     // Create a player as admin
     let res = app
@@ -218,7 +230,8 @@ async fn delete_player_forbidden_for_moderator() {
             "firstName": "Jan",
             "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "Centrale middenvelder"
+            "position": "Centrale middenvelder",
+            "teamId": team_id
         }))
         .await;
     let created = res.json_value().await;
@@ -238,6 +251,7 @@ async fn delete_player_forbidden_for_moderator() {
 /// Helper: create a player and return (player_id, player_token)
 async fn create_player_with_token(app: &mut TestApp) -> (String, String) {
     let admin_token = app.admin_token().await;
+    let team_id = app.create_team(&admin_token, "Test Team").await;
     let res = app
         .post("/api/players")
         .token(&admin_token)
@@ -245,7 +259,8 @@ async fn create_player_with_token(app: &mut TestApp) -> (String, String) {
             "firstName": "Eigen",
             "lastName": "Speler",
             "shirtNumber": 5,
-            "position": "Linksback"
+            "position": "Linksback",
+            "teamId": team_id
         }))
         .await;
     let body = res.json_value().await;
@@ -322,6 +337,7 @@ async fn self_service_cannot_update_active() {
 async fn self_service_cannot_update_other_player() {
     let mut app = TestApp::new().await;
     let admin_token = app.admin_token().await;
+    let team_id = app.create_team(&admin_token, "Test Team").await;
 
     // Create two players
     let res = app
@@ -331,7 +347,8 @@ async fn self_service_cannot_update_other_player() {
             "firstName": "Speler",
             "lastName": "Een",
             "shirtNumber": 1,
-            "position": "Keeper"
+            "position": "Keeper",
+            "teamId": team_id
         }))
         .await;
     let player_one_id: Uuid = res.json_value().await["id"]
@@ -347,7 +364,8 @@ async fn self_service_cannot_update_other_player() {
             "firstName": "Speler",
             "lastName": "Twee",
             "shirtNumber": 2,
-            "position": "Spits"
+            "position": "Spits",
+            "teamId": team_id
         }))
         .await;
     let player_two_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -366,6 +384,7 @@ async fn self_service_cannot_update_other_player() {
 async fn self_service_update_requires_auth() {
     let mut app = TestApp::new().await;
     let admin_token = app.admin_token().await;
+    let team_id = app.create_team(&admin_token, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -374,7 +393,8 @@ async fn self_service_update_requires_auth() {
             "firstName": "Jan",
             "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "Spits"
+            "position": "Spits",
+            "teamId": team_id
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -391,6 +411,7 @@ async fn self_service_update_requires_auth() {
 async fn admin_can_still_update_all_fields() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let team_id = app.create_team(&token, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -399,7 +420,8 @@ async fn admin_can_still_update_all_fields() {
             "firstName": "Jan",
             "lastName": "de Boer",
             "shirtNumber": 10,
-            "position": "Spits"
+            "position": "Spits",
+            "teamId": team_id
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
