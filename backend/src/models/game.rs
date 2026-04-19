@@ -90,8 +90,8 @@ impl Game {
         }
         let events = self.events.get().to_vec();
         let (ch, ca) = compute_scores(&events, self.home_team_id);
-        self.home_score = ch + self.home_score;
-        self.away_score = ca + self.away_score;
+        self.home_score += ch;
+        self.away_score += ca;
     }
 
     /// Returns true when `now` is inside `[date_time, date_time + MATCH_DURATION]`
