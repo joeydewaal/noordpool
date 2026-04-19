@@ -65,6 +65,10 @@ pub struct CreateGameRequest { ... }
 
 Handlers return `Result<impl IntoResponse, AppError>` where `AppError` is in `src/error.rs`.
 
+### Code style
+
+No banner comments. Do not use `// ----...----` or similar horizontal-rule separators to divide sections in source files.
+
 ## Frontend patterns
 
 - Data fetching: TanStack Query (`createQuery`) with API functions in `src/lib/api/`

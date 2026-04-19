@@ -47,10 +47,6 @@ pub fn router() -> Router<AppState> {
         .route("/broadcast", post(broadcast))
 }
 
-// ---------------------------------------------------------------------------
-// VAPID configuration
-// ---------------------------------------------------------------------------
-
 pub struct VapidConfig {
     /// Base64url-encoded P-256 public key (raw, uncompressed, 65 bytes).
     pub public_key: String,
@@ -59,10 +55,6 @@ pub struct VapidConfig {
     /// `mailto:` or `https:` URI per RFC 8292.
     pub subject: String,
 }
-
-// ---------------------------------------------------------------------------
-// Notification types
-// ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone)]
 pub enum Notification {
@@ -80,10 +72,6 @@ pub enum Notification {
         message: String,
     },
 }
-
-// ---------------------------------------------------------------------------
-// PushBackend — real vs. mock vs. disabled
-// ---------------------------------------------------------------------------
 
 #[derive(Clone)]
 pub enum PushBackend {
@@ -145,10 +133,6 @@ impl PushBackend {
         .await;
     }
 }
-
-// ---------------------------------------------------------------------------
-// Real-send logic (Isahc path only)
-// ---------------------------------------------------------------------------
 
 async fn send_real(notification: Notification, db: &Db, vapid: &VapidConfig) {
     let mut db = db.clone();
@@ -267,10 +251,6 @@ async fn send_real(notification: Notification, db: &Db, vapid: &VapidConfig) {
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// HTTP handlers
-// ---------------------------------------------------------------------------
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
