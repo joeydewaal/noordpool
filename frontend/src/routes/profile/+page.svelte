@@ -166,6 +166,22 @@
       pushBusy = false;
     }
   }
+
+  let testBusy = $state(false);
+  let testError = $state<string | null>(null);
+
+  async function handleTestPush() {
+    testBusy = true;
+    testError = null;
+    try {
+      const { testPush } = await import("$lib/api/push");
+      await testPush();
+    } catch (err) {
+      testError = err instanceof Error ? err.message : "Testmelding mislukt.";
+    } finally {
+      testBusy = false;
+    }
+  }
 </script>
 
 {#if auth.isAuthenticated}
@@ -404,13 +420,22 @@
         {:else if pushPermission === "denied"}
           <span class="chip preset-filled-error-500">Geblokkeerd</span>
         {:else if pushSubscribed}
-          <button
-            class="btn btn-sm preset-filled-warning-500"
-            onclick={handleDisablePush}
-            disabled={pushBusy}
-          >
-            Uitschakelen
-          </button>
+          <div class="flex gap-2">
+            <button
+              class="btn btn-sm preset-outlined-surface-500"
+              onclick={handleTestPush}
+              disabled={pushBusy || testBusy}
+            >
+              Test
+            </button>
+            <button
+              class="btn btn-sm preset-filled-warning-500"
+              onclick={handleDisablePush}
+              disabled={pushBusy}
+            >
+              Uitschakelen
+            </button>
+          </div>
         {:else}
           <button
             class="btn btn-sm preset-filled-primary-500"
@@ -429,6 +454,9 @@
       {/if}
       {#if pushError}
         <p class="text-xs text-error-500">{pushError}</p>
+      {/if}
+      {#if testError}
+        <p class="text-xs text-error-500">{testError}</p>
       {/if}
     </div>
 

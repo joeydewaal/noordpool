@@ -52,7 +52,8 @@ pub struct GameResponse {
 }
 
 impl GameResponse {
-    pub fn new(game: Game) -> Self {
+    pub fn new(mut game: Game) -> Self {
+        game.apply_computed_scores();
         let status = game.derived_status(Timestamp::now());
         Self { game, status }
     }
@@ -61,7 +62,8 @@ impl GameResponse {
         let now = Timestamp::now();
         games
             .into_iter()
-            .map(|g| {
+            .map(|mut g| {
+                g.apply_computed_scores();
                 let status = g.derived_status(now);
                 Self { game: g, status }
             })
@@ -83,6 +85,7 @@ pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<GameResponse
     let games = Game::all()
         .include(Game::fields().home_team())
         .include(Game::fields().away_team())
+        .include(Game::fields().events().player())
         .order_by(Game::fields().date_time().asc())
         .exec(&mut db)
         .await?;
@@ -115,6 +118,7 @@ pub async fn upcoming(
     let mut game_query = Game::all()
         .include(Game::fields().home_team())
         .include(Game::fields().away_team())
+        .include(Game::fields().events().player())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().gt(now))
         .order_by(Game::fields().date_time().asc());
@@ -137,6 +141,7 @@ pub async fn recent(
     let mut game_query = Game::all()
         .include(Game::fields().home_team())
         .include(Game::fields().away_team())
+        .include(Game::fields().events().player())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().lt(Timestamp::now()))
         .order_by(Game::fields().date_time().desc());
@@ -161,6 +166,7 @@ pub async fn summary(
     let upcoming = Game::all()
         .include(Game::fields().home_team())
         .include(Game::fields().away_team())
+        .include(Game::fields().events().player())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().gt(now))
         .order_by(Game::fields().date_time().asc())
@@ -171,6 +177,7 @@ pub async fn summary(
     let recent = Game::all()
         .include(Game::fields().home_team())
         .include(Game::fields().away_team())
+        .include(Game::fields().events().player())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().lt(now))
         .order_by(Game::fields().date_time().desc())

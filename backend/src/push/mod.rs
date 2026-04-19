@@ -39,6 +39,7 @@ pub fn router() -> Router<AppState> {
         .route("/vapid-public-key", get(vapid_public_key))
         .route("/subscriptions", post(subscribe).delete(unsubscribe))
         .route("/subscriptions/me", get(list_mine))
+        .route("/subscriptions/test", post(send_test))
         .route("/subscriptions/{id}", patch(update_prefs))
 }
 
@@ -174,6 +175,46 @@ pub async fn update_prefs(
 
     let fresh = PushSubscription::get_by_id(&mut state.db, id).await?;
     Ok(Json(fresh))
+}
+
+/// Send a test push notification to all of the current user's subscriptions.
+#[tracing::instrument(skip(state))]
+pub async fn send_test(
+    State(state): State<AppState>,
+    Jwt(claims): Jwt<Claims>,
+) -> Result<StatusCode, AppError> {
+    let Some(vapid) = state.vapid.as_ref() else {
+        return Err(AppError::Internal("Web Push not configured".into()));
+    };
+
+    let mut db = state.db.clone();
+    let subs = PushSubscription::filter_by_user_id(claims.sub)
+        .exec(&mut db)
+        .await?;
+
+    let payload = serde_json::json!({ "type": "test", "message": "Testmelding werkt!" });
+    let payload_bytes = payload.to_string().into_bytes();
+
+    let client = IsahcWebPushClient::new().map_err(|e| AppError::Internal(e.to_string()))?;
+
+    for sub in &subs {
+        let sub_info = SubscriptionInfo::new(&sub.endpoint, &sub.p256dh, &sub.auth);
+        let sig =
+            VapidSignatureBuilder::from_base64(&vapid.private_key, &sub_info).and_then(|mut b| {
+                b.add_claim("sub", vapid.subject.clone());
+                b.build()
+            });
+        let Ok(sig) = sig else { continue };
+
+        let mut builder = WebPushMessageBuilder::new(&sub_info);
+        builder.set_payload(ContentEncoding::Aes128Gcm, &payload_bytes);
+        builder.set_vapid_signature(sig);
+        if let Ok(msg) = builder.build() {
+            let _ = client.send(msg).await;
+        }
+    }
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// Send a "GOAL!" push notification to every subscription that has

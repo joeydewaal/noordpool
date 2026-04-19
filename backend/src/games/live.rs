@@ -11,7 +11,7 @@ use crate::{
     app_state::AppState,
     error::AppError,
     games::live_ws::LiveEvent,
-    models::{Game, GameEvent, Role},
+    models::{Game, GameEvent, Role, game::compute_scores},
     push,
 };
 
@@ -32,11 +32,12 @@ pub struct LiveSnapshot {
 impl LiveSnapshot {
     pub fn from_game(game: &Game, now: Timestamp) -> Self {
         let events: Vec<GameEvent> = game.events.get().to_vec();
+        let (ch, ca) = compute_scores(&events, game.home_team_id);
         Self {
             id: game.id,
             status: game.derived_status(now),
-            home_score: game.home_score,
-            away_score: game.away_score,
+            home_score: ch + game.home_score,
+            away_score: ca + game.away_score,
             version: game.version,
             updated_at: game.updated_at,
             events,
@@ -101,21 +102,32 @@ pub async fn adjust_score(
         .get(&mut db)
         .await?;
 
+    let snapshot = LiveSnapshot::from_game(&fresh, now);
     state.live_hub.publish(
         id,
         LiveEvent::ScoreUpdate {
-            home: fresh.home_score,
-            away: fresh.away_score,
-            version: fresh.version,
-            updated_at: fresh.updated_at,
+            home: snapshot.home_score,
+            away: snapshot.away_score,
+            version: snapshot.version,
+            updated_at: snapshot.updated_at,
         },
     );
 
     if body.delta == 1 {
         let home_name = &fresh.home_team.get().name;
         let away_name = &fresh.away_team.get().name;
-        push::notify_goal(&state, &fresh, Some(body.side), home_name, away_name).await;
+        let mut game_for_push = fresh.clone();
+        game_for_push.home_score = snapshot.home_score;
+        game_for_push.away_score = snapshot.away_score;
+        push::notify_goal(
+            &state,
+            &game_for_push,
+            Some(body.side),
+            home_name,
+            away_name,
+        )
+        .await;
     }
 
-    Ok(Json(LiveSnapshot::from_game(&fresh, now)))
+    Ok(Json(snapshot))
 }

@@ -22,7 +22,7 @@ use crate::{
     app_state::AppState,
     auth::claims::Claims,
     error::AppError,
-    models::{EventType, Game, Player, Position, Role, Team},
+    models::{EventType, Game, Player, Position, Role, Team, game::compute_scores},
 };
 
 #[derive(Debug, Serialize, Clone)]
@@ -235,6 +235,22 @@ pub async fn stats(
     let match_duration = 90.minutes();
     let is_completed = |g: &Game| !g.cancelled && (g.date_time + match_duration) <= now;
 
+    // Load full events for each game this player participated in, so we can
+    // compute accurate scores (stored home_score/away_score are adjustments only).
+    let unique_game_ids: HashSet<Uuid> = events.iter().map(|e| e.game_id).collect();
+    let mut game_score_map: HashMap<Uuid, (i32, i32)> = HashMap::new();
+    for gid in unique_game_ids {
+        if let Ok(full_game) = Game::filter_by_id(gid)
+            .include(Game::fields().events().player())
+            .get(db)
+            .await
+        {
+            let gevents = full_game.events.get();
+            let (ch, ca) = compute_scores(gevents, full_game.home_team_id);
+            game_score_map.insert(gid, (ch + full_game.home_score, ca + full_game.away_score));
+        }
+    }
+
     let game_ids: Vec<Uuid> = events
         .iter()
         .filter(|e| is_completed(e.game.get()))
@@ -286,8 +302,14 @@ pub async fn stats(
                     .cloned()
                     .unwrap_or_else(|| unknown.clone()),
                 date_time: game.date_time,
-                home_score: game.home_score,
-                away_score: game.away_score,
+                home_score: game_score_map
+                    .get(&game.id)
+                    .map(|s| s.0)
+                    .unwrap_or(game.home_score),
+                away_score: game_score_map
+                    .get(&game.id)
+                    .map(|s| s.1)
+                    .unwrap_or(game.away_score),
                 minutes,
             }
         })

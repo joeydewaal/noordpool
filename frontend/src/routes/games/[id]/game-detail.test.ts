@@ -60,9 +60,6 @@ vi.mock("@tanstack/svelte-query", () => ({
     };
   },
   createMutation: (_optsFn: () => { mutationFn: unknown }) => {
-    // The page declares scoreMutation first, then
-    // addEventMutation, then deleteEventMutation. We expose
-    // the first two by call order so tests can assert on them.
     const calls = (createMutation as unknown as { _n?: number })._n ?? 0;
     (createMutation as unknown as { _n?: number })._n = calls + 1;
     if (calls === 0) {
@@ -93,7 +90,6 @@ vi.mock("@tanstack/svelte-query", () => ({
   }),
 }));
 
-// Re-imported above; alias for the call-order trick.
 import { createMutation } from "@tanstack/svelte-query";
 import Page from "./+page.svelte";
 
@@ -118,6 +114,11 @@ function makeGame(overrides: Partial<Game> = {}): Game {
   };
 }
 
+async function openCommands() {
+  const toggle = screen.getByRole("button", { name: /wedstrijdbeheer/i });
+  await fireEvent.click(toggle);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.isAdmin = false;
@@ -135,18 +136,30 @@ describe("game detail — score adjuster", () => {
     expect(screen.queryByLabelText("Score adjuster")).not.toBeInTheDocument();
   });
 
-  it("does not render any score adjuster when the game is not live", () => {
+  it("does not render the command toggle when the game is not live", () => {
     mockAuth.isModerator = true;
     mockState.gameData = makeGame({ status: "scheduled" });
     render(Page);
-    expect(screen.queryByLabelText("Score adjuster")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /wedstrijdbeheer/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows both-side controls when user belongs to a team in this game", () => {
+  it("score adjuster is hidden by default and shown after toggle", async () => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({ status: "live" });
+    render(Page);
+    expect(screen.queryByLabelText("Score adjuster")).not.toBeInTheDocument();
+    await openCommands();
+    expect(screen.getByLabelText("Score adjuster")).toBeInTheDocument();
+  });
+
+  it("shows both-side controls when user belongs to a team in this game", async () => {
     mockAuth.isModerator = true;
     mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
+    await openCommands();
 
     expect(screen.getByLabelText("Score adjuster")).toBeInTheDocument();
     expect(screen.getByLabelText("Doelpunt tegenstander")).toBeInTheDocument();
@@ -164,12 +177,13 @@ describe("game detail — score adjuster", () => {
     mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
+    await openCommands();
 
     await fireEvent.click(screen.getByLabelText("Eigen doelpunt"));
     expect(scoreMutate).toHaveBeenCalledWith({ side: "home", delta: 1 });
   });
 
-  it("shows the opponent score (away when we are home)", () => {
+  it("shows the opponent score (away when we are home)", async () => {
     mockAuth.isModerator = true;
     mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({
@@ -178,15 +192,14 @@ describe("game detail — score adjuster", () => {
       awayScore: 1,
     });
     render(Page);
+    await openCommands();
 
     const panel = screen.getByLabelText("Score adjuster");
-    // 1 = away score = opponent score (we are home)
     expect(panel.textContent).toContain("1");
-    // PSV name is the opponent label
     expect(panel.textContent).toContain("PSV");
   });
 
-  it("shows the opponent score (home when we are away)", () => {
+  it("shows the opponent score (home when we are away)", async () => {
     mockAuth.isModerator = true;
     mockAuth.teamId = "team-away";
     mockState.gameData = makeGame({
@@ -195,21 +208,23 @@ describe("game detail — score adjuster", () => {
       awayScore: 4,
     });
     render(Page);
+    await openCommands();
 
     const panel = screen.getByLabelText("Score adjuster");
-    // We are away, so opponent's score is the home column = 2
     expect(panel.textContent).toContain("2");
   });
 
-  it("shows both-side controls when user is not on either team", () => {
+  it("shows both-side controls when user is not on either team", async () => {
     mockAuth.isModerator = true;
     mockAuth.teamId = null;
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
+    await openCommands();
 
-    expect(screen.getByLabelText("Score adjuster")).toBeInTheDocument();
-    expect(screen.getByText("Noordpool")).toBeInTheDocument();
-    expect(screen.getByText("PSV")).toBeInTheDocument();
+    const panel = screen.getByLabelText("Score adjuster");
+    expect(panel).toBeInTheDocument();
+    expect(panel.textContent).toContain("Noordpool");
+    expect(panel.textContent).toContain("PSV");
   });
 
   it("opponent + button mutates with side and delta", async () => {
@@ -217,6 +232,7 @@ describe("game detail — score adjuster", () => {
     mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
+    await openCommands();
 
     await fireEvent.click(screen.getByLabelText("Doelpunt tegenstander"));
     expect(scoreMutate).toHaveBeenCalledWith({ side: "away", delta: 1 });
@@ -230,6 +246,7 @@ describe("game detail — score adjuster", () => {
       awayScore: 2,
     });
     render(Page);
+    await openCommands();
 
     await fireEvent.click(
       screen.getByLabelText("Doelpunt tegenstander intrekken"),
@@ -237,7 +254,7 @@ describe("game detail — score adjuster", () => {
     expect(scoreMutate).toHaveBeenCalledWith({ side: "away", delta: -1 });
   });
 
-  it("opponent - button is disabled at score 0", () => {
+  it("opponent - button is disabled at score 0", async () => {
     mockAuth.isModerator = true;
     mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({
@@ -245,6 +262,7 @@ describe("game detail — score adjuster", () => {
       awayScore: 0,
     });
     render(Page);
+    await openCommands();
 
     const minusBtn = screen.getByLabelText(
       "Doelpunt tegenstander intrekken",
@@ -254,7 +272,7 @@ describe("game detail — score adjuster", () => {
 });
 
 describe("game detail — event form drives goal score", () => {
-  it("renders the event form with a Doelpunt option for moderators", () => {
+  it("renders the event form with a Doelpunt option for moderators", async () => {
     mockAuth.isModerator = true;
     mockAuth.teamId = "team-home";
     mockState.gameData = makeGame({ status: "live" });
@@ -268,10 +286,8 @@ describe("game detail — event form drives goal score", () => {
       },
     ];
     render(Page);
+    await openCommands();
 
-    expect(
-      screen.getByText(/registreer je hieronder als gebeurtenis/i),
-    ).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "Doelpunt" }),
     ).toBeInTheDocument();
@@ -291,6 +307,7 @@ describe("game detail — event form drives goal score", () => {
       },
     ];
     render(Page);
+    await openCommands();
 
     const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
     await fireEvent.change(selects[0], { target: { value: "p1" } });
