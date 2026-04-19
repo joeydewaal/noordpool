@@ -74,7 +74,7 @@ async fn after_login(
         Player::get_by_id(&mut db, pid)
             .await
             .ok()
-            .and_then(|p| p.team_id)
+            .map(|p| p.team_id)
     } else {
         None
     };

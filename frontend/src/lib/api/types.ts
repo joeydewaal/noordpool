@@ -57,6 +57,7 @@ export interface Player {
   shirtNumber: number;
   position: Position;
   active: boolean;
+  teamId: string;
   user?: User | null;
 }
 
@@ -65,7 +66,7 @@ export interface CreatePlayerRequest {
   lastName: string;
   shirtNumber: number;
   position: Position;
-  teamId?: string;
+  teamId: string;
 }
 
 export interface UpdatePlayerRequest {

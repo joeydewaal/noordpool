@@ -16,6 +16,7 @@ fn redact_settings() -> Settings {
         );
     }
     settings.add_redaction(".player.createdAt", "[date]");
+    settings.add_redaction(".player.teamId", "[uuid]");
     settings
 }
 
@@ -24,18 +25,19 @@ async fn create_player(
     token: &str,
     first_name: &str,
     number: i32,
-    team_id: Option<&str>,
+    team_id: &str,
 ) -> String {
-    let mut body = json!({
-        "firstName": first_name,
-        "lastName": "",
-        "shirtNumber": number,
-        "position": "Spits"
-    });
-    if let Some(tid) = team_id {
-        body["teamId"] = json!(tid);
-    }
-    let res = app.post("/api/players").token(token).json(body).await;
+    let res = app
+        .post("/api/players")
+        .token(token)
+        .json(json!({
+            "firstName": first_name,
+            "lastName": "",
+            "shirtNumber": number,
+            "position": "Spits",
+            "teamId": team_id
+        }))
+        .await;
     let body = res.json_value().await;
     body["id"].as_str().unwrap().to_string()
 }
@@ -63,7 +65,7 @@ async fn create_and_list_events() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let (game_id, home_team_id) = create_game(&mut app, &token).await;
-    let player_id = create_player(&mut app, &token, "Scorer", 9, Some(&home_team_id)).await;
+    let player_id = create_player(&mut app, &token, "Scorer", 9, &home_team_id).await;
 
     // Create a goal event
     let res = app
@@ -120,7 +122,7 @@ async fn delete_event() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let (game_id, home_team_id) = create_game(&mut app, &token).await;
-    let player_id = create_player(&mut app, &token, "Scorer", 9, Some(&home_team_id)).await;
+    let player_id = create_player(&mut app, &token, "Scorer", 9, &home_team_id).await;
 
     let res = app
         .post(format!("/api/games/{game_id}/events"))
@@ -174,7 +176,7 @@ async fn own_goal_increments_opponent_score() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let (game_id, home_team_id) = create_game(&mut app, &token).await;
-    let player_id = create_player(&mut app, &token, "HomePlayer", 5, Some(&home_team_id)).await;
+    let player_id = create_player(&mut app, &token, "Scorer", 9, &home_team_id).await;
 
     let res = app
         .post(format!("/api/games/{game_id}/events"))
@@ -202,7 +204,7 @@ async fn delete_own_goal_decrements_opponent_score() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
     let (game_id, home_team_id) = create_game(&mut app, &token).await;
-    let player_id = create_player(&mut app, &token, "HomePlayer", 5, Some(&home_team_id)).await;
+    let player_id = create_player(&mut app, &token, "Scorer", 9, &home_team_id).await;
 
     let res = app
         .post(format!("/api/games/{game_id}/events"))

@@ -113,7 +113,7 @@ pub async fn link_player(
     user.player_id = Some(player.id);
 
     let roles: Vec<Role> = user.get_roles();
-    let token = encode_token(&state.jwt, &user, &roles, player.team_id)?;
+    let token = encode_token(&state.jwt, &user, &roles, Some(player.team_id))?;
 
     Ok(Json(AuthResponse { user, token }))
 }
@@ -211,7 +211,7 @@ pub async fn login(
 
     let team_id = if let Some(pid) = user.player_id {
         let p = Player::get_by_id(&mut db, pid).await?;
-        p.team_id
+        Some(p.team_id)
     } else {
         None
     };

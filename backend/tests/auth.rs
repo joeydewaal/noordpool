@@ -9,6 +9,7 @@ use serde_json::json;
 async fn find_player_returns_unlinked_match() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let team_id = app.create_team(&token, "Test Team").await;
 
     // Admin creates a player without email
     app.post("/api/players")
@@ -17,7 +18,8 @@ async fn find_player_returns_unlinked_match() {
             "firstName": "Piet",
             "lastName": "Paulsen",
             "shirtNumber": 9,
-            "position": "Spits"
+            "position": "Spits",
+            "teamId": team_id
         }))
         .await;
 
@@ -36,6 +38,7 @@ async fn find_player_returns_unlinked_match() {
 async fn find_player_excludes_linked_players() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let team_id = app.create_team(&token, "Test Team").await;
 
     // Admin creates a player
     let res = app
@@ -45,7 +48,8 @@ async fn find_player_excludes_linked_players() {
             "firstName": "Linked",
             "lastName": "Speler",
             "shirtNumber": 5,
-            "position": "Centrale middenvelder"
+            "position": "Centrale middenvelder",
+            "teamId": team_id
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -80,6 +84,7 @@ async fn find_player_excludes_linked_players() {
 async fn find_player_is_case_insensitive() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let team_id = app.create_team(&token, "Test Team").await;
 
     app.post("/api/players")
         .token(&token)
@@ -87,7 +92,8 @@ async fn find_player_is_case_insensitive() {
             "firstName": "Karel",
             "lastName": "Karelse",
             "shirtNumber": 3,
-            "position": "Centrale verdediger"
+            "position": "Centrale verdediger",
+            "teamId": team_id
         }))
         .await;
 
@@ -114,6 +120,7 @@ async fn find_player_returns_empty_for_no_match() {
 async fn find_player_excludes_inactive_players() {
     let mut app = TestApp::new().await;
     let token = app.admin_token().await;
+    let team_id = app.create_team(&token, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -122,7 +129,8 @@ async fn find_player_excludes_inactive_players() {
             "firstName": "Inactive",
             "lastName": "Ivo",
             "shirtNumber": 11,
-            "position": "Keeper"
+            "position": "Keeper",
+            "teamId": team_id
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -188,6 +196,7 @@ async fn register_without_player_has_no_player_role() {
 async fn link_player_links_to_existing_player() {
     let mut app = TestApp::new().await;
     let admin = app.admin_token().await;
+    let team_id = app.create_team(&admin, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -196,7 +205,8 @@ async fn link_player_links_to_existing_player() {
             "firstName": "Sjaak",
             "lastName": "Swart",
             "shirtNumber": 11,
-            "position": "Spits"
+            "position": "Spits",
+            "teamId": team_id
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -236,6 +246,7 @@ async fn link_player_links_to_existing_player() {
 async fn link_player_linked_user_has_player_role_in_login() {
     let mut app = TestApp::new().await;
     let admin = app.admin_token().await;
+    let team_id = app.create_team(&admin, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -244,7 +255,8 @@ async fn link_player_linked_user_has_player_role_in_login() {
             "firstName": "Klaas",
             "lastName": "Klaasen",
             "shirtNumber": 6,
-            "position": "Centrale middenvelder"
+            "position": "Centrale middenvelder",
+            "teamId": team_id
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -317,6 +329,7 @@ async fn login_without_player_has_no_player_role() {
 async fn link_player_fails_if_player_already_linked() {
     let mut app = TestApp::new().await;
     let admin = app.admin_token().await;
+    let team_id = app.create_team(&admin, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -325,7 +338,8 @@ async fn link_player_fails_if_player_already_linked() {
             "firstName": "Al",
             "lastName": "Gelinkt",
             "shirtNumber": 1,
-            "position": "Keeper"
+            "position": "Keeper",
+            "teamId": team_id
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
@@ -404,13 +418,15 @@ async fn link_player_no_longer_appears_in_find_player() {
     let mut app = TestApp::new().await;
     let admin = app.admin_token().await;
 
+    let team_id = app.create_team(&admin, "Test Team").await;
     app.post("/api/players")
         .token(&admin)
         .json(json!({
             "firstName": "Nu",
             "lastName": "Gelinkt",
             "shirtNumber": 7,
-            "position": "Centrale verdediger"
+            "position": "Centrale verdediger",
+            "teamId": team_id
         }))
         .await;
 
@@ -474,6 +490,7 @@ async fn link_player_requires_authentication() {
 async fn unlink_player_removes_link() {
     let mut app = TestApp::new().await;
     let admin = app.admin_token().await;
+    let team_id = app.create_team(&admin, "Test Team").await;
 
     let res = app
         .post("/api/players")
@@ -482,7 +499,8 @@ async fn unlink_player_removes_link() {
             "firstName": "Henk",
             "lastName": "Ontkoppeld",
             "shirtNumber": 14,
-            "position": "Spits"
+            "position": "Spits",
+            "teamId": team_id
         }))
         .await;
     let player_id = res.json_value().await["id"].as_str().unwrap().to_string();
