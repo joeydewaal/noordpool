@@ -19,6 +19,8 @@
     GameEvent,
   } from "$lib/api/types";
   import { startLiveMatchStream } from "$lib/live-match.svelte";
+  import { Dialog } from "@skeletonlabs/skeleton-svelte";
+  import { toaster } from "$lib/state/toaster";
   import Spinner from "$lib/components/Spinner.svelte";
   import PlayerAvatar from "$lib/components/PlayerAvatar.svelte";
 
@@ -171,9 +173,12 @@
       },
       {
         onSuccess: () => {
+          const label = eventLabels[selectedAction];
+          showCommands = false;
           selectedPlayer = null;
           selectedAction = "goal";
           newMinute = matchMinute;
+          toaster.success({ title: `${label} toegevoegd` });
         },
       },
     );
@@ -380,112 +385,145 @@
             class="btn btn-sm preset-outlined-surface-500">Bewerken</a
           >
           {#if status === "live"}
-            <button
-              type="button"
-              class="btn btn-sm {showCommands
-                ? 'preset-filled-warning-500'
-                : 'preset-outlined-warning-500'}"
-              onclick={() => {
-                showCommands = !showCommands;
-                if (!showCommands) selectedPlayer = null;
+            <Dialog
+              open={showCommands}
+              onOpenChange={(e) => {
+                showCommands = e.open;
+                if (!e.open) selectedPlayer = null;
               }}
             >
-              {showCommands ? "Verberg beheer" : "Wedstrijdbeheer"}
-            </button>
-          {/if}
-        </div>
+              <Dialog.Trigger
+                type="button"
+                class="btn btn-sm preset-outlined-warning-500"
+              >
+                Wedstrijdbeheer
+              </Dialog.Trigger>
 
-        {#if showCommands && status === "live"}
-          <div
-            class="mt-4 card preset-tonal-warning p-4"
-            aria-label="Wedstrijdbeheer"
-          >
-            {#if !selectedPlayer}
-              <!-- Step 1: pick a player -->
-              <div class="grid grid-cols-2 gap-4">
-                {#each [{ label: g.homeTeam.name, players: homePlayers }, { label: g.awayTeam.name, players: awayPlayers }] as team}
-                  <div>
-                    <p class="text-xs font-semibold text-surface-400 mb-2">
-                      {team.label}
-                    </p>
-                    {#if team.players.length === 0}
-                      <p class="text-xs text-surface-400 italic">
-                        Geen spelers
-                      </p>
-                    {:else}
-                      <div class="flex flex-col gap-1">
-                        {#each team.players as p}
+              <Dialog.Backdrop class="fixed inset-0 bg-black/50 z-40" />
+              <Dialog.Positioner
+                class="fixed inset-0 flex items-center justify-center z-50 p-4"
+              >
+                <Dialog.Content
+                  class="card bg-surface-100-900 p-5 w-full max-w-md shadow-xl flex flex-col h-[480px]"
+                  aria-label="Wedstrijdbeheer"
+                >
+                  <div class="flex items-center justify-between mb-4 shrink-0">
+                    <Dialog.Title class="text-base font-bold"
+                      >Wedstrijdbeheer</Dialog.Title
+                    >
+                    <Dialog.CloseTrigger
+                      type="button"
+                      class="btn btn-sm preset-outlined-surface-500"
+                      >&times;</Dialog.CloseTrigger
+                    >
+                  </div>
+
+                  {#if !selectedPlayer}
+                    <!-- Step 1: pick a player -->
+                    <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
+                      {#each [{ label: g.homeTeam.name, players: homePlayers }, { label: g.awayTeam.name, players: awayPlayers }] as team}
+                        <div class="flex flex-col min-h-0">
+                          <p
+                            class="text-xs font-semibold text-surface-400 mb-2 shrink-0"
+                          >
+                            {team.label}
+                          </p>
+                          {#if team.players.length === 0}
+                            <p class="text-xs text-surface-400 italic">
+                              Geen spelers
+                            </p>
+                          {:else}
+                            <div
+                              class="flex flex-col gap-1 overflow-y-auto pr-1"
+                            >
+                              {#each team.players as p}
+                                <button
+                                  type="button"
+                                  class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start shrink-0"
+                                  onclick={() => selectPlayer(p)}
+                                >
+                                  <PlayerAvatar
+                                    avatarUrl={p.user?.avatarUrl}
+                                    shirtNumber={p.shirtNumber}
+                                    size="sm"
+                                  />
+                                  <span class="text-xs truncate"
+                                    >{playerName(p)}</span
+                                  >
+                                </button>
+                              {/each}
+                            </div>
+                          {/if}
+                        </div>
+                      {/each}
+                    </div>
+                  {:else}
+                    <!-- Step 2: pick action -->
+                    <div class="flex flex-col flex-1 min-h-0">
+                      <div class="mb-3 flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          class="btn btn-sm preset-outlined-surface-500"
+                          onclick={() => (selectedPlayer = null)}
+                          >&larr; Terug</button
+                        >
+                        <span class="text-sm font-semibold"
+                          >{playerName(selectedPlayer)}</span
+                        >
+                      </div>
+
+                      <div class="flex flex-wrap gap-2 flex-1 content-start">
+                        {#each ["goal", "own_goal", "assist", "yellow_card", "red_card"] as EventType[] as action}
                           <button
                             type="button"
-                            class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start"
-                            onclick={() => selectPlayer(p)}
+                            class="btn btn-sm {selectedAction === action
+                              ? 'preset-filled-warning-500'
+                              : 'preset-outlined-surface-500'}"
+                            onclick={() => (selectedAction = action)}
                           >
-                            <PlayerAvatar
-                              avatarUrl={p.user?.avatarUrl}
-                              shirtNumber={p.shirtNumber}
-                              size="sm"
-                            />
-                            <span class="text-xs truncate">{playerName(p)}</span
-                            >
+                            {eventIcons[action]}
+                            {eventLabels[action]}
                           </button>
                         {/each}
                       </div>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            {:else}
-              <!-- Step 2: pick action -->
-              <div class="mb-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  class="btn btn-sm preset-outlined-surface-500"
-                  onclick={() => (selectedPlayer = null)}>&larr; Terug</button
-                >
-                <span class="text-sm font-semibold"
-                  >{playerName(selectedPlayer)}</span
-                >
-              </div>
 
-              <div class="flex flex-wrap gap-2 mb-4">
-                {#each ["goal", "own_goal", "assist", "yellow_card", "red_card"] as EventType[] as action}
-                  <button
-                    type="button"
-                    class="btn btn-sm {selectedAction === action
-                      ? 'preset-filled-warning-500'
-                      : 'preset-outlined-surface-500'}"
-                    onclick={() => (selectedAction = action)}
-                  >
-                    {eventIcons[action]}
-                    {eventLabels[action]}
-                  </button>
-                {/each}
-              </div>
-
-              <div class="flex items-center gap-3">
-                <label class="text-xs text-surface-400" for="event-minute"
-                  >Minuut</label
-                >
-                <input
-                  id="event-minute"
-                  type="number"
-                  bind:value={newMinute}
-                  min="1"
-                  max="120"
-                  class="input w-16 text-sm"
-                />
-                <button
-                  type="button"
-                  class="btn btn-sm preset-filled-primary-500"
-                  disabled={addEventMutation.isPending}
-                  onclick={handleAddEvent}
-                >
-                  Toevoegen
-                </button>
-              </div>
-            {/if}
-          </div>
-        {/if}
+                      <div
+                        class="flex items-center justify-between gap-3 shrink-0 pt-4 border-t border-surface-200 dark:border-surface-800"
+                      >
+                        <div class="flex items-center gap-2">
+                          <label
+                            class="text-xs text-surface-400"
+                            for="event-minute">Minuut</label
+                          >
+                          <input
+                            id="event-minute"
+                            type="number"
+                            bind:value={newMinute}
+                            min="1"
+                            max="120"
+                            class="input w-16 text-sm"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn-sm preset-filled-primary-500"
+                          disabled={addEventMutation.isPending}
+                          onclick={handleAddEvent}
+                        >
+                          {#if addEventMutation.isPending}
+                            <Spinner size="sm" />
+                          {:else}
+                            Toevoegen
+                          {/if}
+                        </button>
+                      </div>
+                    </div>
+                  {/if}
+                </Dialog.Content>
+              </Dialog.Positioner>
+            </Dialog>
+          {/if}
+        </div>
       {/if}
     </div>
   </div>

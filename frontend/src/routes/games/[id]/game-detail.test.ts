@@ -140,9 +140,9 @@ describe("game detail — command panel visibility", () => {
     mockAuth.isModerator = true;
     mockState.gameData = makeGame({ status: "live" });
     render(Page);
-    expect(screen.queryByLabelText("Wedstrijdbeheer")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Wedstrijdbeheer")).not.toBeVisible();
     await openCommands();
-    expect(screen.getByLabelText("Wedstrijdbeheer")).toBeInTheDocument();
+    expect(screen.getByLabelText("Wedstrijdbeheer")).toBeVisible();
   });
 });
 
@@ -270,6 +270,85 @@ describe("game detail — action picker (step 2)", () => {
     });
     const [arg] = addEventMutate.mock.calls[0];
     expect(arg).toMatchObject({ playerId: "p1", eventType: "yellow_card" });
+  });
+});
+
+describe("game detail — full event emission flow", () => {
+  beforeEach(() => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({ status: "live" });
+    mockState.playersData = [
+      makePlayer("p1", "Jan", "team-home", 9),
+      makePlayer("p2", "Piet", "team-away", 7),
+    ];
+  });
+
+  it("emits a goal for a home player with the correct payload", async () => {
+    render(Page);
+    await openCommands();
+    await fireEvent.click(screen.getByRole("button", { name: /jan/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
+
+    await waitFor(() => expect(addEventMutate).toHaveBeenCalledOnce());
+    expect(addEventMutate.mock.calls[0][0]).toMatchObject({
+      playerId: "p1",
+      eventType: "goal",
+    });
+  });
+
+  it("emits an own_goal for an away player with the correct payload", async () => {
+    render(Page);
+    await openCommands();
+    await fireEvent.click(screen.getByRole("button", { name: /piet/i }));
+    await fireEvent.click(
+      screen.getByRole("button", { name: /eigen doelpunt/i }),
+    );
+    await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
+
+    await waitFor(() => expect(addEventMutate).toHaveBeenCalledOnce());
+    expect(addEventMutate.mock.calls[0][0]).toMatchObject({
+      playerId: "p2",
+      eventType: "own_goal",
+    });
+  });
+
+  it("includes the edited minute in the emitted payload", async () => {
+    render(Page);
+    await openCommands();
+    await fireEvent.click(screen.getByRole("button", { name: /jan/i }));
+
+    const minuteInput = screen.getByLabelText(/minuut/i);
+    await fireEvent.input(minuteInput, { target: { value: "67" } });
+
+    await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
+
+    await waitFor(() => expect(addEventMutate).toHaveBeenCalledOnce());
+    expect(addEventMutate.mock.calls[0][0]).toMatchObject({
+      playerId: "p1",
+      minute: 67,
+    });
+  });
+
+  it("closes the dialog after a successful submission", async () => {
+    addEventMutate.mockImplementation(
+      (_data: unknown, callbacks?: { onSuccess?: () => void }) => {
+        callbacks?.onSuccess?.();
+      },
+    );
+
+    render(Page);
+    await openCommands();
+    await fireEvent.click(screen.getByRole("button", { name: /jan/i }));
+
+    // Step 2 is shown
+    expect(screen.getByRole("button", { name: /terug/i })).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
+
+    // Dialog should close — content no longer visible
+    await waitFor(() =>
+      expect(screen.getByLabelText("Wedstrijdbeheer")).not.toBeVisible(),
+    );
   });
 });
 
