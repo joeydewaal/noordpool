@@ -29,6 +29,11 @@ pub struct GameEvent {
     #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
     pub player: BelongsTo<Player>,
 
+    /// Snapshot of the player's team at the time the event was recorded.
+    /// Used by compute_scores so score calculation doesn't depend on current team membership.
+    #[serde(skip)]
+    pub team_id: Uuid,
+
     pub event_type: EventType,
 
     pub minute: i32,

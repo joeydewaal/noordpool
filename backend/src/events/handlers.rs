@@ -13,7 +13,7 @@ use crate::{
     error::AppError,
     games::live::{LiveSnapshot, ScoreSide},
     games::live_ws::LiveEvent,
-    models::{EventType, Game, GameEvent, Role, game::compute_scores},
+    models::{EventType, Game, GameEvent, Player, Role, game::compute_scores},
 };
 
 #[derive(Deserialize)]
@@ -48,9 +48,15 @@ pub async fn create(
     tracing::info!(game_id = %game_id, "events::create");
     let mut db = state.db.clone();
 
+    let player = Player::get_by_id(&mut db, body.player_id).await?;
+    let team_id = player
+        .team_id
+        .ok_or_else(|| AppError::bad_request("player has no team"))?;
+
     let event = GameEvent::create()
         .game_id(game_id)
         .player_id(body.player_id)
+        .team_id(team_id)
         .event_type(body.event_type)
         .minute(body.minute)
         .exec(&mut db)

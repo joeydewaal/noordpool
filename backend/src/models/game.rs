@@ -7,17 +7,14 @@ use super::{EventType, GameEvent};
 use crate::models::team::Team;
 
 /// Compute `(home_goals, away_goals)` from a slice of events.
-/// Requires that `player` is eagerly-loaded on every event.
 pub fn compute_scores(events: &[GameEvent], home_team_id: Uuid) -> (i32, i32) {
     let mut home = 0i32;
     let mut away = 0i32;
     for e in events {
-        let player = e.player.get();
-        let Some(tid) = player.team_id else { continue };
         match e.event_type {
-            EventType::Goal if tid == home_team_id => home += 1,
+            EventType::Goal if e.team_id == home_team_id => home += 1,
             EventType::Goal => away += 1,
-            EventType::OwnGoal if tid == home_team_id => away += 1,
+            EventType::OwnGoal if e.team_id == home_team_id => away += 1,
             EventType::OwnGoal => home += 1,
             _ => {}
         }
