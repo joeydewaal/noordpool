@@ -119,7 +119,14 @@ pub async fn create(
             let mut game_for_push = fresh.clone();
             game_for_push.home_score = snapshot.home_score;
             game_for_push.away_score = snapshot.away_score;
-            push::notify_goal(&state, &game_for_push, goal_side, &home_name, &away_name).await;
+            push::notify_goal(
+                &state.push,
+                &game_for_push,
+                goal_side,
+                &home_name,
+                &away_name,
+            )
+            .await;
         }
     }
 

@@ -23,6 +23,7 @@ use axum::{
 use axum_security::{jwt::Jwt, rbac::requires};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use toasty::Db;
 use uuid::Uuid;
 use web_push::{
     ContentEncoding, IsahcWebPushClient, SubscriptionInfo, VapidSignatureBuilder, WebPushClient,
@@ -47,6 +48,19 @@ pub fn router() -> Router<AppState> {
 }
 
 // ---------------------------------------------------------------------------
+// VAPID configuration
+// ---------------------------------------------------------------------------
+
+pub struct VapidConfig {
+    /// Base64url-encoded P-256 public key (raw, uncompressed, 65 bytes).
+    pub public_key: String,
+    /// Base64url-encoded P-256 private key (32 bytes).
+    pub private_key: String,
+    /// `mailto:` or `https:` URI per RFC 8292.
+    pub subject: String,
+}
+
+// ---------------------------------------------------------------------------
 // Notification types
 // ---------------------------------------------------------------------------
 
@@ -68,31 +82,46 @@ pub enum Notification {
 }
 
 // ---------------------------------------------------------------------------
-// PushBackend — real vs. mock
+// PushBackend — real vs. mock vs. disabled
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
 pub enum PushBackend {
-    Isahc,
+    /// Sends real Web Push messages. Owns all the state it needs.
+    Isahc { db: Db, vapid: Arc<VapidConfig> },
+    /// Captures notifications in memory for testing.
     Mock(Arc<Mutex<Vec<Notification>>>),
+    /// No-op — VAPID not configured.
+    Disabled,
 }
 
 impl PushBackend {
-    /// Returns a mock backend and a shared handle to inspect captured notifications.
+    pub fn new_isahc(db: Db, vapid: Arc<VapidConfig>) -> Self {
+        PushBackend::Isahc { db, vapid }
+    }
+
     pub fn new_mock() -> (Self, Arc<Mutex<Vec<Notification>>>) {
         let store = Arc::new(Mutex::new(Vec::new()));
         (PushBackend::Mock(Arc::clone(&store)), store)
     }
 
-    /// Dispatch a notification. Mock variant captures it; Isahc variant sends for real.
-    pub async fn notify(&self, notification: Notification, state: &AppState) {
+    /// Returns the VAPID public key if this backend is configured.
+    pub fn vapid_public_key(&self) -> Option<&str> {
         match self {
+            PushBackend::Isahc { vapid, .. } => Some(&vapid.public_key),
+            _ => None,
+        }
+    }
+
+    pub async fn notify(&self, notification: Notification) {
+        match self {
+            PushBackend::Isahc { db, vapid } => {
+                send_real(notification, db, vapid).await;
+            }
             PushBackend::Mock(store) => {
                 store.lock().unwrap().push(notification);
             }
-            PushBackend::Isahc => {
-                send_real(notification, state).await;
-            }
+            PushBackend::Disabled => {}
         }
     }
 }
@@ -101,13 +130,8 @@ impl PushBackend {
 // Real-send logic (Isahc path only)
 // ---------------------------------------------------------------------------
 
-async fn send_real(notification: Notification, state: &AppState) {
-    let Some(vapid) = state.vapid.as_ref() else {
-        tracing::debug!("push: VAPID not configured, skipping");
-        return;
-    };
-
-    let mut db = state.db.clone();
+async fn send_real(notification: Notification, db: &Db, vapid: &VapidConfig) {
+    let mut db = db.clone();
 
     let notify_goal_only = matches!(notification, Notification::Goal { .. });
     let subs = if notify_goal_only {
@@ -229,28 +253,23 @@ async fn send_real(notification: Notification, state: &AppState) {
 // ---------------------------------------------------------------------------
 
 pub async fn notify_goal(
-    state: &AppState,
+    push: &PushBackend,
     game: &Game,
     side: Option<ScoreSide>,
     home_team_name: &str,
     away_team_name: &str,
 ) {
-    state
-        .push
-        .notify(
-            Notification::Goal {
-                game_id: game.id,
-                home_team_id: game.home_team_id,
-                away_team_id: game.away_team_id,
-                home_team_name: home_team_name.to_string(),
-                away_team_name: away_team_name.to_string(),
-                home_score: game.home_score,
-                away_score: game.away_score,
-                side,
-            },
-            state,
-        )
-        .await;
+    push.notify(Notification::Goal {
+        game_id: game.id,
+        home_team_id: game.home_team_id,
+        away_team_id: game.away_team_id,
+        home_team_name: home_team_name.to_string(),
+        away_team_name: away_team_name.to_string(),
+        home_score: game.home_score,
+        away_score: game.away_score,
+        side,
+    })
+    .await;
 }
 
 // ---------------------------------------------------------------------------
@@ -266,12 +285,12 @@ pub struct VapidKeyResponse {
 pub async fn vapid_public_key(
     State(state): State<AppState>,
 ) -> Result<Json<VapidKeyResponse>, AppError> {
-    let vapid = state
-        .vapid
-        .as_ref()
+    let key = state
+        .push
+        .vapid_public_key()
         .ok_or_else(|| AppError::Internal("Web Push not configured".into()))?;
     Ok(Json(VapidKeyResponse {
-        key: vapid.public_key.clone(),
+        key: key.to_string(),
     }))
 }
 
@@ -406,12 +425,9 @@ pub async fn broadcast(
 ) -> Result<StatusCode, AppError> {
     state
         .push
-        .notify(
-            Notification::Broadcast {
-                message: body.message,
-            },
-            &state,
-        )
+        .notify(Notification::Broadcast {
+            message: body.message,
+        })
         .await;
     Ok(StatusCode::NO_CONTENT)
 }

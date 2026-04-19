@@ -148,7 +148,6 @@ impl TestApp {
             db,
             jwt,
             google_oidc: None,
-            vapid: None,
             live_hub: noordpool_backend::games::live_ws::LiveHub::new(),
             avatar_dir: Arc::new(avatar_dir),
             push,

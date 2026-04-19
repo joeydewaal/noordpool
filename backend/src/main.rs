@@ -15,7 +15,7 @@ mod users;
 
 use std::{path::PathBuf, sync::Arc};
 
-use app_state::{AppState, VapidConfig};
+use app_state::AppState;
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use config::Config;
 
@@ -72,22 +72,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None
     };
 
-    let vapid = match (
+    let push = match (
         config.vapid_public_key.clone(),
         config.vapid_private_key.clone(),
         config.vapid_subject.clone(),
     ) {
         (Some(public_key), Some(private_key), Some(subject)) => {
             tracing::info!("Web Push enabled (VAPID configured)");
-            Some(Arc::new(VapidConfig {
-                public_key,
-                private_key,
-                subject,
-            }))
+            push::PushBackend::new_isahc(
+                db.clone(),
+                Arc::new(push::VapidConfig {
+                    public_key,
+                    private_key,
+                    subject,
+                }),
+            )
         }
         _ => {
             tracing::info!("Web Push disabled (VAPID not configured)");
-            None
+            push::PushBackend::Disabled
         }
     };
 
@@ -100,10 +103,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         db,
         jwt,
         google_oidc,
-        vapid,
         live_hub: games::live_ws::LiveHub::new(),
         avatar_dir: Arc::new(avatar_dir),
-        push: push::PushBackend::Isahc,
+        push,
     };
 
     let app = routes::app(state);

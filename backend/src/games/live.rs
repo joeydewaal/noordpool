@@ -120,7 +120,7 @@ pub async fn adjust_score(
         game_for_push.home_score = snapshot.home_score;
         game_for_push.away_score = snapshot.away_score;
         push::notify_goal(
-            &state,
+            &state.push,
             &game_for_push,
             Some(body.side),
             home_name,
