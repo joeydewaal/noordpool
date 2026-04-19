@@ -73,24 +73,36 @@ async fn create_and_list_events() {
         .token(&token)
         .json(json!({
             "playerId": player_id,
-            "eventType": "goal",
+            "eventType": {"type": "goal"},
             "minute": 25
         }))
         .await;
 
     assert_eq!(res.status(), 200);
+    let goal_event_id = res.json_value().await["id"].as_str().unwrap().to_string();
+
     redact_settings()
         .bind_async(async {
-            assert_json_snapshot!("create_event", res.json_value().await);
+            // Re-fetch the created event for snapshot (the first response body was consumed above)
+            let snap_res = app.get(format!("/api/games/{game_id}/events")).send().await;
+            let events = snap_res.json_value().await;
+            let goal = events
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|e| e["minute"] == 25)
+                .unwrap()
+                .clone();
+            assert_json_snapshot!("create_event", goal);
         })
         .await;
 
-    // Create an assist event
+    // Create an assist event linked to the goal
     app.post(format!("/api/games/{game_id}/events"))
         .token(&token)
         .json(json!({
             "playerId": player_id,
-            "eventType": "assist",
+            "eventType": {"type": "assist", "goalEventId": goal_event_id},
             "minute": 20
         }))
         .await;
@@ -100,7 +112,7 @@ async fn create_and_list_events() {
         .token(&token)
         .json(json!({
             "playerId": player_id,
-            "eventType": "yellow_card",
+            "eventType": {"type": "yellow_card"},
             "minute": 60
         }))
         .await;
@@ -129,7 +141,7 @@ async fn delete_event() {
         .token(&token)
         .json(json!({
             "playerId": player_id,
-            "eventType": "goal",
+            "eventType": {"type": "goal"},
             "minute": 10
         }))
         .await;
@@ -163,7 +175,7 @@ async fn create_event_requires_auth() {
         .post(format!("/api/games/{game_id}/events"))
         .json(json!({
             "playerId": "00000000-0000-0000-0000-000000000000",
-            "eventType": "goal",
+            "eventType": {"type": "goal"},
             "minute": 10
         }))
         .await;
@@ -183,14 +195,14 @@ async fn own_goal_increments_opponent_score() {
         .token(&token)
         .json(json!({
             "playerId": player_id,
-            "eventType": "own_goal",
+            "eventType": {"type": "own_goal"},
             "minute": 33
         }))
         .await;
 
     assert_eq!(res.status(), 200);
     let event = res.json_value().await;
-    assert_eq!(event["eventType"], "own_goal");
+    assert_eq!(event["eventType"]["type"], "own_goal");
 
     // Game score: home player scored an own goal → away score should be 1, home 0
     let game_res = app.get(format!("/api/games/{game_id}")).send().await;
@@ -211,7 +223,7 @@ async fn delete_own_goal_decrements_opponent_score() {
         .token(&token)
         .json(json!({
             "playerId": player_id,
-            "eventType": "own_goal",
+            "eventType": {"type": "own_goal"},
             "minute": 33
         }))
         .await;

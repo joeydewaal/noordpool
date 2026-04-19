@@ -273,7 +273,7 @@ pub async fn stats(
                     .0
                     .push(event.minute);
             }
-            EventType::Assist => assists += 1,
+            EventType::Assist { .. } => assists += 1,
             EventType::YellowCard => yellow_cards += 1,
             EventType::RedCard => red_cards += 1,
             EventType::OwnGoal => {}
@@ -325,7 +325,7 @@ pub async fn stats(
             .or_insert((0, 0, 0, 0, game));
         match event.event_type {
             EventType::Goal => entry.0 += 1,
-            EventType::Assist => entry.1 += 1,
+            EventType::Assist { .. } => entry.1 += 1,
             EventType::YellowCard => entry.2 += 1,
             EventType::RedCard => entry.3 += 1,
             EventType::OwnGoal => {}

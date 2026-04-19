@@ -314,7 +314,7 @@ async fn goal_event_on_live_match_captures_goal_notification() {
         .token(&admin)
         .json(json!({
             "playerId": player_id,
-            "eventType": "goal",
+            "eventType": {"type": "goal"},
             "minute": 10,
         }))
         .await;

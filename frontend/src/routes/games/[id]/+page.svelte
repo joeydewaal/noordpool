@@ -122,7 +122,7 @@
     },
   }));
 
-  const eventLabels: Record<EventType, string> = {
+  const eventLabels: Record<string, string> = {
     goal: "Doelpunt",
     own_goal: "Eigen doelpunt",
     assist: "Assist",
@@ -130,7 +130,7 @@
     red_card: "Rode kaart",
   };
 
-  const eventIcons: Record<EventType, string> = {
+  const eventIcons: Record<string, string> = {
     goal: "\u26BD",
     own_goal: "\uD83D\uDD34\u26BD",
     assist: "\uD83D\uDC5F",
@@ -138,10 +138,15 @@
     red_card: "\uD83D\uDFE5",
   };
 
-  // Command panel state — step 1: pick player, step 2: pick action.
+  type ActionType = "goal" | "own_goal" | "yellow_card" | "red_card";
+
+  // Command panel state: "player" → "action" → ("assist" after goal) → close.
+  type PanelStep = "player" | "action" | "assist";
+  let panelStep = $state<PanelStep>("player");
   let selectedPlayer = $state<Player | null>(null);
-  let selectedAction: EventType = $state("goal");
+  let selectedAction = $state<ActionType>("goal");
   let newMinute = $state(1);
+  let lastGoalEvent = $state<GameEvent | null>(null);
 
   $effect(() => {
     if (showCommands) newMinute = matchMinute;
@@ -156,9 +161,27 @@
   const awayPlayers = $derived(
     allPlayers.filter((p) => p.teamId === game?.awayTeamId),
   );
+  const assistCandidates = $derived(
+    selectedPlayer
+      ? allPlayers.filter(
+          (p) =>
+            p.teamId === selectedPlayer!.teamId && p.id !== selectedPlayer!.id,
+        )
+      : [],
+  );
 
   function selectPlayer(p: Player) {
     selectedPlayer = p;
+    selectedAction = "goal";
+    newMinute = matchMinute;
+    panelStep = "action";
+  }
+
+  function closePanelAndReset() {
+    showCommands = false;
+    selectedPlayer = null;
+    panelStep = "player";
+    lastGoalEvent = null;
     selectedAction = "goal";
     newMinute = matchMinute;
   }
@@ -168,17 +191,40 @@
     addEventMutation.mutate(
       {
         playerId: selectedPlayer.id,
-        eventType: selectedAction,
+        eventType: { type: selectedAction } as EventType,
         minute: newMinute,
       },
       {
+        onSuccess: (created) => {
+          if (selectedAction === "goal") {
+            lastGoalEvent = created;
+            panelStep = "assist";
+          } else {
+            const label = eventLabels[selectedAction];
+            closePanelAndReset();
+            toaster.success({ title: `${label} toegevoegd` });
+          }
+        },
+      },
+    );
+  }
+
+  function handleAssistChosen(assister: Player | null) {
+    if (!assister || !lastGoalEvent) {
+      closePanelAndReset();
+      toaster.success({ title: "Doelpunt toegevoegd" });
+      return;
+    }
+    addEventMutation.mutate(
+      {
+        playerId: assister.id,
+        eventType: { type: "assist", goalEventId: lastGoalEvent.id },
+        minute: lastGoalEvent.minute,
+      },
+      {
         onSuccess: () => {
-          const label = eventLabels[selectedAction];
-          showCommands = false;
-          selectedPlayer = null;
-          selectedAction = "goal";
-          newMinute = matchMinute;
-          toaster.success({ title: `${label} toegevoegd` });
+          closePanelAndReset();
+          toaster.success({ title: "Doelpunt & assist toegevoegd" });
         },
       },
     );
@@ -203,20 +249,20 @@
     });
   }
 
-  // Group events: pair each assist at the same minute as the preceding goal.
+  // Group events: pair each assist with its goal via goalEventId.
   type EventGroup = { main: GameEvent; assist?: GameEvent };
   const groupedEvents = $derived.by((): EventGroup[] => {
     const sorted = [...events].sort((a, b) => a.minute - b.minute);
+    const assistByGoal = new Map<string, GameEvent>();
+    for (const ev of sorted) {
+      if (ev.eventType.type === "assist") {
+        assistByGoal.set(ev.eventType.goalEventId, ev);
+      }
+    }
     const groups: EventGroup[] = [];
     for (const ev of sorted) {
-      if (ev.eventType === "assist") {
-        const last = groups[groups.length - 1];
-        if (last && last.main.minute === ev.minute && !last.assist) {
-          last.assist = ev;
-          continue;
-        }
-      }
-      groups.push({ main: ev });
+      if (ev.eventType.type === "assist") continue;
+      groups.push({ main: ev, assist: assistByGoal.get(ev.id) });
     }
     return groups;
   });
@@ -328,13 +374,13 @@
                     {group.main.minute}'
                   </span>
                   <span class="text-base"
-                    >{eventIcons[group.main.eventType]}</span
+                    >{eventIcons[group.main.eventType.type]}</span
                   >
                   <span class="font-medium"
                     >{playerName(group.main.player)}</span
                   >
                   <span class="text-surface-400"
-                    >{eventLabels[group.main.eventType]}</span
+                    >{eventLabels[group.main.eventType.type]}</span
                   >
                   {#if canManage}
                     <button
@@ -352,13 +398,13 @@
                       {group.assist.minute}'
                     </span>
                     <span class="text-base"
-                      >{eventIcons[group.assist.eventType]}</span
+                      >{eventIcons[group.assist.eventType.type]}</span
                     >
                     <span class="font-medium text-surface-400"
                       >{playerName(group.assist.player)}</span
                     >
                     <span class="text-surface-400"
-                      >{eventLabels[group.assist.eventType]}</span
+                      >{eventLabels[group.assist.eventType.type]}</span
                     >
                     {#if canManage}
                       <button
@@ -389,7 +435,11 @@
               open={showCommands}
               onOpenChange={(e) => {
                 showCommands = e.open;
-                if (!e.open) selectedPlayer = null;
+                if (!e.open) {
+                  selectedPlayer = null;
+                  panelStep = "player";
+                  lastGoalEvent = null;
+                }
               }}
             >
               <Dialog.Trigger
@@ -418,7 +468,7 @@
                     >
                   </div>
 
-                  {#if !selectedPlayer}
+                  {#if panelStep === "player"}
                     <!-- Step 1: pick a player -->
                     <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
                       {#each [{ label: g.homeTeam.name, players: homePlayers }, { label: g.awayTeam.name, players: awayPlayers }] as team}
@@ -457,23 +507,23 @@
                         </div>
                       {/each}
                     </div>
-                  {:else}
+                  {:else if panelStep === "action"}
                     <!-- Step 2: pick action -->
                     <div class="flex flex-col flex-1 min-h-0">
                       <div class="mb-3 flex items-center gap-2 shrink-0">
                         <button
                           type="button"
                           class="btn btn-sm preset-outlined-surface-500"
-                          onclick={() => (selectedPlayer = null)}
+                          onclick={() => (panelStep = "player")}
                           >&larr; Terug</button
                         >
                         <span class="text-sm font-semibold"
-                          >{playerName(selectedPlayer)}</span
+                          >{playerName(selectedPlayer!)}</span
                         >
                       </div>
 
                       <div class="flex flex-wrap gap-2 flex-1 content-start">
-                        {#each ["goal", "own_goal", "assist", "yellow_card", "red_card"] as EventType[] as action}
+                        {#each ["goal", "own_goal", "yellow_card", "red_card"] as ActionType[] as action}
                           <button
                             type="button"
                             class="btn btn-sm {selectedAction === action
@@ -514,6 +564,49 @@
                             <Spinner size="sm" />
                           {:else}
                             Toevoegen
+                          {/if}
+                        </button>
+                      </div>
+                    </div>
+                  {:else}
+                    <!-- Step 3: pick assister after a goal -->
+                    <div class="flex flex-col flex-1 min-h-0">
+                      <p class="text-sm font-semibold mb-3 shrink-0">
+                        Wie assisteerde?
+                      </p>
+                      <div
+                        class="flex flex-col gap-1 overflow-y-auto flex-1 pr-1"
+                      >
+                        {#each assistCandidates as p}
+                          <button
+                            type="button"
+                            class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start shrink-0"
+                            disabled={addEventMutation.isPending}
+                            onclick={() => handleAssistChosen(p)}
+                          >
+                            <PlayerAvatar
+                              avatarUrl={p.user?.avatarUrl}
+                              shirtNumber={p.shirtNumber}
+                              size="sm"
+                            />
+                            <span class="text-xs truncate">{playerName(p)}</span
+                            >
+                          </button>
+                        {/each}
+                      </div>
+                      <div
+                        class="shrink-0 pt-4 border-t border-surface-200 dark:border-surface-800 flex justify-end"
+                      >
+                        <button
+                          type="button"
+                          class="btn btn-sm preset-outlined-surface-500"
+                          disabled={addEventMutation.isPending}
+                          onclick={() => handleAssistChosen(null)}
+                        >
+                          {#if addEventMutation.isPending}
+                            <Spinner size="sm" />
+                          {:else}
+                            Geen assist
                           {/if}
                         </button>
                       </div>

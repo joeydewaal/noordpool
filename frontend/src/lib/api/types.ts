@@ -158,11 +158,11 @@ export interface UpdateGameRequest {
 }
 
 export type EventType =
-  | "goal"
-  | "own_goal"
-  | "assist"
-  | "yellow_card"
-  | "red_card";
+  | { type: "goal" }
+  | { type: "own_goal" }
+  | { type: "assist"; goalEventId: string }
+  | { type: "yellow_card" }
+  | { type: "red_card" };
 
 export interface GameEvent {
   id: string;

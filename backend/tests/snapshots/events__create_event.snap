@@ -1,9 +1,11 @@
 ---
 source: tests/events.rs
-expression: res.json_value().await
+expression: goal
 ---
 {
-  "eventType": "goal",
+  "eventType": {
+    "type": "goal"
+  },
   "id": "[uuid]",
   "minute": 25,
   "player": {

@@ -83,11 +83,16 @@ async fn add_event(
     event_type: &str,
     minute: i32,
 ) {
+    let event_type_json = if event_type == "assist" {
+        json!({"type": "assist", "goalEventId": "00000000-0000-0000-0000-000000000000"})
+    } else {
+        json!({"type": event_type})
+    };
     app.post(format!("/api/games/{game_id}/events"))
         .token(token)
         .json(json!({
             "playerId": player_id,
-            "eventType": event_type,
+            "eventType": event_type_json,
             "minute": minute
         }))
         .await;

@@ -219,9 +219,11 @@ describe("game detail — action picker (step 2)", () => {
     expect(screen.getByText("Jan")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /terug/i })).toBeInTheDocument();
     expect(
+      screen.getAllByRole("button", { name: /doelpunt/i }).length,
+    ).toBeGreaterThan(0);
+    expect(
       screen.getByRole("button", { name: /eigen doelpunt/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /assist/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /gele kaart/i }),
     ).toBeInTheDocument();
@@ -231,6 +233,10 @@ describe("game detail — action picker (step 2)", () => {
     expect(
       screen.getByRole("button", { name: /toevoegen/i }),
     ).toBeInTheDocument();
+    // Assist is not a direct action; it appears only after a goal is added.
+    expect(
+      screen.queryByRole("button", { name: /^assist$/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("back button returns to the player picker", async () => {
@@ -255,7 +261,7 @@ describe("game detail — action picker (step 2)", () => {
       expect(addEventMutate).toHaveBeenCalled();
     });
     const [arg] = addEventMutate.mock.calls[0];
-    expect(arg).toMatchObject({ playerId: "p1", eventType: "goal" });
+    expect(arg).toMatchObject({ playerId: "p1", eventType: { type: "goal" } });
   });
 
   it("selecting a different action updates the submitted eventType", async () => {
@@ -269,7 +275,10 @@ describe("game detail — action picker (step 2)", () => {
       expect(addEventMutate).toHaveBeenCalled();
     });
     const [arg] = addEventMutate.mock.calls[0];
-    expect(arg).toMatchObject({ playerId: "p1", eventType: "yellow_card" });
+    expect(arg).toMatchObject({
+      playerId: "p1",
+      eventType: { type: "yellow_card" },
+    });
   });
 });
 
@@ -292,7 +301,7 @@ describe("game detail — full event emission flow", () => {
     await waitFor(() => expect(addEventMutate).toHaveBeenCalledOnce());
     expect(addEventMutate.mock.calls[0][0]).toMatchObject({
       playerId: "p1",
-      eventType: "goal",
+      eventType: { type: "goal" },
     });
   });
 
@@ -308,7 +317,7 @@ describe("game detail — full event emission flow", () => {
     await waitFor(() => expect(addEventMutate).toHaveBeenCalledOnce());
     expect(addEventMutate.mock.calls[0][0]).toMatchObject({
       playerId: "p2",
-      eventType: "own_goal",
+      eventType: { type: "own_goal" },
     });
   });
 
@@ -329,9 +338,9 @@ describe("game detail — full event emission flow", () => {
     });
   });
 
-  it("closes the dialog after a successful submission", async () => {
+  it("closes the dialog after a non-goal submission", async () => {
     addEventMutate.mockImplementation(
-      (_data: unknown, callbacks?: { onSuccess?: () => void }) => {
+      (_data: unknown, callbacks?: { onSuccess?: (r?: unknown) => void }) => {
         callbacks?.onSuccess?.();
       },
     );
@@ -339,13 +348,36 @@ describe("game detail — full event emission flow", () => {
     render(Page);
     await openCommands();
     await fireEvent.click(screen.getByRole("button", { name: /jan/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /gele kaart/i }));
 
-    // Step 2 is shown
     expect(screen.getByRole("button", { name: /terug/i })).toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
 
-    // Dialog should close — content no longer visible
+    await waitFor(() =>
+      expect(screen.getByLabelText("Wedstrijdbeheer")).not.toBeVisible(),
+    );
+  });
+
+  it("shows assist picker after a goal and closes on 'geen assist'", async () => {
+    addEventMutate.mockImplementation(
+      (_data: unknown, callbacks?: { onSuccess?: (r?: unknown) => void }) => {
+        callbacks?.onSuccess?.({ id: "evt-1", minute: 45 });
+      },
+    );
+
+    render(Page);
+    await openCommands();
+    await fireEvent.click(screen.getByRole("button", { name: /jan/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
+
+    // Assist step is shown
+    await waitFor(() =>
+      expect(screen.getByText(/wie assisteerde/i)).toBeInTheDocument(),
+    );
+
+    await fireEvent.click(screen.getByRole("button", { name: /geen assist/i }));
+
     await waitFor(() =>
       expect(screen.getByLabelText("Wedstrijdbeheer")).not.toBeVisible(),
     );

@@ -53,13 +53,13 @@ async fn recent_games_score_computed_from_events() {
     for minute in [20, 55] {
         app.post(format!("/api/games/{game_id}/events"))
             .token(&token)
-            .json(json!({ "playerId": player_id, "eventType": "goal", "minute": minute }))
+            .json(json!({ "playerId": player_id, "eventType": {"type": "goal"}, "minute": minute }))
             .await;
     }
     // One own goal by the home player (counts for away)
     app.post(format!("/api/games/{game_id}/events"))
         .token(&token)
-        .json(json!({ "playerId": player_id, "eventType": "own_goal", "minute": 70 }))
+        .json(json!({ "playerId": player_id, "eventType": {"type": "own_goal"}, "minute": 70 }))
         .await;
 
     let summary = app.get("/api/games/summary").send().await;
