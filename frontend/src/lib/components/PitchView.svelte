@@ -5,6 +5,7 @@
 
   export interface SlotData {
     firstName: string;
+    lastName?: string;
     shirtNumber: number;
     avatarUrl: string | null;
     captain: boolean;
@@ -18,6 +19,10 @@
     bench: (SlotData | null)[];
     editMode?: boolean;
     onSlotClick?: (slotIdx: number) => void;
+    /** Called on pointerdown on a filled slot — enables pointer-based drag */
+    onPointerDownSlot?: (slotIdx: number, e: PointerEvent) => void;
+    /** Which slot is currently being dragged (dims the source badge) */
+    draggingSlotIdx?: number | null;
   }
 
   let {
@@ -26,6 +31,8 @@
     bench,
     editMode = false,
     onSlotClick,
+    onPointerDownSlot,
+    draggingSlotIdx = null,
   }: Props = $props();
 
   const formationDef = $derived(getFormation(formation));
@@ -103,30 +110,47 @@
     {@const info = slots[slotIdx] ?? null}
     <div
       class="absolute"
+      data-slot-idx={slotIdx}
       style="left: {pos.x}%; top: {pos.y}%; transform: translate(-50%, -50%);"
     >
-      {#if info}
-        <PlayerBadge
-          firstName={info.firstName}
-          shirtNumber={info.shirtNumber}
-          avatarUrl={info.avatarUrl}
-          captain={info.captain}
-          size="sm"
-          onclick={editMode && onSlotClick
-            ? () => onSlotClick(slotIdx)
-            : undefined}
-        />
-      {:else if editMode && onSlotClick}
-        <button
-          type="button"
-          class="flex items-center justify-center text-white/40 hover:text-white/70 hover:border-white/50 transition-colors border-2 border-dashed border-white/25 rounded"
-          style="width: 66px; height: 90px;"
-          onclick={() => onSlotClick(slotIdx)}
-          aria-label="Speler toevoegen"
+      <div
+        role="none"
+        class="flex flex-col items-center gap-0.5 transition-opacity duration-150"
+        class:opacity-25={draggingSlotIdx === slotIdx}
+        style={editMode && info ? "touch-action: none;" : ""}
+        onpointerdown={onPointerDownSlot && editMode && info
+          ? (e) => onPointerDownSlot(slotIdx, e)
+          : undefined}
+      >
+        {#if info}
+          <PlayerBadge
+            firstName={info.firstName}
+            lastName={info.lastName}
+            shirtNumber={info.shirtNumber}
+            avatarUrl={info.avatarUrl}
+            captain={info.captain}
+            size="sm"
+            onclick={!onPointerDownSlot && editMode && onSlotClick
+              ? () => onSlotClick(slotIdx)
+              : undefined}
+          />
+        {:else if editMode && onSlotClick}
+          <button
+            type="button"
+            class="flex items-center justify-center text-white/40 hover:text-white/70 hover:border-white/50 transition-colors border-2 border-dashed border-white/25 rounded"
+            style="width: 66px; height: 90px;"
+            onclick={() => onSlotClick(slotIdx)}
+            aria-label="Speler toevoegen"
+          >
+            <span class="text-xl leading-none">+</span>
+          </button>
+        {/if}
+        <span
+          class="text-[9px] font-bold uppercase tracking-wide text-white/55 leading-none"
         >
-          <span class="text-xl leading-none">+</span>
-        </button>
-      {/if}
+          {pos.label}
+        </span>
+      </div>
     </div>
   {/each}
 </div>
@@ -143,6 +167,7 @@
       {#if info}
         <PlayerBadge
           firstName={info.firstName}
+          lastName={info.lastName}
           shirtNumber={info.shirtNumber}
           avatarUrl={info.avatarUrl}
           captain={info.captain}

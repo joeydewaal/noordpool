@@ -121,6 +121,7 @@
       if (!s) return null;
       return {
         firstName: s.player.firstName,
+        lastName: s.player.lastName,
         shirtNumber: s.player.shirtNumber,
         avatarUrl: s.player.avatarUrl,
         captain: s.captain,
@@ -134,6 +135,7 @@
       if (!s) return null;
       return {
         firstName: s.player.firstName,
+        lastName: s.player.lastName,
         shirtNumber: s.player.shirtNumber,
         avatarUrl: s.player.avatarUrl,
         captain: s.captain,
@@ -313,7 +315,7 @@
   <Spinner />
 {:else if gameQuery.data}
   {@const g = gameQuery.data}
-  <div class="max-w-lg">
+  <div class="max-w-lg mx-auto">
     <button
       onclick={() => history.back()}
       class="text-sm text-primary-500 hover:underline mb-4 inline-block"

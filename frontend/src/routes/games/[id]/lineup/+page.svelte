@@ -14,6 +14,7 @@
   import type { Player } from "$lib/api/types";
   import PitchView from "$lib/components/PitchView.svelte";
   import type { SlotData } from "$lib/components/PitchView.svelte";
+  import PlayerBadge from "$lib/components/PlayerBadge.svelte";
   import Spinner from "$lib/components/Spinner.svelte";
   import { Dialog } from "@skeletonlabs/skeleton-svelte";
   import { toaster } from "$lib/state/toaster";
@@ -52,6 +53,18 @@
   let draftFormation = $state<Formation>("4-4-2");
   let draftSlots = $state<Map<number, string>>(new Map()); // slot → playerId
   let draftCaptain = $state<string | null>(null);
+  let dragSource = $state<
+    | { kind: "slot"; idx: number }
+    | { kind: "unassigned"; playerId: string }
+    | null
+  >(null);
+  let isDragging = $state(false);
+  let pointerPos = $state<{ x: number; y: number } | null>(null);
+  let dragStartPos: { x: number; y: number } | null = null;
+
+  const draggingSlotIdx = $derived(
+    isDragging && dragSource?.kind === "slot" ? dragSource.idx : null,
+  );
 
   // Auto-enter edit mode once on initial load when navigated with ?edit param.
   let autoEditDone = $state(false);
@@ -138,6 +151,70 @@
     dialogOpen = false;
   }
 
+  function handleDrop(targetSlotIdx: number) {
+    if (!dragSource) return;
+    if (dragSource.kind === "slot") {
+      const srcPid = draftSlots.get(dragSource.idx);
+      const dstPid = draftSlots.get(targetSlotIdx);
+      const m = new Map(draftSlots);
+      if (srcPid) m.set(targetSlotIdx, srcPid);
+      else m.delete(targetSlotIdx);
+      if (dstPid) m.set(dragSource.idx, dstPid);
+      else m.delete(dragSource.idx);
+      draftSlots = m;
+    } else {
+      draftSlots = new Map(draftSlots).set(targetSlotIdx, dragSource.playerId);
+    }
+    dragSource = null;
+  }
+
+  function onPointerMove(e: PointerEvent) {
+    pointerPos = { x: e.clientX, y: e.clientY };
+    if (!isDragging && dragStartPos) {
+      const dx = e.clientX - dragStartPos.x;
+      const dy = e.clientY - dragStartPos.y;
+      if (dx * dx + dy * dy > 64) {
+        isDragging = true;
+        e.preventDefault();
+      }
+    } else if (isDragging) {
+      e.preventDefault();
+    }
+  }
+
+  function onPointerUp(e: PointerEvent) {
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+
+    if (isDragging) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const slotEl = el?.closest("[data-slot-idx]");
+      if (slotEl) {
+        const idx = parseInt(slotEl.getAttribute("data-slot-idx") ?? "-1");
+        if (idx >= 0) handleDrop(idx);
+      }
+    } else if (dragSource?.kind === "slot") {
+      handleSlotClick(dragSource.idx);
+    }
+
+    dragSource = null;
+    isDragging = false;
+    pointerPos = null;
+    dragStartPos = null;
+  }
+
+  function startPointerDrag(
+    source: NonNullable<typeof dragSource>,
+    e: PointerEvent,
+  ) {
+    dragSource = source;
+    dragStartPos = { x: e.clientX, y: e.clientY };
+    pointerPos = { x: e.clientX, y: e.clientY };
+    isDragging = false;
+    window.addEventListener("pointermove", onPointerMove, { passive: false });
+    window.addEventListener("pointerup", onPointerUp);
+  }
+
   function playerById(id: string): Player | undefined {
     return activePlayers.find((p) => p.id === id);
   }
@@ -150,6 +227,7 @@
       if (!p) return null;
       return {
         firstName: p.firstName,
+        lastName: p.lastName,
         shirtNumber: p.shirtNumber,
         avatarUrl: p.user?.avatarUrl ?? null,
         captain: pid === draftCaptain,
@@ -159,6 +237,7 @@
     if (!s) return null;
     return {
       firstName: s.player.firstName,
+      lastName: s.player.lastName,
       shirtNumber: s.player.shirtNumber,
       avatarUrl: s.player.avatarUrl,
       captain: s.captain,
@@ -273,16 +352,80 @@
         {/if}
       </div>
     {:else}
+      {#if editMode && unassigned.length > 0}
+        <div class="mb-4">
+          <p
+            class="text-xs text-surface-400 uppercase tracking-wide font-semibold mb-1.5"
+          >
+            Niet ingedeeld
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            {#each unassigned as p (p.id)}
+              <div
+                role="none"
+                style="touch-action: none;"
+                onpointerdown={(e) =>
+                  startPointerDrag({ kind: "unassigned", playerId: p.id }, e)}
+                class="flex items-center gap-1.5 px-2 py-1 rounded cursor-grab active:cursor-grabbing preset-outlined-surface-500 text-sm select-none"
+              >
+                <span class="font-bold text-xs w-4 text-right"
+                  >{p.shirtNumber}</span
+                >
+                {p.firstName}
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
       <PitchView
         formation={currentFormation}
         slots={pitchSlots}
         bench={benchSlots}
         {editMode}
         onSlotClick={editMode ? handleSlotClick : undefined}
+        onPointerDownSlot={editMode
+          ? (i, e) => startPointerDrag({ kind: "slot", idx: i }, e)
+          : undefined}
+        {draggingSlotIdx}
       />
     {/if}
   {/if}
 </div>
+
+<!-- Floating badge that follows the pointer during drag -->
+{#if isDragging && pointerPos && dragSource}
+  {@const src = dragSource}
+  <div
+    class="fixed pointer-events-none z-50"
+    style="left: {pointerPos.x}px; top: {pointerPos.y}px; transform: translate(-50%, -60%); filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));"
+  >
+    {#if src.kind === "slot"}
+      {@const info = buildSlotData(src.idx)}
+      {#if info}
+        <PlayerBadge
+          firstName={info.firstName}
+          lastName={info.lastName}
+          shirtNumber={info.shirtNumber}
+          avatarUrl={info.avatarUrl}
+          captain={info.captain}
+          size="sm"
+        />
+      {/if}
+    {:else}
+      {@const p = activePlayers.find((pl) => pl.id === src.playerId)}
+      {#if p}
+        <PlayerBadge
+          firstName={p.firstName}
+          lastName={p.lastName}
+          shirtNumber={p.shirtNumber}
+          avatarUrl={p.user?.avatarUrl ?? null}
+          captain={false}
+          size="sm"
+        />
+      {/if}
+    {/if}
+  </div>
+{/if}
 
 <!-- Picker / menu dialog -->
 <Dialog

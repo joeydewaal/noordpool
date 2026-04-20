@@ -3,6 +3,7 @@
     avatarUrl?: string | null;
     shirtNumber: number;
     firstName: string;
+    lastName?: string;
     captain?: boolean;
     size?: "sm" | "md";
     onclick?: () => void;
@@ -12,6 +13,7 @@
     avatarUrl,
     shirtNumber,
     firstName,
+    lastName,
     captain = false,
     size = "sm",
     onclick,
@@ -26,8 +28,34 @@
     )[size],
   );
 
-  const displayName = $derived(
-    firstName.length > 8 ? firstName.slice(0, 7) + "." : firstName,
+  const displayName = $derived.by(() => {
+    const lastInitial = lastName ? ` ${lastName[0]}.` : "";
+    const maxFirst = 9 - lastInitial.length;
+    const first =
+      firstName.length > maxFirst
+        ? firstName.slice(0, maxFirst - 1) + "."
+        : firstName;
+    return first + lastInitial;
+  });
+
+  const theme = $derived(
+    captain
+      ? {
+          bg: "linear-gradient(160deg, #f0abfc 0%, #c026d3 38%, #7e1d8a 68%, #e879f9 100%)",
+          rim: "rgba(100,0,120,0.22)",
+          ink: "#2d0035",
+          silhouette: "rgba(45,0,53,0.38)",
+          nameColor: "#fde8ff",
+          glow: ", 0 0 14px rgba(217,70,239,0.55)",
+        }
+      : {
+          bg: "linear-gradient(160deg, #f5d060 0%, #d4a020 38%, #a87010 68%, #d0a830 100%)",
+          rim: "rgba(100,50,0,0.22)",
+          ink: "#2c1400",
+          silhouette: "rgba(44,20,0,0.38)",
+          nameColor: "#fff5cc",
+          glow: "",
+        },
   );
 </script>
 
@@ -48,11 +76,11 @@
     width: {cfg.w}px;
     height: {cfg.h}px;
     clip-path: polygon(0% 9%, 9% 0%, 91% 0%, 100% 9%, 100% 80%, 50% 100%, 0% 80%);
-    background: linear-gradient(160deg, #f5d060 0%, #d4a020 38%, #a87010 68%, #d0a830 100%);
+    background: {theme.bg};
     box-shadow:
       inset 0 0 0 1.5px rgba(255,255,255,0.45),
-      inset 0 0 0 3px rgba(100,50,0,0.22),
-      0 4px 14px rgba(0,0,0,0.55);
+      inset 0 0 0 3px {theme.rim},
+      0 4px 14px rgba(0,0,0,0.55){theme.glow};
   "
   {onclick}
 >
@@ -71,7 +99,7 @@
   <!-- Shirt number — top-left (like FIFA rating) -->
   <span
     class="absolute z-10 font-black leading-none"
-    style="top: 10%; left: 10%; font-size: {cfg.numSize}px; color: #2c1400;"
+    style="top: 10%; left: 10%; font-size: {cfg.numSize}px; color: {theme.ink};"
     >{shirtNumber}</span
   >
 
@@ -80,7 +108,7 @@
     <span
       class="absolute z-10 font-black leading-none"
       style="top: 10%; right: 11%; font-size: {cfg.numSize -
-        1}px; color: #2c1400;">C</span
+        1}px; color: {theme.ink};">C</span
     >
   {/if}
 
@@ -105,7 +133,7 @@
         <svg
           viewBox="0 0 24 24"
           fill="currentColor"
-          style="width: 88%; height: 88%; color: rgba(44,20,0,0.38);"
+          style="width: 88%; height: 88%; color: {theme.silhouette};"
           aria-hidden="true"
         >
           <path
@@ -129,7 +157,7 @@
   >
     <span
       class="font-extrabold uppercase block w-full text-center leading-none truncate"
-      style="font-size: {cfg.nameSize}px; letter-spacing: 0.05em; color: #fff5cc;"
+      style="font-size: {cfg.nameSize}px; letter-spacing: 0.05em; color: {theme.nameColor};"
       >{displayName}</span
     >
   </div>
