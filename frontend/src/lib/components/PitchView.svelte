@@ -18,6 +18,8 @@
     bench: (SlotData | null)[];
     editMode?: boolean;
     onSlotClick?: (slotIdx: number) => void;
+    onDragStartSlot?: (slotIdx: number) => void;
+    onDropSlot?: (slotIdx: number) => void;
   }
 
   let {
@@ -26,6 +28,8 @@
     bench,
     editMode = false,
     onSlotClick,
+    onDragStartSlot,
+    onDropSlot,
   }: Props = $props();
 
   const formationDef = $derived(getFormation(formation));
@@ -101,32 +105,49 @@
   {#each Array.from({ length: 11 }, (_, i) => i) as slotIdx}
     {@const pos = formationDef.slots[slotIdx]}
     {@const info = slots[slotIdx] ?? null}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="absolute"
       style="left: {pos.x}%; top: {pos.y}%; transform: translate(-50%, -50%);"
+      role="none"
+      draggable={editMode && !!info ? "true" : "false"}
+      ondragstart={editMode && onDragStartSlot && info
+        ? () => onDragStartSlot(slotIdx)
+        : undefined}
+      ondragover={(e) => {
+        if (editMode && onDropSlot) e.preventDefault();
+      }}
+      ondrop={editMode && onDropSlot ? () => onDropSlot(slotIdx) : undefined}
     >
-      {#if info}
-        <PlayerBadge
-          firstName={info.firstName}
-          shirtNumber={info.shirtNumber}
-          avatarUrl={info.avatarUrl}
-          captain={info.captain}
-          size="sm"
-          onclick={editMode && onSlotClick
-            ? () => onSlotClick(slotIdx)
-            : undefined}
-        />
-      {:else if editMode && onSlotClick}
-        <button
-          type="button"
-          class="flex items-center justify-center text-white/40 hover:text-white/70 hover:border-white/50 transition-colors border-2 border-dashed border-white/25 rounded"
-          style="width: 66px; height: 90px;"
-          onclick={() => onSlotClick(slotIdx)}
-          aria-label="Speler toevoegen"
+      <div class="flex flex-col items-center gap-0.5">
+        {#if info}
+          <PlayerBadge
+            firstName={info.firstName}
+            shirtNumber={info.shirtNumber}
+            avatarUrl={info.avatarUrl}
+            captain={info.captain}
+            size="sm"
+            onclick={editMode && onSlotClick
+              ? () => onSlotClick(slotIdx)
+              : undefined}
+          />
+        {:else if editMode && onSlotClick}
+          <button
+            type="button"
+            class="flex items-center justify-center text-white/40 hover:text-white/70 hover:border-white/50 transition-colors border-2 border-dashed border-white/25 rounded"
+            style="width: 66px; height: 90px;"
+            onclick={() => onSlotClick(slotIdx)}
+            aria-label="Speler toevoegen"
+          >
+            <span class="text-xl leading-none">+</span>
+          </button>
+        {/if}
+        <span
+          class="text-[9px] font-bold uppercase tracking-wide text-white/55 leading-none"
         >
-          <span class="text-xl leading-none">+</span>
-        </button>
-      {/if}
+          {pos.label}
+        </span>
+      </div>
     </div>
   {/each}
 </div>

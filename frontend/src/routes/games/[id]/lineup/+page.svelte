@@ -52,6 +52,11 @@
   let draftFormation = $state<Formation>("4-4-2");
   let draftSlots = $state<Map<number, string>>(new Map()); // slot → playerId
   let draftCaptain = $state<string | null>(null);
+  let dragSource = $state<
+    | { kind: "slot"; idx: number }
+    | { kind: "unassigned"; playerId: string }
+    | null
+  >(null);
 
   // Auto-enter edit mode once on initial load when navigated with ?edit param.
   let autoEditDone = $state(false);
@@ -136,6 +141,23 @@
   function toggleCaptain(playerId: string) {
     draftCaptain = draftCaptain === playerId ? null : playerId;
     dialogOpen = false;
+  }
+
+  function handleDrop(targetSlotIdx: number) {
+    if (!dragSource) return;
+    if (dragSource.kind === "slot") {
+      const srcPid = draftSlots.get(dragSource.idx);
+      const dstPid = draftSlots.get(targetSlotIdx);
+      const m = new Map(draftSlots);
+      if (srcPid) m.set(targetSlotIdx, srcPid);
+      else m.delete(targetSlotIdx);
+      if (dstPid) m.set(dragSource.idx, dstPid);
+      else m.delete(dragSource.idx);
+      draftSlots = m;
+    } else {
+      draftSlots = new Map(draftSlots).set(targetSlotIdx, dragSource.playerId);
+    }
+    dragSource = null;
   }
 
   function playerById(id: string): Player | undefined {
@@ -273,12 +295,43 @@
         {/if}
       </div>
     {:else}
+      {#if editMode && unassigned.length > 0}
+        <div class="mb-4">
+          <p
+            class="text-xs text-surface-400 uppercase tracking-wide font-semibold mb-1.5"
+          >
+            Niet ingedeeld
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            {#each unassigned as p (p.id)}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                role="none"
+                draggable="true"
+                ondragstart={() => {
+                  dragSource = { kind: "unassigned", playerId: p.id };
+                }}
+                class="flex items-center gap-1.5 px-2 py-1 rounded cursor-grab active:cursor-grabbing preset-outlined-surface-500 text-sm select-none"
+              >
+                <span class="font-bold text-xs w-4 text-right"
+                  >{p.shirtNumber}</span
+                >
+                {p.firstName}
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
       <PitchView
         formation={currentFormation}
         slots={pitchSlots}
         bench={benchSlots}
         {editMode}
         onSlotClick={editMode ? handleSlotClick : undefined}
+        onDragStartSlot={editMode
+          ? (i) => (dragSource = { kind: "slot", idx: i })
+          : undefined}
+        onDropSlot={editMode ? handleDrop : undefined}
       />
     {/if}
   {/if}
