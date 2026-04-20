@@ -22,7 +22,7 @@ use crate::{
     app_state::AppState,
     auth::claims::Claims,
     error::AppError,
-    models::{EventType, Game, Player, Position, Role, Team, game::compute_scores},
+    models::{EventType, Game, Player, Position, Role, game::compute_scores},
 };
 
 #[derive(Debug, Serialize, Clone)]
@@ -206,25 +206,11 @@ pub async fn stats(
     let db = &mut state.db;
 
     let player = Player::filter_by_id(id)
-        .include(Player::fields().game_events().game())
+        .include(Player::fields().game_events().game().events())
+        .include(Player::fields().game_events().game().home_team())
+        .include(Player::fields().game_events().game().away_team())
         .get(db)
         .await?;
-
-    // Team relations aren't loaded through the event→game include chain,
-    // so build a lookup map from all teams.
-    let all_teams = Team::all().exec(db).await?;
-    let team_map: HashMap<Uuid, TeamSummary> = all_teams
-        .into_iter()
-        .map(|t| {
-            (
-                t.id,
-                TeamSummary {
-                    id: t.id,
-                    name: t.name,
-                },
-            )
-        })
-        .collect();
 
     let events = player.game_events.get();
 
@@ -232,21 +218,22 @@ pub async fn stats(
     let match_duration = 90.minutes();
     let is_completed = |g: &Game| !g.cancelled && (g.date_time + match_duration) <= now;
 
-    // Load full events for each game this player participated in, so we can
-    // compute accurate scores (stored home_score/away_score are adjustments only).
-    let unique_game_ids: HashSet<Uuid> = events.iter().map(|e| e.game_id).collect();
+    // Build score map from already-loaded game events (no extra queries needed).
+    let unique_games: HashMap<Uuid, &Game> =
+        events.iter().map(|e| (e.game_id, e.game.get())).collect();
     let mut game_score_map: HashMap<Uuid, (i32, i32)> = HashMap::new();
-    for gid in unique_game_ids {
-        if let Ok(full_game) = Game::filter_by_id(gid)
-            .include(Game::fields().events().player())
-            .get(db)
-            .await
-        {
-            let gevents = full_game.events.get();
-            let (ch, ca) = compute_scores(gevents, full_game.home_team_id);
-            game_score_map.insert(gid, (ch + full_game.home_score, ca + full_game.away_score));
+    for (&gid, game) in &unique_games {
+        if !game.events.is_unloaded() {
+            let gevents = game.events.get();
+            let (ch, ca) = compute_scores(gevents, game.home_team_id);
+            game_score_map.insert(gid, (ch + game.home_score, ca + game.away_score));
         }
     }
+
+    let unknown = TeamSummary {
+        id: Uuid::nil(),
+        name: "?".into(),
+    };
 
     let game_ids: Vec<Uuid> = events
         .iter()
@@ -280,24 +267,31 @@ pub async fn stats(
         }
     }
 
-    let unknown = TeamSummary {
-        id: Uuid::nil(),
-        name: "?".into(),
+    let team_summary = |game: &Game, home: bool| -> TeamSummary {
+        let rel = if home {
+            &game.home_team
+        } else {
+            &game.away_team
+        };
+        if rel.is_unloaded() {
+            unknown.clone()
+        } else {
+            let t = rel.get();
+            TeamSummary {
+                id: t.id,
+                name: t.name.clone(),
+            }
+        }
     };
+
     let mut goal_matches: Vec<PlayerGoalMatchResponse> = goal_map
         .into_values()
         .map(|(mut minutes, game)| {
             minutes.sort_unstable();
             PlayerGoalMatchResponse {
                 game_id: game.id,
-                home_team: team_map
-                    .get(&game.home_team_id)
-                    .cloned()
-                    .unwrap_or_else(|| unknown.clone()),
-                away_team: team_map
-                    .get(&game.away_team_id)
-                    .cloned()
-                    .unwrap_or_else(|| unknown.clone()),
+                home_team: team_summary(game, true),
+                away_team: team_summary(game, false),
                 date_time: game.date_time,
                 home_score: game_score_map
                     .get(&game.id)
@@ -344,14 +338,8 @@ pub async fn stats(
             cum_assists += a;
             GameTimelineEntry {
                 game_id,
-                home_team: team_map
-                    .get(&game.home_team_id)
-                    .cloned()
-                    .unwrap_or_else(|| unknown.clone()),
-                away_team: team_map
-                    .get(&game.away_team_id)
-                    .cloned()
-                    .unwrap_or_else(|| unknown.clone()),
+                home_team: team_summary(game, true),
+                away_team: team_summary(game, false),
                 date_time: game.date_time,
                 goals: g,
                 assists: a,

@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, collections::HashSet};
+use std::collections::HashSet;
 
 use axum::{Json, extract::State};
 use serde::Serialize;
@@ -95,14 +95,16 @@ pub async fn leaderboard(
         })
         .collect();
 
-    let mut top_scorers = entries.clone();
-    top_scorers.sort_by_key(|a| Reverse(a.goals));
+    let mut indices: Vec<usize> = (0..entries.len()).collect();
 
-    let mut top_assisters = entries.clone();
-    top_assisters.sort_by_key(|a| Reverse(a.assists));
+    indices.sort_unstable_by(|&a, &b| entries[b].goals.cmp(&entries[a].goals));
+    let top_scorers: Vec<_> = indices.iter().map(|&i| entries[i].clone()).collect();
 
-    let mut most_carded = entries;
-    most_carded.sort_by_key(|a| Reverse(a.total_cards));
+    indices.sort_unstable_by(|&a, &b| entries[b].assists.cmp(&entries[a].assists));
+    let top_assisters: Vec<_> = indices.iter().map(|&i| entries[i].clone()).collect();
+
+    indices.sort_unstable_by(|&a, &b| entries[b].total_cards.cmp(&entries[a].total_cards));
+    let most_carded: Vec<_> = indices.iter().map(|&i| entries[i].clone()).collect();
 
     let response = LeaderboardResponse {
         top_scorers,

@@ -14,11 +14,13 @@
   const upcomingQuery = createQuery(() => ({
     queryKey: ["games", "upcoming"],
     queryFn: () => getUpcomingGames(),
+    staleTime: 2 * 60_000,
   }));
 
   const recentQuery = createQuery(() => ({
     queryKey: ["games", "recent"],
     queryFn: () => getRecentResults(),
+    staleTime: 2 * 60_000,
   }));
 
   function formatDate(dateTime: string): string {

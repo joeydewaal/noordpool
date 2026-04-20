@@ -8,6 +8,7 @@
   const summaryQuery = createQuery(() => ({
     queryKey: ["games", "summary"],
     queryFn: () => getGamesSummary(3),
+    staleTime: 60_000,
   }));
 
   function formatDate(dateTime: string): string {

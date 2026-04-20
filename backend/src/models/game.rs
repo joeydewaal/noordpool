@@ -49,6 +49,7 @@ pub struct Game {
 
     pub location: String,
 
+    #[index]
     pub date_time: Timestamp,
 
     #[default(false)]

@@ -12,6 +12,7 @@
   const playersQuery = createQuery(() => ({
     queryKey: ["players"],
     queryFn: getPlayers,
+    staleTime: 5 * 60_000,
   }));
 
   const POSITION_ORDER: Record<string, number> = {
