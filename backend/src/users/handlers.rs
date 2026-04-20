@@ -24,7 +24,7 @@ pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateUserRequest {
-    pub is_moderator: Option<bool>,
+    pub is_moderator: bool,
 }
 
 #[requires(Role::Admin)]
@@ -35,24 +35,11 @@ pub async fn update(
 ) -> Result<Json<User>, AppError> {
     tracing::info!(user_id = %id, "users::update");
 
-    let mut user = User::filter_by_id(id)
-        .first()
+    User::update_by_id(id)
+        .is_moderator(body.is_moderator)
         .exec(&mut state.db)
-        .await?
-        .ok_or_else(|| AppError::not_found("User not found"))?;
+        .await?;
 
-    let mut update = user.update();
-    let mut has_changes = false;
-
-    if let Some(is_moderator) = body.is_moderator {
-        update.set_is_moderator(is_moderator);
-        has_changes = true;
-    }
-
-    if has_changes {
-        update.exec(&mut state.db).await?;
-        user = User::filter_by_id(id).get(&mut state.db).await?;
-    }
-
+    let user = User::get_by_id(&mut state.db, id).await?;
     Ok(Json(user))
 }

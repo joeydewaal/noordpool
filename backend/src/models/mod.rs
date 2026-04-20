@@ -33,19 +33,7 @@ use crate::{auth::password, config::Config, import};
 
 pub fn build_db() -> Builder {
     let mut builder = Db::builder();
-    builder.models(toasty::models!(
-        Team,
-        User,
-        Role,
-        Position,
-        Player,
-        Game,
-        GameEvent,
-        EventType,
-        PushSubscription,
-        GameLineup,
-        GameLineupSlot
-    ));
+    builder.models(toasty::models!(crate::*));
     builder
 }
 

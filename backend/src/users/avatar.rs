@@ -40,15 +40,10 @@ pub async fn upload(
 
     let url = format!("/avatars/{filename}?v={}", Timestamp::now().as_second());
 
-    let mut user = User::filter_by_id(user_id)
-        .first()
+    User::update_by_id(user_id)
+        .avatar_url(url)
         .exec(&mut state.db)
-        .await?
-        .ok_or_else(|| AppError::not_found("User not found"))?;
-
-    let mut update = user.update();
-    update.set_avatar_url(Some(url.clone()));
-    update.exec(&mut state.db).await?;
+        .await?;
 
     let fresh = User::filter_by_id(user_id).get(&mut state.db).await?;
     Ok(Json(fresh))
@@ -102,15 +97,10 @@ pub async fn delete(
         let _ = tokio::fs::remove_file(&path).await;
     }
 
-    let mut user = User::filter_by_id(user_id)
-        .first()
+    User::update_by_id(user_id)
+        .avatar_url(Option::<String>::None)
         .exec(&mut state.db)
-        .await?
-        .ok_or_else(|| AppError::not_found("User not found"))?;
-
-    let mut update = user.update();
-    update.set_avatar_url(None);
-    update.exec(&mut state.db).await?;
+        .await?;
 
     let fresh = User::filter_by_id(user_id).get(&mut state.db).await?;
     Ok(Json(fresh))

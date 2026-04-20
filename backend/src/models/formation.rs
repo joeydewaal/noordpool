@@ -38,6 +38,6 @@ impl std::fmt::Display for Formation {
             Formation::F532 => "5-3-2",
             Formation::F4141 => "4-1-4-1",
         };
-        write!(f, "{s}")
+        f.write_str(s)
     }
 }
