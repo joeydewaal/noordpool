@@ -1,6 +1,9 @@
 pub mod event_type;
+pub mod formation;
 pub mod game;
 pub mod game_event;
+pub mod game_lineup;
+pub mod game_lineup_slot;
 pub mod player;
 pub mod position;
 pub mod push_subscription;
@@ -12,8 +15,11 @@ use std::collections::HashMap;
 use std::error::Error;
 
 pub use event_type::EventType;
+pub use formation::Formation;
 pub use game::Game;
 pub use game_event::GameEvent;
+pub use game_lineup::GameLineup;
+pub use game_lineup_slot::GameLineupSlot;
 use jiff::Timestamp;
 pub use player::Player;
 pub use position::Position;
@@ -36,7 +42,9 @@ pub fn build_db() -> Builder {
         Game,
         GameEvent,
         EventType,
-        PushSubscription
+        PushSubscription,
+        GameLineup,
+        GameLineupSlot
     ));
     builder
 }
