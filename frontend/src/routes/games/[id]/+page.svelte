@@ -462,7 +462,7 @@
           <h2 class="text-base font-bold">Opstelling</h2>
           {#if canManage}
             <a
-              href="/games/{g.id}/lineup"
+              href="/games/{g.id}/lineup?edit"
               class="text-sm text-primary-500 hover:underline"
             >
               Bewerken

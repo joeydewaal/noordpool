@@ -154,20 +154,17 @@ pub async fn save_lineup(
         .exec(&mut db)
         .await?;
 
-    let mut slots = GameLineupSlot::create_many();
-
+    // Some bug in toasty, idk.
     for slot_req in &body.slots {
-        slots = slots.item(
-            lineup
-                .slots()
-                .create()
-                .player_id(slot_req.player_id)
-                .slot(slot_req.slot)
-                .captain(slot_req.captain),
-        );
+        lineup
+            .slots()
+            .create()
+            .player_id(slot_req.player_id)
+            .slot(slot_req.slot)
+            .captain(slot_req.captain)
+            .exec(&mut db)
+            .await?;
     }
-
-    slots.exec(&mut db).await?;
 
     Ok(Json(build_response(&mut db, lineup.id).await?))
 }

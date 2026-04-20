@@ -53,6 +53,18 @@
   let draftSlots = $state<Map<number, string>>(new Map()); // slot → playerId
   let draftCaptain = $state<string | null>(null);
 
+  // Auto-enter edit mode when navigated with ?edit param (e.g. from game detail "Bewerken" link).
+  $effect(() => {
+    if (
+      page.url.searchParams.has("edit") &&
+      canManage &&
+      !editMode &&
+      !lineupQuery.isPending
+    ) {
+      startEdit();
+    }
+  });
+
   type DialogMode = "picker" | "menu";
   let dialogOpen = $state(false);
   let dialogMode = $state<DialogMode>("picker");

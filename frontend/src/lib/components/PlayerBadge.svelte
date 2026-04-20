@@ -20,22 +20,8 @@
   const cfg = $derived(
     (
       {
-        sm: {
-          w: 54,
-          h: 76,
-          imgSize: 26,
-          numSize: 11,
-          nameSize: 7,
-          nameBottom: "21%",
-        },
-        md: {
-          w: 68,
-          h: 96,
-          imgSize: 34,
-          numSize: 14,
-          nameSize: 9,
-          nameBottom: "21%",
-        },
+        sm: { w: 66, h: 90, imgSize: 34, numSize: 13, nameSize: 8 },
+        md: { w: 84, h: 114, imgSize: 44, numSize: 16, nameSize: 10 },
       } as const
     )[size],
   );
@@ -47,9 +33,10 @@
 
 <!--
   FIFA-style shield card:
-  - Shield silhouette: beveled top corners + pointed bottom (80% → 100% taper)
-  - Entirely gold: warm metallic gradient throughout
+  - Shield silhouette: small beveled top corners + pointed bottom at 80%
+  - Fully gold metallic gradient
   - Layered metallic rim via inset box-shadow
+  - Player silhouette SVG as fallback when no avatar
 -->
 <button
   type="button"
@@ -63,28 +50,28 @@
     clip-path: polygon(0% 9%, 9% 0%, 91% 0%, 100% 9%, 100% 80%, 50% 100%, 0% 80%);
     background: linear-gradient(160deg, #f5d060 0%, #d4a020 38%, #a87010 68%, #d0a830 100%);
     box-shadow:
-      inset 0 0 0 1.5px rgba(255,255,255,0.4),
-      inset 0 0 0 3px rgba(120,60,0,0.25),
-      0 4px 12px rgba(0,0,0,0.55);
+      inset 0 0 0 1.5px rgba(255,255,255,0.45),
+      inset 0 0 0 3px rgba(100,50,0,0.22),
+      0 4px 14px rgba(0,0,0,0.55);
   "
   {onclick}
 >
-  <!-- Inner gold gradient for depth -->
+  <!-- Depth gradient overlay -->
   <div
     class="absolute inset-0 pointer-events-none"
-    style="background: linear-gradient(160deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.18) 100%);"
+    style="background: linear-gradient(160deg, rgba(255,255,255,0.14) 0%, transparent 45%, rgba(0,0,0,0.16) 100%);"
   ></div>
 
   <!-- Diagonal gloss sheen -->
   <div
     class="absolute inset-0 pointer-events-none"
-    style="background: linear-gradient(130deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 30%, transparent 55%);"
+    style="background: linear-gradient(130deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.06) 28%, transparent 52%);"
   ></div>
 
-  <!-- Shirt number — top-left, dark for contrast -->
+  <!-- Shirt number — top-left (like FIFA rating) -->
   <span
     class="absolute z-10 font-black leading-none"
-    style="top: 10%; left: 10%; font-size: {cfg.numSize}px; color: #2c1600; text-shadow: 0 1px 0 rgba(255,220,80,0.4);"
+    style="top: 10%; left: 10%; font-size: {cfg.numSize}px; color: #2c1400;"
     >{shirtNumber}</span
   >
 
@@ -93,11 +80,11 @@
     <span
       class="absolute z-10 font-black leading-none"
       style="top: 10%; right: 11%; font-size: {cfg.numSize -
-        1}px; color: #2c1600;">C</span
+        1}px; color: #2c1400;">C</span
     >
   {/if}
 
-  <!-- Avatar / initials circle — upper center -->
+  <!-- Avatar / silhouette — upper center -->
   <div
     class="absolute z-10"
     style="top: 14%; left: 50%; transform: translateX(-50%);"
@@ -110,37 +97,48 @@
         style="width: {cfg.imgSize}px; height: {cfg.imgSize}px; box-shadow: 0 2px 6px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(255,255,255,0.3);"
       />
     {:else}
+      <!-- Player silhouette outline -->
       <div
-        class="rounded-full flex items-center justify-center font-black"
-        style="
-          width: {cfg.imgSize}px;
-          height: {cfg.imgSize}px;
-          font-size: {Math.round(cfg.imgSize * 0.38)}px;
-          color: #2c1600;
-          background: rgba(0,0,0,0.18);
-          box-shadow: inset 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1.5px rgba(255,255,255,0.25);
-        "
+        class="flex items-end justify-center"
+        style="width: {cfg.imgSize}px; height: {cfg.imgSize}px;"
       >
-        {shirtNumber}
+        <svg
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          style="width: 88%; height: 88%; color: rgba(44,20,0,0.38);"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+          />
+        </svg>
       </div>
     {/if}
   </div>
 
-  <!-- Name strip — dark semi-transparent bar, placed in the flat rectangle area above the taper -->
+  <!-- Name strip — just above the taper (bottom 22%) -->
   <div
     class="absolute z-10 left-0 right-0 flex items-center justify-center"
     style="
-      bottom: {cfg.nameBottom};
+      bottom: 22%;
       height: 18%;
-      background: rgba(0,0,0,0.32);
-      border-top: 1px solid rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.3);
+      border-top: 1px solid rgba(0,0,0,0.18);
       padding: 0 4px;
     "
   >
     <span
       class="font-extrabold uppercase block w-full text-center leading-none truncate"
-      style="font-size: {cfg.nameSize}px; letter-spacing: 0.05em; color: #fff8e0;"
+      style="font-size: {cfg.nameSize}px; letter-spacing: 0.05em; color: #fff5cc;"
       >{displayName}</span
     >
   </div>
 </button>
+
+<style>
+  @media (max-width: 640px) {
+    button {
+      transform: scale(0.82);
+    }
+  }
+</style>

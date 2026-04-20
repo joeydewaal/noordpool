@@ -120,7 +120,7 @@
         <button
           type="button"
           class="flex items-center justify-center text-white/40 hover:text-white/70 hover:border-white/50 transition-colors border-2 border-dashed border-white/25 rounded"
-          style="width: 54px; height: 72px;"
+          style="width: 66px; height: 90px;"
           onclick={() => onSlotClick(slotIdx)}
           aria-label="Speler toevoegen"
         >
@@ -155,7 +155,7 @@
         <button
           type="button"
           class="shrink-0 flex items-center justify-center text-surface-400/50 hover:text-surface-400 hover:border-surface-400/60 transition-colors border-2 border-dashed border-surface-400/30 rounded"
-          style="width: 54px; height: 72px;"
+          style="width: 66px; height: 90px;"
           onclick={() => onSlotClick(11 + i)}
           aria-label="Wisselspeler toevoegen"
         >
@@ -164,7 +164,7 @@
       {:else}
         <div
           class="shrink-0 rounded border border-dashed border-surface-700/40"
-          style="width: 54px; height: 72px;"
+          style="width: 66px; height: 90px;"
         ></div>
       {/if}
     {/each}
