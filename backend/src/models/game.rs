@@ -65,7 +65,7 @@ pub struct Game {
     #[default(0)]
     pub version: i64,
 
-    #[default(Timestamp::now())]
+    #[auto]
     pub updated_at: Timestamp,
 
     #[default(Timestamp::now())]

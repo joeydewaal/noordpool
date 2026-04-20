@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::{
     Json,
     extract::{Path, State},
@@ -12,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{Formation, GameLineup, GameLineupSlot, Player, Role},
+    models::{Formation, GameLineup, GameLineupSlot, Role},
 };
 
 #[derive(Serialize)]
@@ -62,45 +60,34 @@ pub struct SaveLineupRequest {
 
 async fn build_response(
     db: &mut toasty::Db,
-    lineup: GameLineup,
+    lineup_id: Uuid,
 ) -> Result<GameLineupResponse, AppError> {
-    let slots: Vec<GameLineupSlot> = GameLineupSlot::filter_by_lineup_id(lineup.id)
-        .exec(db)
+    let lineup = GameLineup::filter_by_id(lineup_id)
+        .include(GameLineup::fields().slots().player().user())
+        .get(db)
         .await?;
 
-    let player_ids: Vec<Uuid> = slots.iter().map(|s| s.player_id).collect();
-
-    let players_with_users: Vec<Player> = Player::all()
-        .include(Player::fields().user())
-        .exec(db)
-        .await?
-        .into_iter()
-        .filter(|p| player_ids.contains(&p.id))
-        .collect();
-
-    let player_map: HashMap<Uuid, Player> =
-        players_with_users.into_iter().map(|p| (p.id, p)).collect();
-
-    let mut slot_responses: Vec<LineupSlotResponse> = slots
-        .into_iter()
-        .filter_map(|slot| {
-            let player = player_map.get(&slot.player_id)?;
-            let avatar_url = player
-                .user
-                .get()
-                .as_ref()
-                .and_then(|u| u.avatar_url.clone());
-            Some(LineupSlotResponse {
+    let mut slot_responses: Vec<_> = lineup
+        .slots
+        .get()
+        .iter()
+        .map(|slot| {
+            let player = slot.player.get().clone();
+            LineupSlotResponse {
                 slot: slot.slot,
                 captain: slot.captain,
                 player: LineupPlayerResponse {
                     id: player.id,
-                    first_name: player.first_name.clone(),
-                    last_name: player.last_name.clone(),
+                    first_name: player.first_name,
+                    last_name: player.last_name,
                     shirt_number: player.shirt_number,
-                    avatar_url,
+                    avatar_url: player
+                        .user
+                        .get()
+                        .as_ref()
+                        .and_then(|u| u.avatar_url.clone()),
                 },
-            })
+            }
         })
         .collect();
 
@@ -129,7 +116,7 @@ pub async fn get_lineup(
         .next()
         .ok_or_else(|| AppError::not_found("Geen opstelling gevonden"))?;
 
-    Ok(Json(build_response(&mut db, lineup).await?))
+    Ok(Json(build_response(&mut db, lineup.id).await?))
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]
@@ -140,16 +127,19 @@ pub async fn save_lineup(
 ) -> Result<Json<GameLineupResponse>, AppError> {
     let mut db = state.db.clone();
 
-    let existing: Vec<GameLineup> = GameLineup::filter_by_game_id(game_id).exec(&mut db).await?;
+    let existing = GameLineup::filter_by_game_id(game_id)
+        .first()
+        .exec(&mut db)
+        .await?;
 
-    let lineup_id = if let Some(mut existing) = existing.into_iter().next() {
-        let lineup_id = existing.id;
-        let mut upd = existing.update();
-        upd.set_formation(body.formation);
-        upd.set_published(true);
-        upd.set_updated_at(Timestamp::now());
-        upd.exec(&mut db).await?;
-        lineup_id
+    let lineup = if let Some(mut existing) = existing {
+        existing
+            .update()
+            .formation(body.formation)
+            .published(true)
+            .exec(&mut db)
+            .await?;
+        existing
     } else {
         GameLineup::create()
             .game_id(game_id)
@@ -157,30 +147,27 @@ pub async fn save_lineup(
             .published(true)
             .exec(&mut db)
             .await?
-            .id
     };
 
-    GameLineupSlot::filter_by_lineup_id(lineup_id)
+    GameLineupSlot::filter_by_lineup_id(lineup.id)
         .delete()
         .exec(&mut db)
         .await?;
 
+    let mut slots = GameLineupSlot::create_many();
+
     for slot_req in &body.slots {
-        GameLineupSlot::create()
-            .lineup_id(lineup_id)
-            .player_id(slot_req.player_id)
-            .slot(slot_req.slot)
-            .captain(slot_req.captain)
-            .exec(&mut db)
-            .await?;
+        slots = slots.item(
+            lineup
+                .slots()
+                .create()
+                .player_id(slot_req.player_id)
+                .slot(slot_req.slot)
+                .captain(slot_req.captain),
+        );
     }
 
-    let lineup = GameLineup::filter_by_game_id(game_id)
-        .exec(&mut db)
-        .await?
-        .into_iter()
-        .next()
-        .ok_or_else(|| AppError::internal("Lineup not found after save"))?;
+    slots.exec(&mut db).await?;
 
-    Ok(Json(build_response(&mut db, lineup).await?))
+    Ok(Json(build_response(&mut db, lineup.id).await?))
 }

@@ -25,7 +25,7 @@ pub struct GameLineup {
     #[default(false)]
     pub published: bool,
 
-    #[default(Timestamp::now())]
+    #[auto]
     pub updated_at: Timestamp,
 
     #[has_many]
