@@ -38,15 +38,15 @@
   const formationDef = $derived(getFormation(formation));
 </script>
 
-<!-- Half-pitch (bottom half): GK at bottom, forwards near centre line at top.
-     Portrait aspect kept for mobile legibility; markings scaled accordingly. -->
+<!-- Half-pitch (bottom half): GK at bottom, forwards near centre line at top. -->
 <div
   class="relative w-full rounded-lg overflow-hidden"
-  style="aspect-ratio: 2/3; background: linear-gradient(to bottom, #19421a 0%, #143514 100%);"
+  style="aspect-ratio: 3/4; background: linear-gradient(to bottom, #19421a 0%, #143514 100%);"
 >
-  <!-- Pitch markings (SVG viewBox matches 2:3 container ratio) -->
+  <!-- Pitch markings — preserveAspectRatio="none" lets them fill the 3/4 container -->
   <svg
     viewBox="0 0 100 150"
+    preserveAspectRatio="none"
     class="absolute inset-0 w-full h-full pointer-events-none"
     style="opacity: 0.28;"
     aria-hidden="true"

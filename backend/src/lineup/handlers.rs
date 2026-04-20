@@ -126,10 +126,11 @@ pub async fn save_lineup(
     Json(body): Json<SaveLineupRequest>,
 ) -> Result<Json<GameLineupResponse>, AppError> {
     let mut db = state.db.clone();
+    let mut tx = db.transaction().await?;
 
     let existing = GameLineup::filter_by_game_id(game_id)
         .first()
-        .exec(&mut db)
+        .exec(&mut tx)
         .await?;
 
     let lineup = if let Some(mut existing) = existing {
@@ -137,7 +138,7 @@ pub async fn save_lineup(
             .update()
             .formation(body.formation)
             .published(true)
-            .exec(&mut db)
+            .exec(&mut tx)
             .await?;
         existing
     } else {
@@ -145,16 +146,15 @@ pub async fn save_lineup(
             .game_id(game_id)
             .formation(body.formation)
             .published(true)
-            .exec(&mut db)
+            .exec(&mut tx)
             .await?
     };
 
     GameLineupSlot::filter_by_lineup_id(lineup.id)
         .delete()
-        .exec(&mut db)
+        .exec(&mut tx)
         .await?;
 
-    // Some bug in toasty, idk.
     for slot_req in &body.slots {
         lineup
             .slots()
@@ -162,9 +162,11 @@ pub async fn save_lineup(
             .player_id(slot_req.player_id)
             .slot(slot_req.slot)
             .captain(slot_req.captain)
-            .exec(&mut db)
+            .exec(&mut tx)
             .await?;
     }
+
+    tx.commit().await?;
 
     Ok(Json(build_response(&mut db, lineup.id).await?))
 }
