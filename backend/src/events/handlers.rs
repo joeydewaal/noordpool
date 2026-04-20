@@ -46,7 +46,7 @@ pub async fn create(
     Json(body): Json<CreateGameEventRequest>,
 ) -> Result<Json<GameEvent>, AppError> {
     tracing::info!(game_id = %game_id, "events::create");
-    let mut db = state.db.clone();
+    let mut db = state.db;
     let mut tx = db.transaction().await?;
 
     let player = Player::get_by_id(&mut tx, body.player_id).await?;
@@ -71,11 +71,7 @@ pub async fn create(
     let was_live = game.is_live(now);
     let next_version = game.version + 1;
 
-    game.update()
-        .version(next_version)
-        .updated_at(now)
-        .exec(&mut tx)
-        .await?;
+    game.update().version(next_version).exec(&mut tx).await?;
 
     tx.commit().await?;
 

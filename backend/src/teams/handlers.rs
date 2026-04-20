@@ -35,19 +35,18 @@ pub async fn create(
         return Err(AppError::bad_request("name is required"));
     }
 
-    // Duplicate names violate the unique index on `name`.
-    if Team::all()
-        .filter(Team::fields().name().eq(name))
-        .first()
+    let team = toasty::create!(Team { name })
         .exec(&mut state.db)
-        .await?
-        .is_some()
-    {
-        return Err(AppError::conflict("team with this name already exists"));
-    }
+        .await
+        .map_err(|e| {
+            let mut err = e.to_string();
+            err.make_ascii_lowercase();
+            if err.contains("unique") {
+                AppError::conflict("team with this name already exists")
+            } else {
+                AppError::bad_request(err)
+            }
+        })?;
 
-    let team = toasty::create!(Team { name: name })
-        .exec(&mut state.db)
-        .await?;
     Ok(Json(team))
 }

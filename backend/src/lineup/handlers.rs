@@ -58,15 +58,7 @@ pub struct SaveLineupRequest {
     pub slots: Vec<SlotRequest>,
 }
 
-async fn build_response(
-    db: &mut toasty::Db,
-    lineup_id: Uuid,
-) -> Result<GameLineupResponse, AppError> {
-    let lineup = GameLineup::filter_by_id(lineup_id)
-        .include(GameLineup::fields().slots().player().user())
-        .get(db)
-        .await?;
-
+async fn build_response(lineup: GameLineup) -> Result<GameLineupResponse, AppError> {
     let mut slot_responses: Vec<_> = lineup
         .slots
         .get()
@@ -110,13 +102,13 @@ pub async fn get_lineup(
     let mut db = state.db;
 
     let lineup = GameLineup::filter_by_game_id(game_id)
+        .include(GameLineup::fields().slots().player().user())
+        .first()
         .exec(&mut db)
         .await?
-        .into_iter()
-        .next()
         .ok_or_else(|| AppError::not_found("Geen opstelling gevonden"))?;
 
-    Ok(Json(build_response(&mut db, lineup.id).await?))
+    Ok(Json(build_response(lineup).await?))
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]
@@ -168,5 +160,10 @@ pub async fn save_lineup(
 
     tx.commit().await?;
 
-    Ok(Json(build_response(&mut db, lineup.id).await?))
+    let lineup = GameLineup::filter_by_id(lineup.id)
+        .include(GameLineup::fields().slots().player().user())
+        .get(&mut db)
+        .await?;
+
+    Ok(Json(build_response(lineup).await?))
 }
