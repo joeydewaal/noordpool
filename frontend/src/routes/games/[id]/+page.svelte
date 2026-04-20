@@ -117,7 +117,7 @@
 
   const lineupPitchSlots = $derived(
     Array.from({ length: 11 }, (_, i) => {
-      const s = lineupQuery.data?.slots.find((s) => s.slot === i);
+      const s = lineupQuery.data?.slots?.find((s) => s.slot === i);
       if (!s) return null;
       return {
         lastName: s.player.lastName,
@@ -130,7 +130,7 @@
 
   const lineupBenchSlots = $derived(
     Array.from({ length: 7 }, (_, i) => {
-      const s = lineupQuery.data?.slots.find((s) => s.slot === 11 + i);
+      const s = lineupQuery.data?.slots?.find((s) => s.slot === 11 + i);
       if (!s) return null;
       return {
         lastName: s.player.lastName,

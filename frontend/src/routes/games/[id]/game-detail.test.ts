@@ -45,9 +45,12 @@ vi.mock("@tanstack/svelte-query", () => ({
   createQuery: (optsFn: () => { queryKey: unknown[] }) => {
     const opts = optsFn();
     const isPlayers = opts.queryKey.includes("players");
+    const isLineup = opts.queryKey.includes("lineup");
     return {
       get data() {
-        return isPlayers ? mockState.playersData : mockState.gameData;
+        if (isPlayers) return mockState.playersData;
+        if (isLineup) return null;
+        return mockState.gameData;
       },
       get isPending() {
         return false;
