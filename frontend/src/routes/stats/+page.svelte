@@ -6,6 +6,7 @@
   const leaderboardQuery = createQuery(() => ({
     queryKey: ["leaderboard"],
     queryFn: getLeaderboard,
+    staleTime: 3 * 60_000,
   }));
 </script>
 

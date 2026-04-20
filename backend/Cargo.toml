@@ -11,7 +11,7 @@ dotenvy = "0.15.7"
 axum = { version = "0.8.8", features = ["tokio", "ws", "multipart"] }
 tokio = { version = "1.50", features = ["full"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "fs"] }
+tower-http = { version = "0.6", features = ["cors", "fs", "compression-gzip"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 toasty = { git = "https://github.com/tokio-rs/toasty.git", features = ["postgresql", "jiff", "sqlite", "serde"] }
 axum-security = { git = "https://github.com/joeydewaal/axum-security/", features = ["jwt", "rbac", "macros", "jiff", "oidc"] }

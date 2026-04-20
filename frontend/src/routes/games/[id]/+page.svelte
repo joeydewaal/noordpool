@@ -108,11 +108,13 @@
     queryKey: ["players"],
     queryFn: getPlayers,
     enabled: canManage,
+    staleTime: 5 * 60_000,
   }));
 
   const lineupQuery = createQuery(() => ({
     queryKey: ["lineup", id],
     queryFn: () => getLineup(id),
+    staleTime: 30_000,
   }));
 
   const lineupPitchSlots = $derived(

@@ -24,6 +24,7 @@
   const teamsQuery = createQuery(() => ({
     queryKey: ["teams"],
     queryFn: listTeams,
+    staleTime: 10 * 60_000,
   }));
   const teams: Team[] = $derived(teamsQuery.data ?? []);
 

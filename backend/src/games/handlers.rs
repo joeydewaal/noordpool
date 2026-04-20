@@ -118,7 +118,6 @@ pub async fn upcoming(
     let mut game_query = Game::all()
         .include(Game::fields().home_team())
         .include(Game::fields().away_team())
-        .include(Game::fields().events().player())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().gt(now))
         .order_by(Game::fields().date_time().asc());
@@ -166,7 +165,6 @@ pub async fn summary(
     let upcoming = Game::all()
         .include(Game::fields().home_team())
         .include(Game::fields().away_team())
-        .include(Game::fields().events().player())
         .filter(Game::fields().cancelled().eq(false))
         .filter(Game::fields().date_time().gt(now))
         .order_by(Game::fields().date_time().asc())

@@ -31,12 +31,14 @@
   const lineupQuery = createQuery(() => ({
     queryKey: ["lineup", gameId],
     queryFn: () => getLineup(gameId),
+    staleTime: 30_000,
   }));
 
   const playersQuery = createQuery(() => ({
     queryKey: ["players"],
     queryFn: getPlayers,
     enabled: canManage,
+    staleTime: 5 * 60_000,
   }));
 
   const saveMutation = createMutation(() => ({
