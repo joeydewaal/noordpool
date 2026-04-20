@@ -164,34 +164,46 @@
   </p>
   <div class="flex gap-2 overflow-x-auto pb-1">
     {#each bench as info, i}
-      {#if info}
-        <PlayerBadge
-          firstName={info.firstName}
-          lastName={info.lastName}
-          shirtNumber={info.shirtNumber}
-          avatarUrl={info.avatarUrl}
-          captain={info.captain}
-          size="sm"
-          onclick={editMode && onSlotClick
-            ? () => onSlotClick(11 + i)
-            : undefined}
-        />
-      {:else if editMode && onSlotClick}
-        <button
-          type="button"
-          class="shrink-0 flex items-center justify-center text-surface-400/50 hover:text-surface-400 hover:border-surface-400/60 transition-colors border-2 border-dashed border-surface-400/30 rounded"
-          style="width: 66px; height: 90px;"
-          onclick={() => onSlotClick(11 + i)}
-          aria-label="Wisselspeler toevoegen"
-        >
-          <span class="text-xl leading-none">+</span>
-        </button>
-      {:else}
-        <div
-          class="shrink-0 rounded border border-dashed border-surface-700/40"
-          style="width: 66px; height: 90px;"
-        ></div>
-      {/if}
+      <div class="shrink-0" data-slot-idx={11 + i}>
+        {#if info}
+          <div
+            role="none"
+            class="transition-opacity duration-150"
+            class:opacity-25={draggingSlotIdx === 11 + i}
+            style={editMode && info ? "touch-action: none;" : ""}
+            onpointerdown={onPointerDownSlot && editMode && info
+              ? (e) => onPointerDownSlot(11 + i, e)
+              : undefined}
+          >
+            <PlayerBadge
+              firstName={info.firstName}
+              lastName={info.lastName}
+              shirtNumber={info.shirtNumber}
+              avatarUrl={info.avatarUrl}
+              captain={info.captain}
+              size="sm"
+              onclick={!onPointerDownSlot && editMode && onSlotClick
+                ? () => onSlotClick(11 + i)
+                : undefined}
+            />
+          </div>
+        {:else if editMode && onSlotClick}
+          <button
+            type="button"
+            class="flex items-center justify-center text-surface-400/50 hover:text-surface-400 hover:border-surface-400/60 transition-colors border-2 border-dashed border-surface-400/30 rounded"
+            style="width: 66px; height: 90px;"
+            onclick={() => onSlotClick(11 + i)}
+            aria-label="Wisselspeler toevoegen"
+          >
+            <span class="text-xl leading-none">+</span>
+          </button>
+        {:else}
+          <div
+            class="rounded border border-dashed border-surface-700/40"
+            style="width: 66px; height: 90px;"
+          ></div>
+        {/if}
+      </div>
     {/each}
   </div>
 </div>
