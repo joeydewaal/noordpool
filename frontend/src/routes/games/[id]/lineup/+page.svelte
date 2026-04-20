@@ -227,6 +227,7 @@
       if (!p) return null;
       return {
         firstName: p.firstName,
+        lastName: p.lastName,
         shirtNumber: p.shirtNumber,
         avatarUrl: p.user?.avatarUrl ?? null,
         captain: pid === draftCaptain,
@@ -236,6 +237,7 @@
     if (!s) return null;
     return {
       firstName: s.player.firstName,
+      lastName: s.player.lastName,
       shirtNumber: s.player.shirtNumber,
       avatarUrl: s.player.avatarUrl,
       captain: s.captain,
@@ -402,6 +404,7 @@
       {#if info}
         <PlayerBadge
           firstName={info.firstName}
+          lastName={info.lastName}
           shirtNumber={info.shirtNumber}
           avatarUrl={info.avatarUrl}
           captain={info.captain}
@@ -413,6 +416,7 @@
       {#if p}
         <PlayerBadge
           firstName={p.firstName}
+          lastName={p.lastName}
           shirtNumber={p.shirtNumber}
           avatarUrl={p.user?.avatarUrl ?? null}
           captain={false}

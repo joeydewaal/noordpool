@@ -5,6 +5,7 @@
 
   export interface SlotData {
     firstName: string;
+    lastName?: string;
     shirtNumber: number;
     avatarUrl: string | null;
     captain: boolean;
@@ -124,6 +125,7 @@
         {#if info}
           <PlayerBadge
             firstName={info.firstName}
+            lastName={info.lastName}
             shirtNumber={info.shirtNumber}
             avatarUrl={info.avatarUrl}
             captain={info.captain}
@@ -165,6 +167,7 @@
       {#if info}
         <PlayerBadge
           firstName={info.firstName}
+          lastName={info.lastName}
           shirtNumber={info.shirtNumber}
           avatarUrl={info.avatarUrl}
           captain={info.captain}

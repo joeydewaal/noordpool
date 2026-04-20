@@ -3,6 +3,7 @@
     avatarUrl?: string | null;
     shirtNumber: number;
     firstName: string;
+    lastName?: string;
     captain?: boolean;
     size?: "sm" | "md";
     onclick?: () => void;
@@ -12,6 +13,7 @@
     avatarUrl,
     shirtNumber,
     firstName,
+    lastName,
     captain = false,
     size = "sm",
     onclick,
@@ -26,9 +28,15 @@
     )[size],
   );
 
-  const displayName = $derived(
-    firstName.length > 8 ? firstName.slice(0, 7) + "." : firstName,
-  );
+  const displayName = $derived.by(() => {
+    const lastInitial = lastName ? ` ${lastName[0]}.` : "";
+    const maxFirst = 9 - lastInitial.length;
+    const first =
+      firstName.length > maxFirst
+        ? firstName.slice(0, maxFirst - 1) + "."
+        : firstName;
+    return first + lastInitial;
+  });
 
   const theme = $derived(
     captain
