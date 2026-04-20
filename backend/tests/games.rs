@@ -119,7 +119,13 @@ async fn list_games_empty() {
     let mut app = TestApp::new().await;
     let res = app.get("/api/games").send().await;
     assert_eq!(res.status(), 200);
-    assert_json_snapshot!(res.json_value().await, @"[]");
+    assert_json_snapshot!(res.json_value().await, @r#"
+    {
+      "items": [],
+      "nextCursor": null,
+      "prevCursor": null
+    }
+    "#);
 }
 
 #[tokio::test]

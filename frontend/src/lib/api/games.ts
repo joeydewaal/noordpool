@@ -1,5 +1,6 @@
 import type {
   Game,
+  GamesPage,
   CreateGameRequest,
   UpdateGameRequest,
   LivePoll,
@@ -9,8 +10,14 @@ import type {
 import { api } from "./client";
 export type { LivePoll };
 
-export async function getGames(): Promise<Game[]> {
-  return (await api.get<Game[]>("/games")).data;
+export async function getGames(opts?: {
+  limit?: number;
+  after?: string;
+}): Promise<GamesPage> {
+  const params: Record<string, string | number> = {};
+  if (opts?.limit) params.limit = opts.limit;
+  if (opts?.after) params.after = opts.after;
+  return (await api.get<GamesPage>("/games", { params })).data;
 }
 
 export async function getGame(id: string): Promise<Game | null> {
