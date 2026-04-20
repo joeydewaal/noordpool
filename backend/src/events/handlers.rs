@@ -47,8 +47,9 @@ pub async fn create(
 ) -> Result<Json<GameEvent>, AppError> {
     tracing::info!(game_id = %game_id, "events::create");
     let mut db = state.db.clone();
+    let mut tx = db.transaction().await?;
 
-    let player = Player::get_by_id(&mut db, body.player_id).await?;
+    let player = Player::get_by_id(&mut tx, body.player_id).await?;
     let team_id = player.team_id;
 
     let event = GameEvent::create()
@@ -57,32 +58,31 @@ pub async fn create(
         .team_id(team_id)
         .event_type(body.event_type)
         .minute(body.minute)
-        .exec(&mut db)
+        .exec(&mut tx)
         .await?;
 
-    // Re-fetch with player relation attached.
     let event = GameEvent::filter_by_id(event.id)
         .include(GameEvent::fields().player())
-        .get(&mut db)
+        .get(&mut tx)
         .await?;
 
-    // Bump game version so live pollers see the change.
     let now = Timestamp::now();
-    let mut game = Game::get_by_id(&mut db, game_id).await?;
+    let mut game = Game::get_by_id(&mut tx, game_id).await?;
     let was_live = game.is_live(now);
     let next_version = game.version + 1;
 
-    let mut update = game.update();
-    update.set_version(next_version);
-    update.set_updated_at(now);
-    update.exec(&mut db).await?;
+    game.update()
+        .version(next_version)
+        .updated_at(now)
+        .exec(&mut tx)
+        .await?;
+
+    tx.commit().await?;
 
     state
         .live_hub
         .publish(game_id, LiveEvent::EventAdded(event.clone()));
 
-    // For goal/own-goal events recompute the total score from all events
-    // (stored home_score/away_score are now adjustment-only, not goal counts).
     let is_score_event = matches!(event.event_type, EventType::Goal | EventType::OwnGoal);
     if is_score_event {
         let fresh = Game::filter_by_id(game_id)
@@ -134,27 +134,31 @@ pub async fn delete(
     Path((game_id, event_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, AppError> {
     tracing::info!(game_id = %game_id, event_id = %event_id, "events::delete");
-    let mut db = state.db;
+    let mut db = state.db.clone();
+    let mut tx = db.transaction().await?;
 
     let event = GameEvent::filter_by_id(event_id)
         .filter(GameEvent::fields().game_id().eq(game_id))
-        .get(&mut db)
+        .get(&mut tx)
         .await?;
 
     GameEvent::filter_by_id(event_id)
         .filter(GameEvent::fields().game_id().eq(game_id))
         .delete()
-        .exec(&mut db)
+        .exec(&mut tx)
         .await?;
 
     let now = Timestamp::now();
-    let mut game = Game::get_by_id(&mut db, game_id).await?;
+    let mut game = Game::get_by_id(&mut tx, game_id).await?;
     let next_version = game.version + 1;
 
-    let mut update = game.update();
-    update.set_version(next_version);
-    update.set_updated_at(now);
-    update.exec(&mut db).await?;
+    game.update()
+        .version(next_version)
+        .updated_at(now)
+        .exec(&mut tx)
+        .await?;
+
+    tx.commit().await?;
 
     state
         .live_hub
