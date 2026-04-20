@@ -87,6 +87,12 @@ export interface Team {
 export type GameStatus = "scheduled" | "live" | "finished" | "cancelled";
 export type ScoreSide = "home" | "away";
 
+export interface GamesPage {
+  items: Game[];
+  nextCursor: string | null;
+  prevCursor: string | null;
+}
+
 export interface Game {
   id: string;
   homeTeamId: string;

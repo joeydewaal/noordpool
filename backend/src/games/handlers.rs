@@ -6,6 +6,7 @@ use axum::{
 use axum_security::rbac::{requires, requires_any};
 use jiff::{Timestamp, ToSpan};
 use serde::{Deserialize, Serialize};
+use toasty::stmt::Value;
 use uuid::Uuid;
 
 use crate::{
@@ -14,9 +15,26 @@ use crate::{
     models::{Game, Role, game::MATCH_DURATION_MINUTES},
 };
 
+const DEFAULT_PAGE_SIZE: usize = 20;
+
 #[derive(Deserialize)]
 pub struct LimitQuery {
     pub limit: Option<usize>,
+}
+
+#[derive(Deserialize)]
+pub struct ListGamesQuery {
+    pub limit: Option<usize>,
+    /// Opaque cursor from a previous response's `nextCursor` field.
+    pub after: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GamesPageResponse {
+    pub items: Vec<GameResponse>,
+    pub next_cursor: Option<String>,
+    pub prev_cursor: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -78,18 +96,46 @@ pub struct GamesSummaryResponse {
     pub recent: Vec<GameResponse>,
 }
 
-#[tracing::instrument(skip(state))]
-pub async fn list(State(state): State<AppState>) -> Result<Json<Vec<GameResponse>>, AppError> {
+#[tracing::instrument(skip(state, query))]
+pub async fn list(
+    State(state): State<AppState>,
+    Query(query): Query<ListGamesQuery>,
+) -> Result<Json<GamesPageResponse>, AppError> {
     let mut db = state.db;
+    let per_page = query.limit.unwrap_or(DEFAULT_PAGE_SIZE);
 
-    let games = Game::all()
+    let mut paginate = Game::all()
         .include(Game::fields().home_team())
         .include(Game::fields().away_team())
         .include(Game::fields().events().player())
         .order_by(Game::fields().date_time().asc())
-        .exec(&mut db)
-        .await?;
-    Ok(Json(GameResponse::many(games)))
+        .paginate(per_page);
+
+    if let Some(cursor_str) = query.after {
+        let ts: Timestamp = cursor_str
+            .parse()
+            .map_err(|_| AppError::bad_request("invalid cursor"))?;
+        paginate = paginate.after(Value::Timestamp(ts));
+    }
+
+    let page = paginate.exec(&mut db).await?;
+
+    let next_cursor = if page.has_next() {
+        page.items.last().map(|g| g.date_time.to_string())
+    } else {
+        None
+    };
+    let prev_cursor = if page.has_prev() {
+        page.items.first().map(|g| g.date_time.to_string())
+    } else {
+        None
+    };
+
+    Ok(Json(GamesPageResponse {
+        items: GameResponse::many(page.items),
+        next_cursor,
+        prev_cursor,
+    }))
 }
 
 #[tracing::instrument(skip(state), fields(game_id = %id))]
