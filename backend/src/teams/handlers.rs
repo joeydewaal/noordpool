@@ -39,8 +39,9 @@ pub async fn create(
         .exec(&mut state.db)
         .await
         .map_err(|e| {
-            let err = e.to_string();
-            if err.contains("UNIQUE") {
+            let mut err = e.to_string();
+            err.make_ascii_lowercase();
+            if err.contains("unique") {
                 AppError::conflict("team with this name already exists")
             } else {
                 AppError::bad_request(err)
