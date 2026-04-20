@@ -18,8 +18,10 @@
     bench: (SlotData | null)[];
     editMode?: boolean;
     onSlotClick?: (slotIdx: number) => void;
-    onDragStartSlot?: (slotIdx: number) => void;
-    onDropSlot?: (slotIdx: number) => void;
+    /** Called on pointerdown on a filled slot — enables pointer-based drag */
+    onPointerDownSlot?: (slotIdx: number, e: PointerEvent) => void;
+    /** Which slot is currently being dragged (dims the source badge) */
+    draggingSlotIdx?: number | null;
   }
 
   let {
@@ -28,8 +30,8 @@
     bench,
     editMode = false,
     onSlotClick,
-    onDragStartSlot,
-    onDropSlot,
+    onPointerDownSlot,
+    draggingSlotIdx = null,
   }: Props = $props();
 
   const formationDef = $derived(getFormation(formation));
@@ -105,21 +107,20 @@
   {#each Array.from({ length: 11 }, (_, i) => i) as slotIdx}
     {@const pos = formationDef.slots[slotIdx]}
     {@const info = slots[slotIdx] ?? null}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="absolute"
+      data-slot-idx={slotIdx}
       style="left: {pos.x}%; top: {pos.y}%; transform: translate(-50%, -50%);"
-      role="none"
-      draggable={editMode && !!info ? "true" : "false"}
-      ondragstart={editMode && onDragStartSlot && info
-        ? () => onDragStartSlot(slotIdx)
-        : undefined}
-      ondragover={(e) => {
-        if (editMode && onDropSlot) e.preventDefault();
-      }}
-      ondrop={editMode && onDropSlot ? () => onDropSlot(slotIdx) : undefined}
     >
-      <div class="flex flex-col items-center gap-0.5">
+      <div
+        role="none"
+        class="flex flex-col items-center gap-0.5 transition-opacity duration-150"
+        class:opacity-25={draggingSlotIdx === slotIdx}
+        style={editMode && info ? "touch-action: none;" : ""}
+        onpointerdown={onPointerDownSlot && editMode && info
+          ? (e) => onPointerDownSlot(slotIdx, e)
+          : undefined}
+      >
         {#if info}
           <PlayerBadge
             firstName={info.firstName}
@@ -127,7 +128,7 @@
             avatarUrl={info.avatarUrl}
             captain={info.captain}
             size="sm"
-            onclick={editMode && onSlotClick
+            onclick={!onPointerDownSlot && editMode && onSlotClick
               ? () => onSlotClick(slotIdx)
               : undefined}
           />
