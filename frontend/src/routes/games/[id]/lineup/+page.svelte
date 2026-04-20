@@ -149,7 +149,7 @@
       const p = playerById(pid);
       if (!p) return null;
       return {
-        lastName: p.lastName,
+        firstName: p.firstName,
         shirtNumber: p.shirtNumber,
         avatarUrl: p.user?.avatarUrl ?? null,
         captain: pid === draftCaptain,
@@ -158,7 +158,7 @@
     const s = lineupQuery.data?.slots.find((s) => s.slot === slotIdx);
     if (!s) return null;
     return {
-      lastName: s.player.lastName,
+      firstName: s.player.firstName,
       shirtNumber: s.player.shirtNumber,
       avatarUrl: s.player.avatarUrl,
       captain: s.captain,
@@ -302,7 +302,7 @@
     >
       {#if dialogMode === "menu" && activeMenuInfo}
         <Dialog.Title class="text-base font-bold mb-4">
-          {activeMenuInfo.lastName} #{activeMenuInfo.shirtNumber}
+          {activeMenuInfo.firstName} #{activeMenuInfo.shirtNumber}
         </Dialog.Title>
         <div class="flex flex-col gap-2">
           <button

@@ -2,7 +2,7 @@
   interface Props {
     avatarUrl?: string | null;
     shirtNumber: number;
-    lastName: string;
+    firstName: string;
     captain?: boolean;
     size?: "sm" | "md";
     onclick?: () => void;
@@ -11,7 +11,7 @@
   let {
     avatarUrl,
     shirtNumber,
-    lastName,
+    firstName,
     captain = false,
     size = "sm",
     onclick,
@@ -27,7 +27,7 @@
   );
 
   const displayName = $derived(
-    lastName.length > 8 ? lastName.slice(0, 7) + "." : lastName,
+    firstName.length > 8 ? firstName.slice(0, 7) + "." : firstName,
   );
 </script>
 
@@ -92,7 +92,7 @@
     {#if avatarUrl}
       <img
         src={avatarUrl}
-        alt={lastName}
+        alt={firstName}
         class="rounded-full object-cover"
         style="width: {cfg.imgSize}px; height: {cfg.imgSize}px; box-shadow: 0 2px 6px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(255,255,255,0.3);"
       />

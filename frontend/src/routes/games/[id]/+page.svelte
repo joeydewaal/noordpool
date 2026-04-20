@@ -120,7 +120,7 @@
       const s = lineupQuery.data?.slots?.find((s) => s.slot === i);
       if (!s) return null;
       return {
-        lastName: s.player.lastName,
+        firstName: s.player.firstName,
         shirtNumber: s.player.shirtNumber,
         avatarUrl: s.player.avatarUrl,
         captain: s.captain,
@@ -133,7 +133,7 @@
       const s = lineupQuery.data?.slots?.find((s) => s.slot === 11 + i);
       if (!s) return null;
       return {
-        lastName: s.player.lastName,
+        firstName: s.player.firstName,
         shirtNumber: s.player.shirtNumber,
         avatarUrl: s.player.avatarUrl,
         captain: s.captain,

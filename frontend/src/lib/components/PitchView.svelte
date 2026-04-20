@@ -4,7 +4,7 @@
   import PlayerBadge from "./PlayerBadge.svelte";
 
   export interface SlotData {
-    lastName: string;
+    firstName: string;
     shirtNumber: number;
     avatarUrl: string | null;
     captain: boolean;
@@ -107,7 +107,7 @@
     >
       {#if info}
         <PlayerBadge
-          lastName={info.lastName}
+          firstName={info.firstName}
           shirtNumber={info.shirtNumber}
           avatarUrl={info.avatarUrl}
           captain={info.captain}
@@ -142,7 +142,7 @@
     {#each bench as info, i}
       {#if info}
         <PlayerBadge
-          lastName={info.lastName}
+          firstName={info.firstName}
           shirtNumber={info.shirtNumber}
           avatarUrl={info.avatarUrl}
           captain={info.captain}
