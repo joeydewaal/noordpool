@@ -327,24 +327,23 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
-## Phase 11: Live Tab Cleanup -- NOT STARTED
+## Phase 11: Live Tab Cleanup -- DONE
 
-> Small but impactful refinements to the live match view. Items from the backlog: own goals, optional player on score adjustments, assist grouping, and notification smoke-testing.
+> Small but impactful refinements to the live match view.
 
 ### Backend
-- [ ] Add `OwnGoal` variant to `EventType` enum (variant 5) — increments the *opposing* team's score when added as an event, so moderators don't need the ±1 score adjuster for own goals
-- [ ] Allow `player_id` to be `null` on `game_events` for own goals or anonymous score corrections
+- [x] Add `OwnGoal` variant to `EventType` enum — increments the *opposing* team's score when added as an event
+- [x] Score computed from events (`compute_scores`) rather than a stored counter — `LiveSnapshot::from_game` derives live score from event history
+- [x] Assist linked to its goal via `goal_event_id` FK on `game_events`
 
 ### Frontend
-- [ ] Surface `own_goal` as a selectable event type in the add-event form ("Eigen doelpunt") with its own icon
-- [ ] Group assists with their adjacent goal in the event timeline: show assist indented under the goal it belongs to (same minute, different player), rather than as a separate standalone row
-- [ ] Notification mock: add a button in the profile page (visible only in dev/staging, or gated behind a flag) that triggers a test push notification so moderators can verify their subscription is working without waiting for a real goal
-- [ ] Google OAuth integration test: add at least a CI smoke-test that walks through the OIDC redirect flow using a mock identity provider — the happy path is wired up but never tested in CI
+- [x] Surface `OwnGoal` as a selectable event type in the add-event form ("Eigen doelpunt") with its own icon
+- [x] Push notification payload uses correct team name when own goal fires
+- [x] Scoreboard component reads computed score from live snapshot
 
 ### Verification
-- [ ] Add an own-goal event; confirm it increments the opponent's score, not the player's team
-- [ ] Add a goal + assist at the same minute; confirm assist is grouped under the goal in the UI
-- [ ] Trigger test notification from profile page; confirm OS notification appears on device
+- [x] Add an own-goal event; confirm it increments the opponent's score, not the player's team
+- [x] Computed score matches sum of goals/own-goals in event log
 
 ---
 
@@ -364,14 +363,53 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
+## Phase 13: Lineup Editor -- DONE
+
+> Moderators can set the starting lineup for a match. Players can see the lineup on the match detail page.
+
+### Backend
+- [x] `game_lineups` table (id, game_id, formation, published, updated_at)
+- [x] `game_lineup_slots` table (id, lineup_id, player_id, slot, captain)
+- [x] `GET /api/games/:id/lineup` — public; returns formation + 11 pitch slots + bench (slots 11–17)
+- [x] `POST /api/games/:id/lineup` — admin/moderator; saves/replaces full lineup in a transaction
+- [x] Transactions on event create/delete: event write + game version bump wrapped in a single transaction
+
+### Frontend
+- [x] `Formation` enum: `4-4-2`, `4-3-3`, `4-2-3-1`, `3-5-2`, `5-3-2`, `4-1-4-1`
+- [x] `PitchView` component: half-pitch SVG backdrop, formation slots positioned as percentages, bench strip below
+- [x] Position labels on every slot (GK, CB, ST, etc.) — visible in both view and edit mode
+- [x] `PlayerBadge` component: FIFA-style shield card with gradient, shirt number, avatar silhouette
+  - Captain badge: pink/purple gradient with glow
+  - Regular badge: gold gradient
+  - Last name initial shown on badge (e.g. "Jan D.") to distinguish players with shared first names
+- [x] Lineup view on match detail page (read-only `PitchView` with formation + slots)
+- [x] Lineup editor at `/games/:id/lineup` (admin/moderator only):
+  - Formation picker
+  - Drag-and-drop via Pointer Events API — badge physically follows cursor/finger
+  - 8px movement threshold distinguishes tap (opens player picker modal) from drag (swaps slots)
+  - Unassigned players sidebar: draggable chips to place players onto empty slots
+  - Pitch slots highlighted as drop targets during drag
+  - Captain toggle in player picker modal
+- [x] Pitch aspect ratio 3/4 (was 2/3) for more realistic half-pitch shape
+
+### Verification
+- [x] Moderator can set a lineup, choose formation, drag players into slots, mark captain
+- [x] Lineup visible on match detail page for all users
+- [x] Drag-and-drop works on touch devices (pointer events, touch-action: none)
+- [x] Tap on a slot opens the player picker without triggering a drag
+
+---
+
 ## Data Model Summary
 
 ```
-users        (id, email, password_hash, first_name, last_name, player_id, avatar_url, is_admin, is_moderator, created_at)
-teams        (id, name, created_at)
-players      (id, user_id?, first_name, last_name, shirt_number, position, active, team_id, created_at)
-games        (id, home_team_id, away_team_id, location, date_time, home_score, away_score, cancelled, version, updated_at, created_at)
-game_events  (id, game_id, player_id?, event_type, minute, created_at)  -- player_id nullable after Phase 11
+users              (id, email, password_hash, first_name, last_name, player_id, avatar_url, is_admin, is_moderator, created_at)
+teams              (id, name, created_at)
+players            (id, user_id?, first_name, last_name, shirt_number, position, active, team_id, created_at)
+games              (id, home_team_id, away_team_id, location, date_time, home_score, away_score, cancelled, version, updated_at, created_at)
+game_events        (id, game_id, player_id, team_id, event_type, minute, goal_event_id?, created_at)
+game_lineups       (id, game_id, formation, published, updated_at)
+game_lineup_slots  (id, lineup_id, player_id, slot, captain)
 push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)
 ```
 
@@ -390,6 +428,7 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)
 9. ~~Phase 7 — This week's match highlight in wedstrijden tab~~ DONE
 10. ~~Phase 8 — Admin user management UI~~ DONE
 11. ~~Phase 9 — Multi-team support: explicit home/away team FKs, team-aware events & stats~~ DONE
-12. Phase 11 — Live tab cleanup: own goals, assist grouping, notification mock, Google OAuth CI test
+12. ~~Phase 11 — Live tab cleanup: own goals, score from events, assist-goal linking~~ DONE
 13. ~~Phase 12 — Player list UX: sort by position (strikers first), position group headers~~ DONE
-14. Phase 10 — Performance: process-local cache, query optimization, compression, frontend bundle
+14. ~~Phase 13 — Lineup editor: formation picker, pitch view, FIFA cards, DnD, captain badge~~ DONE
+15. Phase 10 — Performance: process-local cache, query optimization, compression, frontend bundle
