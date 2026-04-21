@@ -19,7 +19,10 @@ use crate::{
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateGameEventRequest {
-    pub player_id: Uuid,
+    /// None for anonymous (no-player-team) events.
+    pub player_id: Option<Uuid>,
+    /// Required when player_id is None; identifies the scoring team.
+    pub team_id: Option<Uuid>,
     pub event_type: EventType,
     pub minute: i32,
 }
@@ -49,8 +52,13 @@ pub async fn create(
     let mut db = state.db;
     let mut tx = db.transaction().await?;
 
-    let player = Player::get_by_id(&mut tx, body.player_id).await?;
-    let team_id = player.team_id;
+    let team_id = if let Some(pid) = body.player_id {
+        let player = Player::get_by_id(&mut tx, pid).await?;
+        player.team_id
+    } else {
+        body.team_id
+            .ok_or_else(|| AppError::bad_request("team_id is required when player_id is absent"))?
+    };
 
     let event = GameEvent::create()
         .game_id(game_id)
@@ -100,8 +108,7 @@ pub async fn create(
         );
 
         if was_live {
-            let player = event.player.get();
-            let tid = player.team_id;
+            let tid = event.team_id;
             let goal_side = Some(match event.event_type {
                 EventType::Goal if tid == fresh.home_team_id => ScoreSide::Home,
                 EventType::Goal => ScoreSide::Away,
