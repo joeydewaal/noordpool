@@ -173,14 +173,16 @@ export type EventType =
 export interface GameEvent {
   id: string;
   gameId: string;
-  playerId: string;
-  player: Player;
+  playerId: string | null;
+  player?: Player;
   eventType: EventType;
   minute: number;
 }
 
 export interface CreateGameEventRequest {
-  playerId: string;
+  playerId: string | null;
+  /** Required when playerId is null; identifies the scoring team. */
+  teamId?: string;
   eventType: EventType;
   minute: number;
 }

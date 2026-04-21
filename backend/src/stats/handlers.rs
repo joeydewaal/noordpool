@@ -49,12 +49,8 @@ pub async fn leaderboard(
 
     let now = Timestamp::now();
     let match_duration = 90.minutes();
-    let is_completed = |g: &crate::models::Game| {
-        !g.cancelled
-            && g.date_time
-                .checked_add(match_duration)
-                .is_ok_and(|end| end <= now)
-    };
+    let is_completed =
+        |g: &crate::models::Game| !g.cancelled && g.date_time + match_duration <= now;
 
     // Build one leaderboard entry per player
     let entries: Vec<LeaderboardEntryResponse> = players

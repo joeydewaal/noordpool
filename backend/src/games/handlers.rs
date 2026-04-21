@@ -119,20 +119,24 @@ pub async fn list(
     }
 
     let page = paginate.exec(&mut db).await?;
+    let has_next = page.has_next();
+    let has_prev = page.has_prev();
 
-    let next_cursor = if page.has_next() {
-        page.items.last().map(|g| g.date_time.to_string())
+    let items = page.items;
+
+    let next_cursor = if has_next {
+        items.last().map(|g| g.date_time.to_string())
     } else {
         None
     };
-    let prev_cursor = if page.has_prev() {
-        page.items.first().map(|g| g.date_time.to_string())
+    let prev_cursor = if has_prev {
+        items.first().map(|g| g.date_time.to_string())
     } else {
         None
     };
 
     Ok(Json(GamesPageResponse {
-        items: GameResponse::many(page.items),
+        items: GameResponse::many(items),
         next_cursor,
         prev_cursor,
     }))
@@ -172,7 +176,7 @@ pub async fn upcoming(
         game_query = game_query.limit(limit);
     }
 
-    let games = game_query.exec(&mut db).await?;
+    let games: Vec<Game> = game_query.exec(&mut db).await?;
     Ok(Json(GameResponse::many(games)))
 }
 
@@ -195,7 +199,7 @@ pub async fn recent(
         game_query = game_query.limit(limit);
     }
 
-    let games = game_query.exec(&mut db).await?;
+    let games: Vec<Game> = game_query.exec(&mut db).await?;
     Ok(Json(GameResponse::many(games)))
 }
 

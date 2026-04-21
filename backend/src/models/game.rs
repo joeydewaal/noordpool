@@ -86,8 +86,8 @@ impl Game {
         if self.events.is_unloaded() {
             return;
         }
-        let events = self.events.get().to_vec();
-        let (ch, ca) = compute_scores(&events, self.home_team_id);
+        let events = self.events.get();
+        let (ch, ca) = compute_scores(events, self.home_team_id);
         self.home_score += ch;
         self.away_score += ca;
     }
@@ -98,12 +98,9 @@ impl Game {
         if self.cancelled {
             return false;
         }
-        let Ok(end) = self
-            .date_time
-            .checked_add(Span::new().minutes(MATCH_DURATION_MINUTES))
-        else {
-            return false;
-        };
+
+        let end = self.date_time + Span::new().minutes(MATCH_DURATION_MINUTES);
+
         self.date_time <= now && now <= end
     }
 

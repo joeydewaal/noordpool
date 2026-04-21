@@ -159,6 +159,18 @@
     },
   }));
 
+  const GUEST_PLAYER_ID = "__guest__";
+  const guestPlayer: Player = {
+    id: GUEST_PLAYER_ID,
+    firstName: "Anoniem",
+    lastName: "",
+    shirtNumber: 0,
+    position: "Spits",
+    active: true,
+    teamId: "",
+    userId: null,
+  };
+
   const eventLabels: Record<string, string> = {
     goal: "Doelpunt",
     own_goal: "Eigen doelpunt",
@@ -225,6 +237,25 @@
 
   function handleAddEvent() {
     if (!selectedPlayer) return;
+
+    if (selectedPlayer.id === GUEST_PLAYER_ID) {
+      addEventMutation.mutate(
+        {
+          playerId: null,
+          teamId: selectedPlayer.teamId,
+          eventType: { type: "goal" },
+          minute: newMinute,
+        },
+        {
+          onSuccess: () => {
+            closePanelAndReset();
+            toaster.success({ title: "Doelpunt toegevoegd" });
+          },
+        },
+      );
+      return;
+    }
+
     addEventMutation.mutate(
       {
         playerId: selectedPlayer.id,
@@ -271,7 +302,8 @@
     deleteEventMutation.mutate(eventId);
   }
 
-  function playerName(player: Player): string {
+  function playerName(player: Player | undefined): string {
+    if (!player) return "Anoniem";
     return `${player.firstName} ${player.lastName}`.trim();
   }
 
@@ -539,39 +571,31 @@
                   {#if panelStep === "player"}
                     <!-- Step 1: pick a player -->
                     <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
-                      {#each [{ label: g.homeTeam.name, players: homePlayers }, { label: g.awayTeam.name, players: awayPlayers }] as team}
+                      {#each [{ label: g.homeTeam.name, players: homePlayers, teamId: g.homeTeamId }, { label: g.awayTeam.name, players: awayPlayers, teamId: g.awayTeamId }] as team}
                         <div class="flex flex-col min-h-0">
                           <p
                             class="text-xs font-semibold text-surface-400 mb-2 shrink-0"
                           >
                             {team.label}
                           </p>
-                          {#if team.players.length === 0}
-                            <p class="text-xs text-surface-400 italic">
-                              Geen spelers
-                            </p>
-                          {:else}
-                            <div
-                              class="flex flex-col gap-1 overflow-y-auto pr-1"
-                            >
-                              {#each team.players as p}
-                                <button
-                                  type="button"
-                                  class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start shrink-0"
-                                  onclick={() => selectPlayer(p)}
+                          <div class="flex flex-col gap-1 overflow-y-auto pr-1">
+                            {#each team.players.length === 0 ? [{ ...guestPlayer, teamId: team.teamId }] : team.players as p}
+                              <button
+                                type="button"
+                                class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start shrink-0"
+                                onclick={() => selectPlayer(p)}
+                              >
+                                <PlayerAvatar
+                                  avatarUrl={p.user?.avatarUrl}
+                                  shirtNumber={p.shirtNumber}
+                                  size="sm"
+                                />
+                                <span class="text-xs truncate"
+                                  >{playerName(p)}</span
                                 >
-                                  <PlayerAvatar
-                                    avatarUrl={p.user?.avatarUrl}
-                                    shirtNumber={p.shirtNumber}
-                                    size="sm"
-                                  />
-                                  <span class="text-xs truncate"
-                                    >{playerName(p)}</span
-                                  >
-                                </button>
-                              {/each}
-                            </div>
-                          {/if}
+                              </button>
+                            {/each}
+                          </div>
                         </div>
                       {/each}
                     </div>
@@ -591,7 +615,7 @@
                       </div>
 
                       <div class="flex flex-wrap gap-2 flex-1 content-start">
-                        {#each ["goal", "own_goal", "yellow_card", "red_card"] as ActionType[] as action}
+                        {#each (selectedPlayer?.id === GUEST_PLAYER_ID ? ["goal"] : ["goal", "own_goal", "yellow_card", "red_card"]) as ActionType[] as action}
                           <button
                             type="button"
                             class="btn btn-sm {selectedAction === action
@@ -688,6 +712,6 @@
       {/if}
     </div>
   </div>
-{:else if gameQuery.isError}
+{:else}
   <p class="text-surface-400">Wedstrijd niet gevonden.</p>
 {/if}

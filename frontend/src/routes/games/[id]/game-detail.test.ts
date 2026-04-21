@@ -165,16 +165,6 @@ describe("game detail — player picker (step 1)", () => {
     expect(screen.getByRole("button", { name: /piet/i })).toBeInTheDocument();
   });
 
-  it("shows 'Geen spelers' when a team has no players", async () => {
-    mockAuth.isModerator = true;
-    mockState.gameData = makeGame({ status: "live" });
-    mockState.playersData = [makePlayer("p1", "Jan", "team-home")];
-    render(Page);
-    await openCommands();
-
-    expect(screen.getByText("Geen spelers")).toBeInTheDocument();
-  });
-
   it("opponent player appears in the away section", async () => {
     mockAuth.isModerator = true;
     mockState.gameData = makeGame({ status: "live" });
