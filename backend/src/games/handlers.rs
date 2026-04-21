@@ -199,12 +199,7 @@ pub async fn recent(
         game_query = game_query.limit(limit);
     }
 
-    let games: Vec<Game> = game_query
-        .exec(&mut db)
-        .await?
-        .into_iter()
-        .filter(|g| !g.home_team.is_unloaded() && !g.away_team.is_unloaded())
-        .collect();
+    let games: Vec<Game> = game_query.exec(&mut db).await?;
     Ok(Json(GameResponse::many(games)))
 }
 
