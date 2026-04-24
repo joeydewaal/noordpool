@@ -58,6 +58,7 @@
           src={theme.isDark ? "/icons/white.jpg" : "/icons/black.jpg"}
           alt="Noordpool"
           class="w-10 h-10 rounded"
+          loading="lazy"
         />
         <span class="text-xl font-bold tracking-tight">Noordpool</span>
       </a>

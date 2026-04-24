@@ -25,6 +25,7 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectManifest: {
         globPatterns: ["client/**/*.{js,css,ico,png,svg,webp,woff,woff2}"],
+        globIgnores: ["client/_app/immutable/nodes/**"],
       },
       manifest: {
         name: "Noordpool",
@@ -37,6 +38,7 @@ export default defineConfig({
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icons/icon-512.webp", sizes: "512x512", type: "image/webp" },
         ],
       },
     }),
