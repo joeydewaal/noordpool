@@ -10,7 +10,7 @@
 
 import { precacheAndRoute } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
-import { StaleWhileRevalidate } from "workbox-strategies";
+import { StaleWhileRevalidate, CacheFirst } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { clientsClaim } from "workbox-core";
 
@@ -25,6 +25,21 @@ clientsClaim();
 
 // Workbox precache manifest is injected here at build time.
 precacheAndRoute(self.__WB_MANIFEST);
+
+// Route-level JS chunks are content-hashed — CacheFirst is correct:
+// a new deploy produces a new URL, so there's no risk of serving stale code.
+registerRoute(
+  ({ url }) => url.pathname.includes("/_app/immutable/nodes/"),
+  new CacheFirst({
+    cacheName: "route-chunks",
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 30,
+        maxAgeSeconds: 60 * 60 * 24 * 30,
+      }),
+    ],
+  }),
+);
 
 registerRoute(
   ({ url }) => /\/api\/(games|players|stats)/.test(url.pathname),

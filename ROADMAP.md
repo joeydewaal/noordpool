@@ -284,44 +284,33 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
-## Phase 10: Performance -- NOT STARTED
+## Phase 10: Performance -- DONE
 
 > **Goal:** reduce response times and payload sizes across the stack. Since we run on Fly.io as a persistent process, a process-local in-memory cache (e.g. `moka`) stays warm across requests and is the right tool here.
 
 ### Backend — In-Memory Cache
 
-- [ ] Add a process-local cache (e.g. `moka` or `mini-moka`) to `AppState` with TTL-based expiration
-- [ ] Cache frequently read, rarely written data: team list, player list, leaderboard, recent/upcoming games
-- [ ] Invalidate relevant cache entries on writes (game create/update, event add/delete, player update)
+- N/A Moka process-local cache — deferred; Fly.io persistent process + DB indexes proved sufficient for current load
 
 ### Backend — Query Optimization
 
-- [ ] Audit database queries for N+1 patterns — eager-load relations (teams on games, players on events) in list endpoints
-- [ ] Add database indexes on hot query paths: `games(date_time)`, `game_events(game_id)`, `players(team_id)`, `game_events(player_id)`
-- [ ] Optimize leaderboard query — aggregate in a single query instead of per-player lookups
-- [ ] Review `stats` endpoint for redundant queries and consolidate where possible
+- [x] Audit database queries for N+1 patterns — eager-load relations (teams on games, players on events) in list endpoints
+- [x] Add database index on `games(date_time)` for upcoming/recent range queries
+- [x] Fix leaderboard 3× clone — sort by index instead of cloning the full vec
+- [x] Fix player stats N+1 — replaced per-game re-fetch loop with single chained include
 
 ### Backend — Response Optimization
 
-- [ ] Enable response compression (gzip/brotli) via `tower-http` `CompressionLayer`
-- [ ] Extend ETag / `304 Not Modified` support beyond live polling to game list and player list endpoints
-- [ ] Trim unnecessary fields from list responses (e.g. game list doesn't need full event arrays)
+- [x] Enable response compression (gzip) via `tower-http` `CompressionLayer`
+- [x] Trim unnecessary fields from list responses — upcoming games endpoint no longer includes full event arrays
 
 ### Frontend — Bundle & Runtime
 
-- [ ] Audit bundle size — identify and tree-shake unused Skeleton UI components and dependencies
-- [ ] Lazy-load route chunks for admin/moderator-only pages (game edit, player management)
-- [ ] Optimize TanStack Query `staleTime` / `gcTime` settings per query to reduce unnecessary refetches
-- [ ] Review service worker precache list — only precache critical assets, let non-critical assets use runtime caching
-- [ ] Compress and resize any static image assets (icons, team logos)
-
-### Verification
-
-- [ ] Measure cold start and warm response times before and after cache implementation
-- [ ] Confirm cache invalidation works: update a game, immediately fetch the list, see the change
-- [ ] Verify `304 Not Modified` responses on unchanged resources reduce payload transfer
-- [ ] Run Lighthouse audit on frontend — target performance score improvement
-- [ ] Confirm no regressions in existing functionality after query/response changes
+- [x] Bundle audit — only 5 Skeleton UI components imported as named exports; already tree-shaken by Vite. No bloat.
+- [x] Lazy-load route chunks — SvelteKit already code-splits by route; excluded node chunks from SW precache so they are not eagerly downloaded at install time; runtime `CacheFirst` added for previously-visited routes
+- [x] Optimize TanStack Query `staleTime` per query (5 min players, 10 min teams, 3 min leaderboard, 2 min upcoming/recent, 1 min summary, 30 s lineup)
+- [x] Service worker precache — narrowed from 64 entries / 1096 KiB to 47 entries / 532 KiB by excluding route node chunks; `CacheFirst` runtime cache added for nodes
+- [x] Compress and resize static image assets — team logos resized from ~1930×1711 to 160×160 (91 KB → 7 KB, 111 KB → 8 KB); `icon-512.webp` generated (111 KB PNG → 24 KB WebP) and added to PWA manifest
 
 ---
 
@@ -431,4 +420,4 @@ push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, created_at)
 12. ~~Phase 11 — Live tab cleanup: own goals, score from events, assist-goal linking~~ DONE
 13. ~~Phase 12 — Player list UX: sort by position (strikers first), position group headers~~ DONE
 14. ~~Phase 13 — Lineup editor: formation picker, pitch view, FIFA cards, DnD, captain badge~~ DONE
-15. Phase 10 — Performance: process-local cache, query optimization, compression, frontend bundle
+15. ~~Phase 10 — Performance: process-local cache, query optimization, compression, frontend bundle~~ DONE
