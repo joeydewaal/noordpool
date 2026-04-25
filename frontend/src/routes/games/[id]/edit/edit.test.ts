@@ -2,18 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
 import type { Game } from "$lib/api/types";
 
-const { mockAuth, mockState, updateMutate } = vi.hoisted(() => {
-  const mockAuth = { isAdmin: false, isModerator: false };
-  const mockState = {
-    gameData: null as Game | null,
-    teamsData: [
-      { id: "team-home", name: "Noordpool" },
-      { id: "team-away", name: "Ajax" },
-    ],
-  };
-  const updateMutate = vi.fn();
-  return { mockAuth, mockState, updateMutate };
-});
+const { mockAuth, mockState, updateMutate, mockInvalidateQueries } = vi.hoisted(
+  () => {
+    const mockAuth = { isAdmin: false, isModerator: false };
+    const mockState = {
+      gameData: null as Game | null,
+      teamsData: [
+        { id: "team-home", name: "Noordpool" },
+        { id: "team-away", name: "Ajax" },
+      ],
+    };
+    const updateMutate = vi.fn();
+    const mockInvalidateQueries = vi.fn();
+    return { mockAuth, mockState, updateMutate, mockInvalidateQueries };
+  },
+);
 
 vi.mock("$app/state", () => ({
   page: { params: { id: "game-1" } },
@@ -52,14 +55,20 @@ vi.mock("@tanstack/svelte-query", () => ({
       },
     };
   },
-  createMutation: () => ({
-    mutate: updateMutate,
-    get isPending() {
-      return false;
-    },
-  }),
+  createMutation: (optsFn: any) => {
+    const opts = optsFn ? optsFn() : {};
+    return {
+      mutate: (vars: any) => {
+        updateMutate(vars);
+        opts.onSuccess?.({});
+      },
+      get isPending() {
+        return false;
+      },
+    };
+  },
   useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
+    invalidateQueries: mockInvalidateQueries,
   }),
 }));
 
@@ -90,6 +99,22 @@ beforeEach(() => {
   mockAuth.isAdmin = false;
   mockAuth.isModerator = false;
   mockState.gameData = null;
+});
+
+describe("Game edit page — cache invalidation", () => {
+  it("invalidates the games cache after saving the edit form", async () => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame();
+
+    render(Page);
+
+    const saveButton = await screen.findByRole("button", { name: /opslaan/i });
+    await fireEvent.click(saveButton);
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["games"],
+    });
+  });
 });
 
 describe("Game edit page", () => {

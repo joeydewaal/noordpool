@@ -1,39 +1,50 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const { mockUser, mockAuth, mockPlayerData, mockUpdatePlayer } = vi.hoisted(
-  () => {
-    const mockUser = {
-      id: "user-1",
-      email: "test@example.com",
-      firstName: "Jan",
-      lastName: "de Vries",
-      avatarUrl: null as string | null,
-      playerId: "player-1" as string | null,
-      roles: ["player"] as string[],
-    };
-    const mockAuth = {
-      get isAuthenticated() {
-        return true;
-      },
-      get user() {
-        return mockUser;
-      },
-      get playerId() {
-        return mockUser.playerId;
-      },
-      isAdmin: false,
-      isModerator: false,
-      setUser: vi.fn(),
-      clear: vi.fn(),
-    };
-    const mockPlayerData = {
-      data: null as any,
-    };
-    const mockUpdatePlayer = vi.fn();
-    return { mockUser, mockAuth, mockPlayerData, mockUpdatePlayer };
-  },
-);
+const {
+  mockUser,
+  mockAuth,
+  mockPlayerData,
+  mockUpdatePlayer,
+  mockInvalidateQueries,
+} = vi.hoisted(() => {
+  const mockUser = {
+    id: "user-1",
+    email: "test@example.com",
+    firstName: "Jan",
+    lastName: "de Vries",
+    avatarUrl: null as string | null,
+    playerId: "player-1" as string | null,
+    roles: ["player"] as string[],
+  };
+  const mockAuth = {
+    get isAuthenticated() {
+      return true;
+    },
+    get user() {
+      return mockUser;
+    },
+    get playerId() {
+      return mockUser.playerId;
+    },
+    isAdmin: false,
+    isModerator: false,
+    setUser: vi.fn(),
+    clear: vi.fn(),
+  };
+  const mockPlayerData = {
+    data: null as any,
+  };
+  const mockUpdatePlayer = vi.fn();
+  const mockInvalidateQueries = vi.fn();
+  return {
+    mockUser,
+    mockAuth,
+    mockPlayerData,
+    mockUpdatePlayer,
+    mockInvalidateQueries,
+  };
+});
 
 vi.mock("$lib/api/auth", () => ({
   logout: vi.fn(),
@@ -83,7 +94,7 @@ vi.mock("@tanstack/svelte-query", () => ({
     };
   },
   useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
+    invalidateQueries: mockInvalidateQueries,
   }),
 }));
 
@@ -153,6 +164,18 @@ describe("profile page — linked player", () => {
   it("does not show link prompt when user has player role", () => {
     render(Page);
     expect(screen.queryByText("Geen speler gekoppeld")).not.toBeInTheDocument();
+  });
+
+  it("invalidates the player cache after saving profile edits", async () => {
+    render(Page);
+    await fireEvent.click(screen.getByText("Bewerken"));
+    await fireEvent.click(screen.getByText("Opslaan"));
+
+    await waitFor(() => {
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["players", "player-1"],
+      });
+    });
   });
 
   it("calls unlinkPlayer and updates state on click", async () => {

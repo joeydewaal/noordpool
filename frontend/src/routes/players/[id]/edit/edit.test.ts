@@ -1,19 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/svelte";
 
-const { mockAuth, mockQueryState, mockMutate } = vi.hoisted(() => {
-  const mockAuth = {
-    isAdmin: false,
-    isModerator: false,
-    playerId: null as string | null,
-  };
-  const mockQueryState = {
-    data: null as any,
-    pending: false,
-  };
-  const mockMutate = vi.fn();
-  return { mockAuth, mockQueryState, mockMutate };
-});
+const { mockAuth, mockQueryState, mockMutate, mockInvalidateQueries } =
+  vi.hoisted(() => {
+    const mockAuth = {
+      isAdmin: false,
+      isModerator: false,
+      playerId: null as string | null,
+    };
+    const mockQueryState = {
+      data: null as any,
+      pending: false,
+    };
+    const mockMutate = vi.fn();
+    const mockInvalidateQueries = vi.fn();
+    return { mockAuth, mockQueryState, mockMutate, mockInvalidateQueries };
+  });
 
 vi.mock("$app/state", () => ({
   page: { params: { id: "test-player-id" } },
@@ -62,7 +64,7 @@ vi.mock("@tanstack/svelte-query", () => ({
     };
   },
   useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
+    invalidateQueries: mockInvalidateQueries,
   }),
 }));
 
@@ -236,6 +238,31 @@ describe("Player edit page", () => {
 
     expect(backSpy).toHaveBeenCalled();
     backSpy.mockRestore();
+  });
+
+  it("invalidates the players cache after saving the edit form", async () => {
+    mockAuth.isAdmin = true;
+
+    render(Page);
+    await fireEvent.click(
+      screen.getByRole("button", { name: /wijzigingen opslaan/i }),
+    );
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["players"],
+    });
+  });
+
+  it("invalidates the player cache after toggling moderator status", async () => {
+    mockAuth.isAdmin = true;
+    mockQueryState.data = { ...testPlayer, userId: "user-1", user: linkedUser };
+
+    render(Page);
+    await fireEvent.click(screen.getByLabelText(/promote jan/i));
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["players", "test-player-id"],
+    });
   });
 
   it("hides moderator toggle when linked user is admin", () => {
