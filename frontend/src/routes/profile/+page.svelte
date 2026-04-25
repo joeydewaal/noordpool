@@ -115,7 +115,6 @@
     goto("/");
   }
 
-  // ----- Push notifications -----
   // We track three pieces of state: whether the browser supports Web Push at
   // all, whether this device currently has an active subscription on the
   // server, and whether a toggle is in flight. Permission state ('denied') is

@@ -11,7 +11,6 @@ cd backend && cargo run
 - Listens on port 3000 (configurable via `PORT` env var)
 - Reads `backend/.env` for config (`DATABASE_URL`, `JWT_SECRET`, VAPID keys, Google OAuth)
 - Defaults to `sqlite::memory:` if no `DATABASE_URL` — good for quick local dev
-- For PostgreSQL: set `DATABASE_URL=postgres://postgres:stoel@localhost:5432/noordpool`
 - Auto-migrates schema and seeds admin user in dev mode (non-`prod` feature)
 
 ## Frontend

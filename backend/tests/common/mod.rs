@@ -29,10 +29,6 @@ static TEST_DB_COUNTER: AtomicU64 = AtomicU64::new(0);
 pub struct TestApp {
     state: AppState,
     router: axum::Router,
-    /// Name of the temporary database to drop on cleanup (PostgreSQL only).
-    test_db: Option<String>,
-    /// Base connection URL for creating/dropping databases.
-    base_url: Option<String>,
     /// Captured notifications (always populated — TestApp always uses mock push).
     pub notifications: Arc<Mutex<Vec<Notification>>>,
 }
@@ -105,30 +101,7 @@ impl RequestBuilder<'_> {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let (url, test_db, base_url) = match std::env::var("DATABASE_URL") {
-            Ok(base) => {
-                let id = TEST_DB_COUNTER.fetch_add(1, Ordering::Relaxed);
-                let pid = std::process::id();
-                let db_name = format!("test_{pid}_{id}");
-                let (client, conn) = tokio_postgres::connect(&base, tokio_postgres::NoTls)
-                    .await
-                    .unwrap();
-                tokio::spawn(async move {
-                    conn.await.ok();
-                });
-                client
-                    .execute(&format!("CREATE DATABASE {db_name}"), &[])
-                    .await
-                    .unwrap();
-                drop(client);
-                // Replace the database name in the URL
-                let test_url = format!("{}/{}", base.rsplit_once('/').unwrap().0, db_name);
-                (test_url, Some(db_name), Some(base))
-            }
-            Err(_) => ("sqlite::memory:".to_string(), None, None),
-        };
-
-        let db = build_db().connect(&url).await.unwrap();
+        let db = build_db().connect("sqlite::memory:").await.unwrap();
         db.push_schema().await.unwrap();
 
         let jwt = JwtContext::builder()
@@ -156,8 +129,6 @@ impl TestApp {
         TestApp {
             state,
             router,
-            test_db,
-            base_url,
             notifications,
         }
     }
