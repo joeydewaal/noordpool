@@ -136,7 +136,6 @@
           id="location"
           type="text"
           bind:value={game_state.location}
-          required
           class="input"
         />
       </div>

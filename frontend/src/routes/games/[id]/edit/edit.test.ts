@@ -164,6 +164,25 @@ describe("Game edit page", () => {
     );
   });
 
+  it("can submit the form without a location", async () => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({ location: "" });
+
+    render(Page);
+
+    const locationInput = (await screen.findByLabelText(
+      "Locatie",
+    )) as HTMLInputElement;
+    expect(locationInput.value).toBe("");
+    expect(locationInput.required).toBe(false);
+
+    await fireEvent.click(screen.getByRole("button", { name: /opslaan/i }));
+
+    await waitFor(() => expect(updateMutate).toHaveBeenCalled());
+    const [payload] = updateMutate.mock.calls[0];
+    expect(payload.location).toBe("");
+  });
+
   it("preserves a user-edited datetime through the round-trip", async () => {
     mockAuth.isModerator = true;
     mockState.gameData = makeGame({ dateTime: "2026-06-15T18:00:00Z" });
