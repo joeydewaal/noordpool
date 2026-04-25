@@ -21,6 +21,7 @@ pub fn router() -> Router<AppState> {
                 .put(handlers::update)
                 .delete(handlers::delete),
         )
+        .route("/{id}/players", get(handlers::game_players))
         .route("/{id}/ws", get(live_ws::ws_live))
         .route("/{id}/live/score", post(live::adjust_score))
 }

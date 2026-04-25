@@ -46,6 +46,7 @@
       saveLineup(gameId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lineup", gameId] });
+      queryClient.invalidateQueries({ queryKey: ["games", gameId, "players"] });
       editMode = false;
       toaster.success({ title: "Opstelling opgeslagen" });
     },

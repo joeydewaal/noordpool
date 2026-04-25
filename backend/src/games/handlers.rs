@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -12,7 +14,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{Game, Role, game::MATCH_DURATION_MINUTES},
+    models::{Game, GameLineup, Player, Role, game::MATCH_DURATION_MINUTES},
 };
 
 const DEFAULT_PAGE_SIZE: usize = 20;
@@ -345,4 +347,43 @@ pub async fn delete(
 
     game.delete().exec(&mut db).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Returns active players eligible for match events.
+/// Home team is restricted to lineup players when a published lineup exists.
+pub async fn game_players(
+    State(state): State<AppState>,
+    Path(game_id): Path<Uuid>,
+) -> Result<Json<Vec<Player>>, AppError> {
+    let mut db = state.db;
+
+    let game = Game::filter_by_id(game_id).get(&mut db).await?;
+
+    let lineup = GameLineup::filter_by_game_id(game_id)
+        .include(GameLineup::fields().slots())
+        .first()
+        .exec(&mut db)
+        .await?;
+
+    let lineup_ids: Option<HashSet<Uuid>> = lineup
+        .filter(|l| l.published)
+        .map(|l| l.slots.get().iter().map(|s| s.player_id).collect());
+
+    let all = Player::all_active()
+        .include(Player::fields().user())
+        .exec(&mut db)
+        .await?;
+
+    let players = all
+        .into_iter()
+        .filter(|p| {
+            if p.team_id == game.home_team_id {
+                lineup_ids.as_ref().is_none_or(|ids| ids.contains(&p.id))
+            } else {
+                p.team_id == game.away_team_id
+            }
+        })
+        .collect();
+
+    Ok(Json(players))
 }
