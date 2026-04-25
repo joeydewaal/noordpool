@@ -8,7 +8,7 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 - **Frontend:** SvelteKit (PWA)
 - **Backend:** Rust with Axum, axum-security (local path dep), toasty (local path dep)
-- **Database:** PostgreSQL
+- **Database:** SQLite
 - **Auth:** Guest access (read-only), email+password, Google OAuth
 
 ## Language Convention
@@ -24,7 +24,7 @@ A PWA for football teams where players can view upcoming matches, match results 
 ### Backend
 - [x] Initialize Rust workspace with Axum
 - [x] Configure path dependencies for `axum-security` and `toasty`
-- [x] Set up PostgreSQL connection (via toasty)
+- [x] Set up SQLite connection (via toasty)
 - [x] Database schema: `users` table (id, email, password_hash, first_name, last_name, player_id, avatar_url, is_admin, is_moderator, created_at)
 - [x] Role assignment via boolean flags on User model (`is_admin`, `is_moderator`) + computed `get_roles()`
 - [x] Auth endpoints:
@@ -195,10 +195,10 @@ A PWA for football teams where players can view upcoming matches, match results 
 ## Phase 6.5: CI/CD -- DONE
 
 - [x] GitHub Actions workflow (`.github/workflows/ci.yml`) on push to main + PRs
-- [x] **Backend job:** `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test` with PostgreSQL 16 service container
+- [x] **Backend job:** `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`
 - [x] **Frontend job:** `prettier --check`, `svelte-check`, `vitest` with Node 22
 - [x] Rust caching via `Swatinem/rust-cache`, npm caching via `actions/setup-node`
-- [x] Per-test database isolation (unique PostgreSQL database per test via `tokio-postgres`)
+- [x] Per-test database isolation (unique SQLite in-memory database per test)
 
 ---
 

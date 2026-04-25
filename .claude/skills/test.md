@@ -40,7 +40,7 @@ use crate::common::TestApp;
 let mut app = TestApp::new().await;
 ```
 
-Creates an isolated in-memory database (SQLite locally, per-test PostgreSQL in CI).
+Creates an isolated SQLite in-memory database per test.
 
 ### Getting auth tokens
 
