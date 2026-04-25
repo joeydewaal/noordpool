@@ -3,7 +3,7 @@
   import { auth } from "$lib/state/auth.svelte";
   import { getGame } from "$lib/api/games";
   import { createGameEvent, deleteGameEvent } from "$lib/api/events";
-  import { getPlayers } from "$lib/api/players";
+  import { getGamePlayers } from "$lib/api/players";
   import {
     createQuery,
     createMutation,
@@ -105,10 +105,10 @@
   });
 
   const playersQuery = createQuery(() => ({
-    queryKey: ["players"],
-    queryFn: getPlayers,
+    queryKey: ["games", id, "players"],
+    queryFn: () => getGamePlayers(id),
     enabled: canManage,
-    staleTime: 5 * 60_000,
+    staleTime: 30_000,
   }));
 
   const lineupQuery = createQuery(() => ({
@@ -201,9 +201,7 @@
     if (showCommands) newMinute = matchMinute;
   });
 
-  const allPlayers = $derived(
-    (playersQuery.data ?? []).filter((p) => p.active),
-  );
+  const allPlayers = $derived(playersQuery.data ?? []);
   const homePlayers = $derived(
     allPlayers.filter((p) => p.teamId === game?.homeTeamId),
   );
@@ -212,10 +210,10 @@
   );
   const assistCandidates = $derived(
     selectedPlayer
-      ? allPlayers.filter(
-          (p) =>
-            p.teamId === selectedPlayer!.teamId && p.id !== selectedPlayer!.id,
-        )
+      ? (selectedPlayer.teamId === game?.homeTeamId
+          ? homePlayers
+          : awayPlayers
+        ).filter((p) => p.id !== selectedPlayer!.id)
       : [],
   );
 
@@ -349,151 +347,343 @@
   <Spinner />
 {:else if gameQuery.data}
   {@const g = gameQuery.data}
-  <div class="max-w-lg mx-auto">
+  <div class="max-w-5xl mx-auto">
     <button
       onclick={() => history.back()}
       class="text-sm text-primary-500 hover:underline mb-4 inline-block"
       >&larr; Alle wedstrijden</button
     >
 
-    <div class="card p-6">
-      <!-- Scoreboard header -->
-      <div class="text-center mb-1">
-        {#if ownSide}
-          <span
-            class="chip {ownSide === 'home'
-              ? 'preset-filled-success-500'
-              : 'preset-filled-secondary-500'} mb-2"
-          >
-            {ownSide === "home" ? "thuis" : "uit"}
-          </span>
-        {/if}
-      </div>
-
-      <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mb-3">
-        <div class="text-center">
-          <p class="text-sm font-semibold leading-tight">{g.homeTeam.name}</p>
-        </div>
-        {#if status === "finished" || status === "live"}
-          <div class="flex items-center gap-2 px-2">
-            <span class="text-4xl font-black tabular-nums">{homeScore}</span>
-            <span class="text-2xl text-surface-400">-</span>
-            <span class="text-4xl font-black tabular-nums">{awayScore}</span>
-          </div>
-        {:else}
-          <div class="text-center px-2">
-            <p class="text-sm text-surface-400">vs</p>
-          </div>
-        {/if}
-        <div class="text-center">
-          <p class="text-sm font-semibold leading-tight">{g.awayTeam.name}</p>
-        </div>
-      </div>
-
-      <!-- Status row -->
-      <div class="text-center text-sm text-surface-400 space-y-1 mb-4">
-        <div>{formatDate(g.dateTime)}</div>
-        <div>{g.location}</div>
-        {#if status === "live"}
-          <div class="flex items-center justify-center gap-2">
-            <span class="chip preset-filled-error-500 animate-pulse">
-              <span class="inline-block w-2 h-2 rounded-full bg-white mr-1"
-              ></span>
-              LIVE
-            </span>
-          </div>
-        {:else}
-          <div>
-            Status:
+    <div class="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+      <div class="card p-6">
+        <!-- Scoreboard header -->
+        <div class="text-center mb-1">
+          {#if ownSide}
             <span
-              class="font-medium {status === 'finished'
-                ? 'text-success-500'
-                : status === 'cancelled'
-                  ? 'text-error-500'
-                  : 'text-primary-500'}"
+              class="chip {ownSide === 'home'
+                ? 'preset-filled-success-500'
+                : 'preset-filled-secondary-500'} mb-2"
             >
-              {status === "scheduled"
-                ? "gepland"
-                : status === "finished"
-                  ? "gespeeld"
-                  : "afgelast"}
+              {ownSide === "home" ? "thuis" : "uit"}
             </span>
+          {/if}
+        </div>
+
+        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mb-3">
+          <div class="text-center">
+            <p class="text-sm font-semibold leading-tight">{g.homeTeam.name}</p>
           </div>
-        {/if}
-      </div>
-
-      <!-- Event timeline -->
-      {#if status === "finished" || status === "live"}
-        <div
-          class="mt-4 pt-4 border-t border-surface-200 dark:border-surface-800"
-        >
-          <h2 class="text-base font-bold mb-3">Wedstrijdverloop</h2>
-
-          {#if groupedEvents.length === 0}
-            <p class="text-sm text-surface-400">
-              Geen gebeurtenissen geregistreerd.
-            </p>
+          {#if status === "finished" || status === "live"}
+            <div class="flex items-center gap-2 px-2">
+              <span class="text-4xl font-black tabular-nums">{homeScore}</span>
+              <span class="text-2xl text-surface-400">-</span>
+              <span class="text-4xl font-black tabular-nums">{awayScore}</span>
+            </div>
           {:else}
-            <div class="space-y-1">
-              {#each groupedEvents as group}
-                <div class="flex items-center gap-3 text-sm">
-                  <span
-                    class="inline-flex items-center justify-center w-10 h-6 preset-tonal-surface font-mono text-xs rounded shrink-0"
-                  >
-                    {group.main.minute}'
-                  </span>
-                  <span class="text-base"
-                    >{eventIcons[group.main.eventType.type]}</span
-                  >
-                  <span class="font-medium"
-                    >{playerName(group.main.player)}</span
-                  >
-                  <span class="text-surface-400"
-                    >{eventLabels[group.main.eventType.type]}</span
-                  >
-                  {#if canManage}
-                    <button
-                      onclick={() => handleDeleteEvent(group.main.id)}
-                      class="ml-auto text-error-400 hover:text-error-500 text-xs shrink-0"
-                      title="Verwijderen">&times;</button
-                    >
-                  {/if}
-                </div>
-                {#if group.assist}
-                  <div class="flex items-center gap-3 text-sm pl-4">
+            <div class="text-center px-2">
+              <p class="text-sm text-surface-400">vs</p>
+            </div>
+          {/if}
+          <div class="text-center">
+            <p class="text-sm font-semibold leading-tight">{g.awayTeam.name}</p>
+          </div>
+        </div>
+
+        <!-- Status row -->
+        <div class="text-center text-sm text-surface-400 space-y-1 mb-4">
+          <div>{formatDate(g.dateTime)}</div>
+          <div>{g.location}</div>
+          {#if status === "live"}
+            <div class="flex items-center justify-center gap-2">
+              <span class="chip preset-filled-error-500 animate-pulse">
+                <span class="inline-block w-2 h-2 rounded-full bg-white mr-1"
+                ></span>
+                LIVE
+              </span>
+            </div>
+          {:else}
+            <div>
+              Status:
+              <span
+                class="font-medium {status === 'finished'
+                  ? 'text-success-500'
+                  : status === 'cancelled'
+                    ? 'text-error-500'
+                    : 'text-primary-500'}"
+              >
+                {status === "scheduled"
+                  ? "gepland"
+                  : status === "finished"
+                    ? "gespeeld"
+                    : "afgelast"}
+              </span>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Event timeline -->
+        {#if status === "finished" || status === "live"}
+          <div
+            class="mt-4 pt-4 border-t border-surface-200 dark:border-surface-800"
+          >
+            <h2 class="text-base font-bold mb-3">Wedstrijdverloop</h2>
+
+            {#if groupedEvents.length === 0}
+              <p class="text-sm text-surface-400">
+                Geen gebeurtenissen geregistreerd.
+              </p>
+            {:else}
+              <div class="space-y-1">
+                {#each groupedEvents as group}
+                  <div class="flex items-center gap-3 text-sm">
                     <span
-                      class="inline-flex items-center justify-center w-10 h-5 font-mono text-xs rounded shrink-0 text-surface-400"
+                      class="inline-flex items-center justify-center w-10 h-6 preset-tonal-surface font-mono text-xs rounded shrink-0"
                     >
-                      {group.assist.minute}'
+                      {group.main.minute}'
                     </span>
                     <span class="text-base"
-                      >{eventIcons[group.assist.eventType.type]}</span
+                      >{eventIcons[group.main.eventType.type]}</span
                     >
-                    <span class="font-medium text-surface-400"
-                      >{playerName(group.assist.player)}</span
+                    <span class="font-medium"
+                      >{playerName(group.main.player)}</span
                     >
                     <span class="text-surface-400"
-                      >{eventLabels[group.assist.eventType.type]}</span
+                      >{eventLabels[group.main.eventType.type]}</span
                     >
                     {#if canManage}
                       <button
-                        onclick={() => handleDeleteEvent(group.assist!.id)}
+                        onclick={() => handleDeleteEvent(group.main.id)}
                         class="ml-auto text-error-400 hover:text-error-500 text-xs shrink-0"
                         title="Verwijderen">&times;</button
                       >
                     {/if}
                   </div>
-                {/if}
-              {/each}
-            </div>
-          {/if}
-        </div>
-      {/if}
+                  {#if group.assist}
+                    <div class="flex items-center gap-3 text-sm pl-4">
+                      <span
+                        class="inline-flex items-center justify-center w-10 h-5 font-mono text-xs rounded shrink-0 text-surface-400"
+                      >
+                        {group.assist.minute}'
+                      </span>
+                      <span class="text-base"
+                        >{eventIcons[group.assist.eventType.type]}</span
+                      >
+                      <span class="font-medium text-surface-400"
+                        >{playerName(group.assist.player)}</span
+                      >
+                      <span class="text-surface-400"
+                        >{eventLabels[group.assist.eventType.type]}</span
+                      >
+                      {#if canManage}
+                        <button
+                          onclick={() => handleDeleteEvent(group.assist!.id)}
+                          class="ml-auto text-error-400 hover:text-error-500 text-xs shrink-0"
+                          title="Verwijderen">&times;</button
+                        >
+                      {/if}
+                    </div>
+                  {/if}
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
 
-      <!-- Opstelling -->
-      <div
-        class="mt-4 pt-4 border-t border-surface-200 dark:border-surface-800"
-      >
+        <!-- Moderator controls -->
+        {#if canManage}
+          <div class="mt-4 flex items-center justify-between">
+            <a
+              href="/games/{g.id}/edit"
+              class="btn btn-sm preset-outlined-surface-500"
+              >Wedstrijd bewerken</a
+            >
+            {#if status === "live"}
+              <Dialog
+                open={showCommands}
+                onOpenChange={(e) => {
+                  showCommands = e.open;
+                  if (!e.open) {
+                    selectedPlayer = null;
+                    panelStep = "player";
+                    lastGoalEvent = null;
+                  }
+                }}
+              >
+                <Dialog.Trigger
+                  type="button"
+                  class="btn btn-sm preset-outlined-warning-500"
+                >
+                  Wedstrijdbeheer
+                </Dialog.Trigger>
+
+                <Dialog.Backdrop class="fixed inset-0 bg-black/50 z-40" />
+                <Dialog.Positioner
+                  class="fixed inset-0 flex items-center justify-center z-50 p-4"
+                >
+                  <Dialog.Content
+                    class="card bg-surface-100-900 p-5 w-full max-w-md shadow-xl flex flex-col h-[480px]"
+                    aria-label="Wedstrijdbeheer"
+                  >
+                    <div
+                      class="flex items-center justify-between mb-4 shrink-0"
+                    >
+                      <Dialog.Title class="text-base font-bold"
+                        >Wedstrijdbeheer</Dialog.Title
+                      >
+                      <Dialog.CloseTrigger
+                        type="button"
+                        class="btn btn-sm preset-outlined-surface-500"
+                        >&times;</Dialog.CloseTrigger
+                      >
+                    </div>
+
+                    {#if panelStep === "player"}
+                      <!-- Step 1: pick a player -->
+                      <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
+                        {#each [{ label: g.homeTeam.name, players: homePlayers, teamId: g.homeTeamId }, { label: g.awayTeam.name, players: awayPlayers, teamId: g.awayTeamId }] as team}
+                          <div class="flex flex-col min-h-0">
+                            <p
+                              class="text-xs font-semibold text-surface-400 mb-2 shrink-0"
+                            >
+                              {team.label}
+                            </p>
+                            <div
+                              class="flex flex-col gap-1 overflow-y-auto pr-1"
+                            >
+                              {#each team.players.length === 0 ? [{ ...guestPlayer, teamId: team.teamId }] : team.players as p}
+                                <button
+                                  type="button"
+                                  class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start shrink-0"
+                                  onclick={() => selectPlayer(p)}
+                                >
+                                  <PlayerAvatar
+                                    avatarUrl={p.user?.avatarUrl}
+                                    shirtNumber={p.shirtNumber}
+                                    size="sm"
+                                  />
+                                  <span class="text-xs truncate"
+                                    >{playerName(p)}</span
+                                  >
+                                </button>
+                              {/each}
+                            </div>
+                          </div>
+                        {/each}
+                      </div>
+                    {:else if panelStep === "action"}
+                      <!-- Step 2: pick action -->
+                      <div class="flex flex-col flex-1 min-h-0">
+                        <div class="mb-3 flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            class="btn btn-sm preset-outlined-surface-500"
+                            onclick={() => (panelStep = "player")}
+                            >&larr; Terug</button
+                          >
+                          <span class="text-sm font-semibold"
+                            >{playerName(selectedPlayer!)}</span
+                          >
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 flex-1 content-start">
+                          {#each (selectedPlayer?.id === GUEST_PLAYER_ID ? ["goal"] : ["goal", "own_goal", "yellow_card", "red_card"]) as ActionType[] as action}
+                            <button
+                              type="button"
+                              class="btn btn-sm {selectedAction === action
+                                ? 'preset-filled-warning-500'
+                                : 'preset-outlined-surface-500'}"
+                              onclick={() => (selectedAction = action)}
+                            >
+                              {eventIcons[action]}
+                              {eventLabels[action]}
+                            </button>
+                          {/each}
+                        </div>
+
+                        <div
+                          class="flex items-center justify-between gap-3 shrink-0 pt-4 border-t border-surface-200 dark:border-surface-800"
+                        >
+                          <div class="flex items-center gap-2">
+                            <label
+                              class="text-xs text-surface-400"
+                              for="event-minute">Minuut</label
+                            >
+                            <input
+                              id="event-minute"
+                              type="number"
+                              bind:value={newMinute}
+                              min="1"
+                              max="120"
+                              class="input w-16 text-sm"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            class="btn btn-sm preset-filled-primary-500"
+                            disabled={addEventMutation.isPending}
+                            onclick={handleAddEvent}
+                          >
+                            {#if addEventMutation.isPending}
+                              <Spinner size="sm" />
+                            {:else}
+                              Toevoegen
+                            {/if}
+                          </button>
+                        </div>
+                      </div>
+                    {:else}
+                      <!-- Step 3: pick assister after a goal -->
+                      <div class="flex flex-col flex-1 min-h-0">
+                        <p class="text-sm font-semibold mb-3 shrink-0">
+                          Wie assisteerde?
+                        </p>
+                        <div
+                          class="flex flex-col gap-1 overflow-y-auto flex-1 pr-1"
+                        >
+                          {#each assistCandidates as p}
+                            <button
+                              type="button"
+                              class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start shrink-0"
+                              disabled={addEventMutation.isPending}
+                              onclick={() => handleAssistChosen(p)}
+                            >
+                              <PlayerAvatar
+                                avatarUrl={p.user?.avatarUrl}
+                                shirtNumber={p.shirtNumber}
+                                size="sm"
+                              />
+                              <span class="text-xs truncate"
+                                >{playerName(p)}</span
+                              >
+                            </button>
+                          {/each}
+                        </div>
+                        <div
+                          class="shrink-0 pt-4 border-t border-surface-200 dark:border-surface-800 flex justify-end"
+                        >
+                          <button
+                            type="button"
+                            class="btn btn-sm preset-outlined-surface-500"
+                            disabled={addEventMutation.isPending}
+                            onclick={() => handleAssistChosen(null)}
+                          >
+                            {#if addEventMutation.isPending}
+                              <Spinner size="sm" />
+                            {:else}
+                              Geen assist
+                            {/if}
+                          </button>
+                        </div>
+                      </div>
+                    {/if}
+                  </Dialog.Content>
+                </Dialog.Positioner>
+              </Dialog>
+            {/if}
+          </div>
+        {/if}
+      </div>
+      <div class="card p-6 mt-4 lg:mt-0">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-base font-bold">Opstelling</h2>
           {#if canManage}
@@ -501,7 +691,7 @@
               href="/games/{g.id}/lineup?edit"
               class="text-sm text-primary-500 hover:underline"
             >
-              Bewerken
+              Opstelling bewerken
             </a>
           {/if}
         </div>
@@ -522,194 +712,6 @@
           <Spinner />
         {/if}
       </div>
-
-      <!-- Moderator controls -->
-      {#if canManage}
-        <div class="mt-4 flex items-center justify-between">
-          <a
-            href="/games/{g.id}/edit"
-            class="btn btn-sm preset-outlined-surface-500">Bewerken</a
-          >
-          {#if status === "live"}
-            <Dialog
-              open={showCommands}
-              onOpenChange={(e) => {
-                showCommands = e.open;
-                if (!e.open) {
-                  selectedPlayer = null;
-                  panelStep = "player";
-                  lastGoalEvent = null;
-                }
-              }}
-            >
-              <Dialog.Trigger
-                type="button"
-                class="btn btn-sm preset-outlined-warning-500"
-              >
-                Wedstrijdbeheer
-              </Dialog.Trigger>
-
-              <Dialog.Backdrop class="fixed inset-0 bg-black/50 z-40" />
-              <Dialog.Positioner
-                class="fixed inset-0 flex items-center justify-center z-50 p-4"
-              >
-                <Dialog.Content
-                  class="card bg-surface-100-900 p-5 w-full max-w-md shadow-xl flex flex-col h-[480px]"
-                  aria-label="Wedstrijdbeheer"
-                >
-                  <div class="flex items-center justify-between mb-4 shrink-0">
-                    <Dialog.Title class="text-base font-bold"
-                      >Wedstrijdbeheer</Dialog.Title
-                    >
-                    <Dialog.CloseTrigger
-                      type="button"
-                      class="btn btn-sm preset-outlined-surface-500"
-                      >&times;</Dialog.CloseTrigger
-                    >
-                  </div>
-
-                  {#if panelStep === "player"}
-                    <!-- Step 1: pick a player -->
-                    <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
-                      {#each [{ label: g.homeTeam.name, players: homePlayers, teamId: g.homeTeamId }, { label: g.awayTeam.name, players: awayPlayers, teamId: g.awayTeamId }] as team}
-                        <div class="flex flex-col min-h-0">
-                          <p
-                            class="text-xs font-semibold text-surface-400 mb-2 shrink-0"
-                          >
-                            {team.label}
-                          </p>
-                          <div class="flex flex-col gap-1 overflow-y-auto pr-1">
-                            {#each team.players.length === 0 ? [{ ...guestPlayer, teamId: team.teamId }] : team.players as p}
-                              <button
-                                type="button"
-                                class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start shrink-0"
-                                onclick={() => selectPlayer(p)}
-                              >
-                                <PlayerAvatar
-                                  avatarUrl={p.user?.avatarUrl}
-                                  shirtNumber={p.shirtNumber}
-                                  size="sm"
-                                />
-                                <span class="text-xs truncate"
-                                  >{playerName(p)}</span
-                                >
-                              </button>
-                            {/each}
-                          </div>
-                        </div>
-                      {/each}
-                    </div>
-                  {:else if panelStep === "action"}
-                    <!-- Step 2: pick action -->
-                    <div class="flex flex-col flex-1 min-h-0">
-                      <div class="mb-3 flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          class="btn btn-sm preset-outlined-surface-500"
-                          onclick={() => (panelStep = "player")}
-                          >&larr; Terug</button
-                        >
-                        <span class="text-sm font-semibold"
-                          >{playerName(selectedPlayer!)}</span
-                        >
-                      </div>
-
-                      <div class="flex flex-wrap gap-2 flex-1 content-start">
-                        {#each (selectedPlayer?.id === GUEST_PLAYER_ID ? ["goal"] : ["goal", "own_goal", "yellow_card", "red_card"]) as ActionType[] as action}
-                          <button
-                            type="button"
-                            class="btn btn-sm {selectedAction === action
-                              ? 'preset-filled-warning-500'
-                              : 'preset-outlined-surface-500'}"
-                            onclick={() => (selectedAction = action)}
-                          >
-                            {eventIcons[action]}
-                            {eventLabels[action]}
-                          </button>
-                        {/each}
-                      </div>
-
-                      <div
-                        class="flex items-center justify-between gap-3 shrink-0 pt-4 border-t border-surface-200 dark:border-surface-800"
-                      >
-                        <div class="flex items-center gap-2">
-                          <label
-                            class="text-xs text-surface-400"
-                            for="event-minute">Minuut</label
-                          >
-                          <input
-                            id="event-minute"
-                            type="number"
-                            bind:value={newMinute}
-                            min="1"
-                            max="120"
-                            class="input w-16 text-sm"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          class="btn btn-sm preset-filled-primary-500"
-                          disabled={addEventMutation.isPending}
-                          onclick={handleAddEvent}
-                        >
-                          {#if addEventMutation.isPending}
-                            <Spinner size="sm" />
-                          {:else}
-                            Toevoegen
-                          {/if}
-                        </button>
-                      </div>
-                    </div>
-                  {:else}
-                    <!-- Step 3: pick assister after a goal -->
-                    <div class="flex flex-col flex-1 min-h-0">
-                      <p class="text-sm font-semibold mb-3 shrink-0">
-                        Wie assisteerde?
-                      </p>
-                      <div
-                        class="flex flex-col gap-1 overflow-y-auto flex-1 pr-1"
-                      >
-                        {#each assistCandidates as p}
-                          <button
-                            type="button"
-                            class="btn btn-sm preset-outlined-surface-500 flex items-center gap-2 justify-start shrink-0"
-                            disabled={addEventMutation.isPending}
-                            onclick={() => handleAssistChosen(p)}
-                          >
-                            <PlayerAvatar
-                              avatarUrl={p.user?.avatarUrl}
-                              shirtNumber={p.shirtNumber}
-                              size="sm"
-                            />
-                            <span class="text-xs truncate">{playerName(p)}</span
-                            >
-                          </button>
-                        {/each}
-                      </div>
-                      <div
-                        class="shrink-0 pt-4 border-t border-surface-200 dark:border-surface-800 flex justify-end"
-                      >
-                        <button
-                          type="button"
-                          class="btn btn-sm preset-outlined-surface-500"
-                          disabled={addEventMutation.isPending}
-                          onclick={() => handleAssistChosen(null)}
-                        >
-                          {#if addEventMutation.isPending}
-                            <Spinner size="sm" />
-                          {:else}
-                            Geen assist
-                          {/if}
-                        </button>
-                      </div>
-                    </div>
-                  {/if}
-                </Dialog.Content>
-              </Dialog.Positioner>
-            </Dialog>
-          {/if}
-        </div>
-      {/if}
     </div>
   </div>
 {:else}

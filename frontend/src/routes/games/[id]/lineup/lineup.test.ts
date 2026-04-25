@@ -1,11 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/svelte";
 
-const { mockAuth, mockLineupPending, capturedOnSuccess } = vi.hoisted(() => {
+const {
+  mockAuth,
+  mockLineupPending,
+  capturedOnSuccess,
+  mockInvalidateQueries,
+} = vi.hoisted(() => {
   const mockAuth = { isAdmin: false, isModerator: false };
   let mockLineupPending = false;
   const capturedOnSuccess = { fn: undefined as (() => void) | undefined };
-  return { mockAuth, mockLineupPending, capturedOnSuccess };
+  const mockInvalidateQueries = vi.fn();
+  return {
+    mockAuth,
+    mockLineupPending,
+    capturedOnSuccess,
+    mockInvalidateQueries,
+  };
 });
 
 vi.mock("$app/state", () => ({
@@ -49,7 +60,7 @@ vi.mock("@tanstack/svelte-query", () => ({
       },
     };
   },
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
 }));
 
 import LineupPage from "./+page.svelte";
@@ -59,6 +70,22 @@ beforeEach(() => {
   mockAuth.isAdmin = false;
   mockAuth.isModerator = false;
   capturedOnSuccess.fn = undefined;
+});
+
+describe("lineup — cache invalidation", () => {
+  it("invalidates lineup and game players caches after saving", () => {
+    mockAuth.isModerator = true;
+    render(LineupPage);
+
+    capturedOnSuccess.fn?.();
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["lineup", "game-1"],
+    });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["games", "game-1", "players"],
+    });
+  });
 });
 
 describe("lineup — ?edit auto-mode", () => {

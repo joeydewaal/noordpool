@@ -5,6 +5,10 @@ export async function getPlayers(): Promise<Player[]> {
   return (await api.get<Player[]>("/players")).data;
 }
 
+export async function getGamePlayers(gameId: string): Promise<Player[]> {
+  return (await api.get<Player[]>(`/games/${gameId}/players`)).data;
+}
+
 export async function getPlayer(id: string): Promise<Player | null> {
   try {
     return (await api.get<Player>(`/players/${id}`)).data;

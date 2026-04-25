@@ -12,6 +12,7 @@ const { mockAuth, mockState, addEventMutate, mockInvalidateQueries } =
     const mockState = {
       gameData: null as Game | null,
       playersData: [] as unknown[],
+      lineupData: null as unknown,
     };
     const addEventMutate = vi.fn();
     const mockInvalidateQueries = vi.fn();
@@ -51,7 +52,7 @@ vi.mock("@tanstack/svelte-query", () => ({
     return {
       get data() {
         if (isPlayers) return mockState.playersData;
-        if (isLineup) return null;
+        if (isLineup) return mockState.lineupData;
         return mockState.gameData;
       },
       get isPending() {
@@ -127,6 +128,7 @@ beforeEach(() => {
   mockAuth.teamId = null;
   mockState.gameData = null;
   mockState.playersData = [];
+  mockState.lineupData = null;
 });
 
 describe("game detail — cache invalidation", () => {
@@ -204,6 +206,26 @@ describe("game detail — command panel visibility", () => {
     expect(screen.getByLabelText("Wedstrijdbeheer")).not.toBeVisible();
     await openCommands();
     expect(screen.getByLabelText("Wedstrijdbeheer")).toBeVisible();
+  });
+});
+
+describe("game detail — lineup-restricted player picker", () => {
+  it("shows only the players returned by the backend (lineup-filtered home + all away)", async () => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({ status: "live" });
+    // Backend returns pre-filtered list: only Jan from home (lineup), Klaas from away (all)
+    mockState.playersData = [
+      makePlayer("p1", "Jan", "team-home", 9),
+      makePlayer("p3", "Klaas", "team-away", 7),
+    ];
+    render(Page);
+    await openCommands();
+
+    expect(screen.getByRole("button", { name: /jan/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /piet/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /klaas/i })).toBeInTheDocument();
   });
 });
 

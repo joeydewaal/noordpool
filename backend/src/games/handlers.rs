@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     app_state::AppState,
     error::AppError,
-    models::{Game, Role, game::MATCH_DURATION_MINUTES},
+    models::{Game, GameLineup, Player, Role, game::MATCH_DURATION_MINUTES},
 };
 
 const DEFAULT_PAGE_SIZE: usize = 20;
@@ -345,4 +345,60 @@ pub async fn delete(
 
     game.delete().exec(&mut db).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Returns active players eligible for match events.
+/// Home team is restricted to lineup players when a published lineup exists.
+pub async fn game_players(
+    State(state): State<AppState>,
+    Path(game_id): Path<Uuid>,
+) -> Result<Json<Vec<Player>>, AppError> {
+    let mut db = state.db;
+
+    // One query: published lineup + its game (for team IDs) + slots (for player IDs).
+    let lineup = GameLineup::filter_by_game_id(game_id)
+        .filter(GameLineup::fields().published().eq(true))
+        .include(GameLineup::fields().game())
+        .include(GameLineup::fields().slots())
+        .first()
+        .exec(&mut db)
+        .await?;
+
+    if let Some(lineup) = lineup {
+        let game = lineup.game.get();
+        let away_team_id = game.away_team_id;
+
+        let lineup_ids: Vec<Uuid> = lineup.slots.get().iter().map(|s| s.player_id).collect();
+
+        let mut players = Player::all_active()
+            .filter(Player::fields().id().in_list(lineup_ids))
+            .include(Player::fields().user())
+            .exec(&mut db)
+            .await?;
+
+        let away = Player::all_active()
+            .filter(Player::fields().team_id().eq(away_team_id))
+            .include(Player::fields().user())
+            .exec(&mut db)
+            .await?;
+
+        players.extend(away);
+        Ok(Json(players))
+    } else {
+        // No published lineup: return all active players for both teams.
+        let game = Game::filter_by_id(game_id).get(&mut db).await?;
+
+        let players = Player::all_active()
+            .filter(
+                Player::fields()
+                    .team_id()
+                    .eq(game.home_team_id)
+                    .or(Player::fields().team_id().eq(game.away_team_id)),
+            )
+            .include(Player::fields().user())
+            .exec(&mut db)
+            .await?;
+
+        Ok(Json(players))
+    }
 }
