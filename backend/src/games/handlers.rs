@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -357,33 +355,50 @@ pub async fn game_players(
 ) -> Result<Json<Vec<Player>>, AppError> {
     let mut db = state.db;
 
-    let game = Game::filter_by_id(game_id).get(&mut db).await?;
-
+    // One query: published lineup + its game (for team IDs) + slots (for player IDs).
     let lineup = GameLineup::filter_by_game_id(game_id)
+        .filter(GameLineup::fields().published().eq(true))
+        .include(GameLineup::fields().game())
         .include(GameLineup::fields().slots())
         .first()
         .exec(&mut db)
         .await?;
 
-    let lineup_ids: Option<HashSet<Uuid>> = lineup
-        .filter(|l| l.published)
-        .map(|l| l.slots.get().iter().map(|s| s.player_id).collect());
+    if let Some(lineup) = lineup {
+        let game = lineup.game.get();
+        let away_team_id = game.away_team_id;
 
-    let all = Player::all_active()
-        .include(Player::fields().user())
-        .exec(&mut db)
-        .await?;
+        let lineup_ids: Vec<Uuid> = lineup.slots.get().iter().map(|s| s.player_id).collect();
 
-    let players = all
-        .into_iter()
-        .filter(|p| {
-            if p.team_id == game.home_team_id {
-                lineup_ids.as_ref().is_none_or(|ids| ids.contains(&p.id))
-            } else {
-                p.team_id == game.away_team_id
-            }
-        })
-        .collect();
+        let mut players = Player::all_active()
+            .filter(Player::fields().id().in_list(lineup_ids))
+            .include(Player::fields().user())
+            .exec(&mut db)
+            .await?;
 
-    Ok(Json(players))
+        let away = Player::all_active()
+            .filter(Player::fields().team_id().eq(away_team_id))
+            .include(Player::fields().user())
+            .exec(&mut db)
+            .await?;
+
+        players.extend(away);
+        Ok(Json(players))
+    } else {
+        // No published lineup: return all active players for both teams.
+        let game = Game::filter_by_id(game_id).get(&mut db).await?;
+
+        let players = Player::all_active()
+            .filter(
+                Player::fields()
+                    .team_id()
+                    .eq(game.home_team_id)
+                    .or(Player::fields().team_id().eq(game.away_team_id)),
+            )
+            .include(Player::fields().user())
+            .exec(&mut db)
+            .await?;
+
+        Ok(Json(players))
+    }
 }
