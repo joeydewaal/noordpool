@@ -1,19 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/svelte";
 
-const { mockAuth, mockQueryState, mockMutate } = vi.hoisted(() => {
-  const mockAuth = {
-    isAdmin: false,
-    isModerator: false,
-    playerId: null as string | null,
-  };
-  const mockQueryState = {
-    data: null as any,
-    pending: false,
-  };
-  const mockMutate = vi.fn();
-  return { mockAuth, mockQueryState, mockMutate };
-});
+const { mockAuth, mockQueryState, mockMutate, mockInvalidateQueries } =
+  vi.hoisted(() => {
+    const mockAuth = {
+      isAdmin: false,
+      isModerator: false,
+      playerId: null as string | null,
+    };
+    const mockQueryState = {
+      data: null as any,
+      pending: false,
+    };
+    const mockMutate = vi.fn();
+    const mockInvalidateQueries = vi.fn();
+    return { mockAuth, mockQueryState, mockMutate, mockInvalidateQueries };
+  });
 
 vi.mock("$app/state", () => ({
   page: { params: { id: "test-player-id" } },
