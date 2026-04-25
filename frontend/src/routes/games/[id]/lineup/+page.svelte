@@ -370,10 +370,11 @@
                   startPointerDrag({ kind: "unassigned", playerId: p.id }, e)}
                 class="flex items-center gap-1.5 px-2 py-1 rounded cursor-grab active:cursor-grabbing preset-outlined-surface-500 text-sm select-none"
               >
-                <span class="font-bold text-xs w-4 text-right"
-                  >{p.shirtNumber}</span
-                >
+                <span class="font-bold text-xs w-4 text-right">
+                  {p.shirtNumber}
+                </span>
                 {p.firstName}
+                {p.lastName[0]}.
               </div>
             {/each}
           </div>
