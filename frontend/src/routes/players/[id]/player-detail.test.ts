@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/svelte";
 
-const { mockAuth, mockQueryState } = vi.hoisted(() => {
+const { mockAuth, mockQueryState, mockInvalidateQueries } = vi.hoisted(() => {
   const mockAuth = {
     isAdmin: false,
     isModerator: false,
@@ -11,7 +11,8 @@ const { mockAuth, mockQueryState } = vi.hoisted(() => {
     playerData: null as any,
     statsData: null as any,
   };
-  return { mockAuth, mockQueryState };
+  const mockInvalidateQueries = vi.fn();
+  return { mockAuth, mockQueryState, mockInvalidateQueries };
 });
 
 vi.mock("$app/state", () => ({
@@ -59,14 +60,20 @@ vi.mock("@tanstack/svelte-query", () => ({
       },
     };
   },
-  createMutation: () => ({
-    mutate: vi.fn(),
-    get isPending() {
-      return false;
-    },
-  }),
+  createMutation: (optsFn: any) => {
+    const opts = optsFn ? optsFn() : {};
+    return {
+      mutate: (vars: any) => {
+        opts.mutationFn?.(vars);
+        opts.onSuccess?.({});
+      },
+      get isPending() {
+        return false;
+      },
+    };
+  },
   useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
+    invalidateQueries: mockInvalidateQueries,
   }),
 }));
 
@@ -122,6 +129,17 @@ describe("Player detail page", () => {
 
     expect(screen.getByText("Bewerken")).toBeInTheDocument();
     expect(screen.getByText("Deactiveren")).toBeInTheDocument();
+  });
+
+  it("invalidates the player cache after toggling the active status", async () => {
+    mockAuth.isAdmin = true;
+
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Deactiveren" }));
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["players", "test-player-id"],
+    });
   });
 
   it("back button calls history.back so users return to where they came from", async () => {

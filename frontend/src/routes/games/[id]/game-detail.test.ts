@@ -2,19 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
 import type { Game } from "$lib/api/types";
 
-const { mockAuth, mockState, addEventMutate } = vi.hoisted(() => {
-  const mockAuth = {
-    isAdmin: false,
-    isModerator: false,
-    teamId: null as string | null,
-  };
-  const mockState = {
-    gameData: null as Game | null,
-    playersData: [] as unknown[],
-  };
-  const addEventMutate = vi.fn();
-  return { mockAuth, mockState, addEventMutate };
-});
+const { mockAuth, mockState, addEventMutate, mockInvalidateQueries } =
+  vi.hoisted(() => {
+    const mockAuth = {
+      isAdmin: false,
+      isModerator: false,
+      teamId: null as string | null,
+    };
+    const mockState = {
+      gameData: null as Game | null,
+      playersData: [] as unknown[],
+    };
+    const addEventMutate = vi.fn();
+    const mockInvalidateQueries = vi.fn();
+    return { mockAuth, mockState, addEventMutate, mockInvalidateQueries };
+  });
 
 vi.mock("$app/state", () => ({
   page: { params: { id: "game-1" } },
@@ -60,14 +62,20 @@ vi.mock("@tanstack/svelte-query", () => ({
       },
     };
   },
-  createMutation: () => ({
-    mutate: addEventMutate,
-    get isPending() {
-      return false;
-    },
-  }),
+  createMutation: (optsFn: any) => {
+    const opts = optsFn ? optsFn() : {};
+    return {
+      mutate: (vars: any, callbacks?: any) => {
+        addEventMutate(vars, callbacks);
+        opts.onSuccess?.({});
+      },
+      get isPending() {
+        return false;
+      },
+    };
+  },
   useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
+    invalidateQueries: mockInvalidateQueries,
   }),
 }));
 
@@ -119,6 +127,56 @@ beforeEach(() => {
   mockAuth.teamId = null;
   mockState.gameData = null;
   mockState.playersData = [];
+});
+
+describe("game detail — cache invalidation", () => {
+  it("invalidates the game cache after adding an event", async () => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({ status: "live" });
+    mockState.playersData = [makePlayer("p1", "Jan", "team-home")];
+
+    render(Page);
+    await openCommands();
+    await fireEvent.click(screen.getByRole("button", { name: /jan/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /toevoegen/i }));
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["games", "game-1"],
+    });
+  });
+
+  it("invalidates the game cache after deleting an event", async () => {
+    mockAuth.isModerator = true;
+    mockState.gameData = makeGame({
+      status: "live",
+      events: [
+        {
+          id: "evt-1",
+          gameId: "game-1",
+          playerId: "p1",
+          minute: 45,
+          eventType: { type: "goal" as const },
+          player: {
+            id: "p1",
+            firstName: "Jan",
+            lastName: "",
+            shirtNumber: 9,
+            active: true,
+            position: "Spits" as const,
+            teamId: "team-home",
+            userId: null,
+          },
+        },
+      ],
+    });
+
+    render(Page);
+    await fireEvent.click(screen.getByTitle("Verwijderen"));
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["games", "game-1"],
+    });
+  });
 });
 
 describe("game detail — command panel visibility", () => {
