@@ -1,9 +1,13 @@
 import type { GameLineup, SaveLineupRequest } from "./types";
 import { api } from "./client";
 
-export async function getLineup(gameId: string): Promise<GameLineup | null> {
+export async function getLineup(
+  gameId: string,
+  teamId?: string,
+): Promise<GameLineup | null> {
   try {
-    return (await api.get<GameLineup>(`/games/${gameId}/lineup`)).data;
+    const qs = teamId ? `?teamId=${teamId}` : "";
+    return (await api.get<GameLineup>(`/games/${gameId}/lineup${qs}`)).data;
   } catch {
     return null;
   }

@@ -20,6 +20,11 @@ pub struct GameLineup {
     #[serde(skip)]
     pub game: BelongsTo<Game>,
 
+    #[index]
+    #[default(None)]
+    #[serde(skip)]
+    pub team_id: Option<Uuid>,
+
     pub formation: Formation,
 
     #[default(false)]

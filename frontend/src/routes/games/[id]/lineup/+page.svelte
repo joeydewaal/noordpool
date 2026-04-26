@@ -22,6 +22,7 @@
   const gameId = page.params.id!;
   const queryClient = useQueryClient();
   const canManage = $derived(auth.isAdmin || auth.isModerator);
+  const teamId = $derived(page.url.searchParams.get("teamId") ?? undefined);
 
   const gameQuery = createQuery(() => ({
     queryKey: ["games", gameId],
@@ -29,8 +30,8 @@
   }));
 
   const lineupQuery = createQuery(() => ({
-    queryKey: ["lineup", gameId],
-    queryFn: () => getLineup(gameId),
+    queryKey: ["lineup", gameId, teamId ?? "home"],
+    queryFn: () => getLineup(gameId, teamId),
     staleTime: 30_000,
   }));
 
@@ -43,9 +44,11 @@
 
   const saveMutation = createMutation(() => ({
     mutationFn: (data: Parameters<typeof saveLineup>[1]) =>
-      saveLineup(gameId, data),
+      saveLineup(gameId, { ...data, teamId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["lineup", gameId] });
+      queryClient.invalidateQueries({
+        queryKey: ["lineup", gameId, teamId ?? "home"],
+      });
       queryClient.invalidateQueries({ queryKey: ["games", gameId, "players"] });
       editMode = false;
       toaster.success({ title: "Opstelling opgeslagen" });
@@ -89,7 +92,9 @@
   let activeSlot = $state<number | null>(null);
 
   const activePlayers = $derived(
-    (playersQuery.data ?? []).filter((p) => p.active),
+    (playersQuery.data ?? []).filter(
+      (p) => p.active && (!teamId || p.teamId === teamId),
+    ),
   );
   const assignedIds = $derived(new Set(draftSlots.values()));
   const unassigned = $derived(
@@ -278,7 +283,11 @@
       <div>
         <h1 class="text-lg font-bold">Opstelling</h1>
         <p class="text-sm text-surface-400">
-          {g.homeTeam.name} – {g.awayTeam.name}
+          {teamId === g.homeTeamId
+            ? g.homeTeam.name
+            : teamId === g.awayTeamId
+              ? g.awayTeam.name
+              : `${g.homeTeam.name} – ${g.awayTeam.name}`}
         </p>
       </div>
       {#if canManage}
