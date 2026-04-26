@@ -5,12 +5,9 @@ export async function getLineup(
   gameId: string,
   teamId?: string,
 ): Promise<GameLineup | null> {
-  try {
-    const qs = teamId ? `?teamId=${teamId}` : "";
-    return (await api.get<GameLineup>(`/games/${gameId}/lineup${qs}`)).data;
-  } catch {
-    return null;
-  }
+  const qs = teamId ? `?teamId=${teamId}` : "";
+  return (await api.get<GameLineup | null>(`/games/${gameId}/lineup${qs}`))
+    .data;
 }
 
 export async function saveLineup(

@@ -357,28 +357,26 @@ pub async fn game_players(
 
     let game = Game::filter_by_id(game_id).get(&mut db).await?;
 
-    // Fetch all published lineups for this game in one query.
-    let lineups = GameLineup::filter_by_game_id(game_id)
-        .filter(GameLineup::fields().published().eq(true))
-        .include(GameLineup::fields().slots())
-        .exec(&mut db)
-        .await?;
-
-    let home_lineup = lineups.iter().find(|l| l.team_id == game.home_team_id);
-    let away_lineup = lineups.iter().find(|l| l.team_id == game.away_team_id);
+    let (home_lineup, away_lineup) = toasty::batch((
+        GameLineup::filter_by_team_id(game.home_team_id)
+            .filter(GameLineup::fields().game_id().eq(game_id))
+            .filter(GameLineup::fields().published().eq(true))
+            .include(GameLineup::fields().slots().player().user())
+            .first(),
+        GameLineup::filter_by_team_id(game.away_team_id)
+            .filter(GameLineup::fields().game_id().eq(game_id))
+            .filter(GameLineup::fields().published().eq(true))
+            .include(GameLineup::fields().slots().player().user())
+            .first(),
+    ))
+    .exec(&mut db)
+    .await?;
 
     let mut players: Vec<Player> = Vec::new();
 
     match home_lineup {
         Some(hl) => {
-            let ids: Vec<Uuid> = hl.slots.get().iter().map(|s| s.player_id).collect();
-            players.extend(
-                Player::all_active()
-                    .filter(Player::fields().id().in_list(ids))
-                    .include(Player::fields().user())
-                    .exec(&mut db)
-                    .await?,
-            );
+            players.extend(hl.slots.get().iter().map(|s| s.player.get().clone()));
         }
         None => {
             players.extend(
@@ -393,14 +391,7 @@ pub async fn game_players(
 
     match away_lineup {
         Some(al) => {
-            let ids: Vec<Uuid> = al.slots.get().iter().map(|s| s.player_id).collect();
-            players.extend(
-                Player::all_active()
-                    .filter(Player::fields().id().in_list(ids))
-                    .include(Player::fields().user())
-                    .exec(&mut db)
-                    .await?,
-            );
+            players.extend(al.slots.get().iter().map(|s| s.player.get().clone()));
         }
         None => {
             players.extend(

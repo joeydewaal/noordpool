@@ -108,7 +108,7 @@ pub async fn get_lineup(
     State(state): State<AppState>,
     Path(game_id): Path<Uuid>,
     Query(query): Query<LineupQuery>,
-) -> Result<Json<GameLineupResponse>, AppError> {
+) -> Result<Json<Option<GameLineupResponse>>, AppError> {
     let mut db = state.db;
 
     let mut q = GameLineup::filter_by_game_id(game_id)
@@ -118,13 +118,10 @@ pub async fn get_lineup(
         q = q.filter(GameLineup::fields().team_id().eq(tid));
     }
 
-    let lineup = q
-        .first()
-        .exec(&mut db)
-        .await?
-        .ok_or_else(|| AppError::not_found("Geen opstelling gevonden"))?;
-
-    Ok(Json(build_response(lineup).await?))
+    match q.first().exec(&mut db).await? {
+        None => Ok(Json(None)),
+        Some(lineup) => Ok(Json(Some(build_response(lineup).await?))),
+    }
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]
