@@ -36,7 +36,7 @@ pub struct LineupSlotResponse {
 pub struct GameLineupResponse {
     pub id: Uuid,
     pub game_id: Uuid,
-    pub team_id: Option<Uuid>,
+    pub team_id: Uuid,
     pub formation: Formation,
     pub published: bool,
     pub updated_at: Timestamp,
@@ -63,7 +63,7 @@ pub struct SlotRequest {
 pub struct SaveLineupRequest {
     pub formation: Formation,
     pub slots: Vec<SlotRequest>,
-    pub team_id: Option<Uuid>,
+    pub team_id: Uuid,
 }
 
 async fn build_response(lineup: GameLineup) -> Result<GameLineupResponse, AppError> {
@@ -115,7 +115,7 @@ pub async fn get_lineup(
         .include(GameLineup::fields().slots().player().user());
 
     if let Some(tid) = query.team_id {
-        q = q.filter(GameLineup::fields().team_id().eq(Some(tid)));
+        q = q.filter(GameLineup::fields().team_id().eq(tid));
     }
 
     let lineup = q
@@ -136,8 +136,8 @@ pub async fn save_lineup(
     let mut db = state.db.clone();
     let mut tx = db.transaction().await?;
 
-    let existing = GameLineup::filter_by_game_id(game_id)
-        .filter(GameLineup::fields().team_id().eq(body.team_id))
+    let existing = GameLineup::filter_by_team_id(body.team_id)
+        .filter(GameLineup::fields().game_id().eq(game_id))
         .first()
         .exec(&mut tx)
         .await?;

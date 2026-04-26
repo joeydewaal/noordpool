@@ -364,13 +364,8 @@ pub async fn game_players(
         .exec(&mut db)
         .await?;
 
-    // NULL team_id rows count as the home lineup (legacy compat).
-    let home_lineup = lineups
-        .iter()
-        .find(|l| l.team_id == Some(game.home_team_id) || l.team_id.is_none());
-    let away_lineup = lineups
-        .iter()
-        .find(|l| l.team_id == Some(game.away_team_id));
+    let home_lineup = lineups.iter().find(|l| l.team_id == game.home_team_id);
+    let away_lineup = lineups.iter().find(|l| l.team_id == game.away_team_id);
 
     let mut players: Vec<Player> = Vec::new();
 
