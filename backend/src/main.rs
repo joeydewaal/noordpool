@@ -100,12 +100,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(&avatar_dir)?;
     tracing::info!("avatar dir: {}", avatar_dir.display());
 
+    let static_dir = std::env::var("STATIC_DIR").ok().map(PathBuf::from);
+    if let Some(dir) = &static_dir {
+        if !dir.join("index.html").exists() {
+            tracing::warn!(
+                "STATIC_DIR is set to {} but index.html is missing",
+                dir.display()
+            );
+        } else {
+            tracing::info!("serving frontend from {}", dir.display());
+        }
+    }
+
     let state = AppState {
         db,
         jwt,
         google_oidc,
         live_hub: games::live_ws::LiveHub::new(),
         avatar_dir: Arc::new(avatar_dir),
+        static_dir: static_dir.map(Arc::new),
         push,
     };
 

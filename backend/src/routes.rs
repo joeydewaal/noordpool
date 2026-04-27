@@ -1,6 +1,10 @@
 use axum::Router;
 use axum_security::oidc::OidcExt as _;
-use tower_http::{compression::CompressionLayer, cors::CorsLayer, services::ServeDir};
+use tower_http::{
+    compression::CompressionLayer,
+    cors::CorsLayer,
+    services::{ServeDir, ServeFile},
+};
 
 use crate::{app_state::AppState, auth, events, games, lineup, players, push, stats, teams, users};
 
@@ -22,8 +26,15 @@ pub fn app(state: AppState) -> Router {
     }
 
     let avatars = ServeDir::new(state.avatar_dir.as_path());
-    app.nest_service("/avatars", avatars)
-        .layer(CorsLayer::permissive())
+    app = app.nest_service("/avatars", avatars);
+
+    if let Some(static_dir) = state.static_dir.clone() {
+        let index = static_dir.join("index.html");
+        let frontend = ServeDir::new(static_dir.as_path()).fallback(ServeFile::new(index));
+        app = app.fallback_service(frontend);
+    }
+
+    app.layer(CorsLayer::permissive())
         .layer(CompressionLayer::new())
         .with_state(state)
 }

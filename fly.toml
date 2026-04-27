@@ -2,11 +2,13 @@ app = "noorpool-backend"
 primary_region = "ams"
 
 [build]
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "3000"
   RUST_LOG = "info"
   AVATAR_DIR = "/data/avatars"
+  STATIC_DIR = "/app/static"
 
 [[mounts]]
   source = "noordpool_data"

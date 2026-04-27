@@ -17,6 +17,7 @@ pub struct AppState {
     pub google_oidc: Option<OidcContext<GoogleHandler>>,
     pub live_hub: LiveHub,
     pub avatar_dir: Arc<PathBuf>,
+    pub static_dir: Option<Arc<PathBuf>>,
     pub push: PushBackend,
 }
 

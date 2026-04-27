@@ -1,0 +1,14 @@
+**/target/
+**/node_modules/
+**/.svelte-kit/
+**/build/
+**/dev-dist/
+**/.env
+**/.env.*
+**/database.db
+**/*.db
+.git/
+.github/
+.claude/
+todo.txt
+wait.sh

@@ -123,6 +123,7 @@ impl TestApp {
             google_oidc: None,
             live_hub: noordpool_backend::games::live_ws::LiveHub::new(),
             avatar_dir: Arc::new(avatar_dir),
+            static_dir: None,
             push,
         };
         let router = routes::app(state.clone());
