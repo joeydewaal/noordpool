@@ -1,11 +1,20 @@
-use axum::Router;
+use axum::{Router, http::HeaderValue, routing::get};
 use axum_security::oidc::OidcExt as _;
-use tower_http::{compression::CompressionLayer, cors::CorsLayer, services::ServeDir};
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{Any, CorsLayer},
+    services::ServeDir,
+};
 
 use crate::{app_state::AppState, auth, events, games, lineup, players, push, stats, teams, users};
 
-pub fn app(state: AppState) -> Router {
+async fn health() -> &'static str {
+    "ok"
+}
+
+pub fn app(state: AppState, allowed_origins: Vec<String>) -> Router {
     let mut app = Router::new()
+        .route("/health", get(health))
         .nest("/api/auth", auth::router())
         .nest("/api/players", players::router())
         .nest("/api/users", users::router())
@@ -23,7 +32,21 @@ pub fn app(state: AppState) -> Router {
 
     let avatars = ServeDir::new(state.avatar_dir.as_path());
     app.nest_service("/avatars", avatars)
-        .layer(CorsLayer::permissive())
+        .layer(cors_layer(&allowed_origins))
         .layer(CompressionLayer::new())
         .with_state(state)
+}
+
+fn cors_layer(origins: &[String]) -> CorsLayer {
+    if origins.is_empty() {
+        return CorsLayer::permissive();
+    }
+    let parsed: Vec<HeaderValue> = origins
+        .iter()
+        .filter_map(|o| HeaderValue::from_str(o).ok())
+        .collect();
+    CorsLayer::new()
+        .allow_origin(parsed)
+        .allow_methods(Any)
+        .allow_headers(Any)
 }

@@ -14,7 +14,14 @@ export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-export const api = axios.create({ baseURL: "/api" });
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
+
+export const api = axios.create({ baseURL: API_BASE });
+
+export function apiUrl(path: string): string {
+  const base = API_BASE.replace(/\/$/, "");
+  return path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
+}
 
 api.interceptors.request.use((config) => {
   const token = getToken();

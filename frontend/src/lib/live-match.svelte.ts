@@ -81,6 +81,11 @@ export function startLiveMatchStream(
   let hiddenTimer: ReturnType<typeof setTimeout> | null = null;
 
   function url(): string {
+    const base = import.meta.env.VITE_API_BASE_URL;
+    if (base) {
+      const wsBase = base.replace(/^http/, "ws").replace(/\/$/, "");
+      return `${wsBase}/games/${gameId}/ws`;
+    }
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     return `${proto}//${location.host}/api/games/${gameId}/ws`;
   }

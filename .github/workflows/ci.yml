@@ -69,6 +69,23 @@ jobs:
       - name: Check formatting
         run: npx prettier --check .
 
+  docker-build:
+    name: Docker / build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: noordpool-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   frontend-check:
     name: Frontend / check & test
     runs-on: ubuntu-latest
