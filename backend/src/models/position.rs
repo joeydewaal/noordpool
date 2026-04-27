@@ -3,34 +3,34 @@ use toasty::Embed;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Embed)]
 pub enum Position {
-    #[column(variant = 1)]
+    #[column(variant = "goalkeeper")]
     #[serde(rename = "Keeper")]
     Goalkeeper,
-    #[column(variant = 2)]
+    #[column(variant = "centre_back")]
     #[serde(rename = "Centrale verdediger")]
     CentreBack,
-    #[column(variant = 3)]
+    #[column(variant = "left_back")]
     #[serde(rename = "Linksback")]
     LeftBack,
-    #[column(variant = 4)]
+    #[column(variant = "right_back")]
     #[serde(rename = "Rechtsback")]
     RightBack,
-    #[column(variant = 5)]
+    #[column(variant = "defensive_midfielder")]
     #[serde(rename = "Defensieve middenvelder")]
     DefensiveMidfielder,
-    #[column(variant = 6)]
+    #[column(variant = "central_midfielder")]
     #[serde(rename = "Centrale middenvelder")]
     CentralMidfielder,
-    #[column(variant = 7)]
+    #[column(variant = "attacking_midfielder")]
     #[serde(rename = "Aanvallende middenvelder")]
     AttackingMidfielder,
-    #[column(variant = 8)]
+    #[column(variant = "left_winger")]
     #[serde(rename = "Linksvleugel")]
     LeftWinger,
-    #[column(variant = 9)]
+    #[column(variant = "right_winger")]
     #[serde(rename = "Rechtsvleugel")]
     RightWinger,
-    #[column(variant = 10)]
+    #[column(variant = "striker")]
     #[serde(rename = "Spits")]
     Striker,
 }

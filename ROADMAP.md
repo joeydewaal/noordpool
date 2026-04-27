@@ -389,6 +389,61 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
+## Phase 14: Production Readiness
+
+> Punch list before flipping the Fly deploy on for real users.
+
+### Hard blockers
+- [ ] Add a multi-stage `Dockerfile` (Rust build + frontend `npm run build`) — `fly.toml` `[build]` is empty
+- [ ] Serve the SvelteKit static build from the backend with SPA fallback to `index.html` (`routes.rs`); currently only `/api/*` and `/avatars` are mounted
+- [ ] Untrack `backend/.env` and `backend/database.db` from git, add to `.gitignore`, rotate every secret in `.env` (JWT_SECRET, VAPID, Google client secret, ADMIN_PASSWORD)
+
+### Strict config in prod
+- [ ] When `cfg!(feature = "prod")`, fail at startup if `JWT_SECRET`, `ADMIN_PASSWORD`, or `DATABASE_URL` are unset (currently silent dev defaults in `config.rs`)
+- [ ] Build/test CI matrix entry with `--features prod` so the gate is exercised
+
+### Schema / data
+- [ ] Stop swallowing migration errors — replace `let _ = db.push_schema().await;` in `models/mod.rs:43` with `?`
+- [ ] Backup story for the `/data` Fly volume (Litestream sidecar, or scheduled `sqlite3 .backup` to object storage)
+- [ ] One-shot data conversion for the enum string-discriminant change (existing rows store integers; new `CHECK (col IN (...))` will reject them)
+
+### Security
+- [ ] Replace `CorsLayer::permissive()` in `routes.rs:26` with an allow-list of the actual frontend origin(s)
+- [ ] Flip `OidcContext::builder("google").use_dev_cookies(true)` off in prod (`main.rs:66`)
+- [ ] Rate limit `/api/auth/login` and `/api/auth/register` (e.g. `tower-governor`) against brute-force / enumeration
+
+### Operational
+- [ ] Add `GET /health` (or `/healthz`) and a matching `[[http_service.checks]]` block in `fly.toml`
+- [ ] Pin `fly.toml` to `min_machines_running = 1` and document single-instance constraint (in-memory `LiveHub` and push backend don't fan out across machines)
+- [ ] Verify SQLite WAL mode + `busy_timeout` are enabled by toasty's sqlite driver; if not, set them
+- [ ] Switch `tracing_subscriber` to JSON output for Fly log shipping
+
+### Nice-to-have
+- [ ] Sweep the 13 `unwrap()`/`expect()` call sites in `backend/src/` for any in request-handling paths
+- [ ] Password reset / email verification flow (if needed for the user base)
+
+---
+
+## Phase 15: CRUD Gaps
+
+> Resources missing update/delete endpoints that admins will need.
+
+### Teams
+- [ ] `GET /api/teams/:id` — detail (optional; list already returns full data)
+- [ ] `PUT /api/teams/:id` — rename a team (admin)
+- [ ] `DELETE /api/teams/:id` — admin only; refuse if any `Game` references it as `home_team_id` or `away_team_id`
+
+### Users
+- [ ] `DELETE /api/users/:id` — admin offboarding; null out `players.user_id` before deleting the user
+
+### Events
+- [ ] `PUT /api/games/:id/events/:event_id` — edit minute / `goal_event_id` without breaking assist FKs that point at the existing event id
+
+### Lineup
+- [ ] `DELETE /api/games/:id/lineup` — clear a lineup (symmetry; current workaround is saving an empty one)
+
+---
+
 ## Data Model Summary
 
 ```

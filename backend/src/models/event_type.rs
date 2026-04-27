@@ -5,17 +5,17 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Embed)]
 #[serde(rename_all = "snake_case", tag = "type")]
 pub enum EventType {
-    #[column(variant = 1)]
+    #[column(variant = "goal")]
     Goal,
-    #[column(variant = 2)]
+    #[column(variant = "assist")]
     Assist {
         #[serde(rename = "goalEventId")]
         goal_event_id: Uuid,
     },
-    #[column(variant = 3)]
+    #[column(variant = "yellow_card")]
     YellowCard,
-    #[column(variant = 4)]
+    #[column(variant = "red_card")]
     RedCard,
-    #[column(variant = 5)]
+    #[column(variant = "own_goal")]
     OwnGoal,
 }

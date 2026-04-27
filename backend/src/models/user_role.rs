@@ -4,11 +4,11 @@ use toasty::Embed;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Embed)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
-    #[column(variant = 1)]
+    #[column(variant = "admin")]
     Admin,
-    #[column(variant = 2)]
+    #[column(variant = "moderator")]
     Moderator,
-    #[column(variant = 3)]
+    #[column(variant = "player")]
     Player,
 }
 

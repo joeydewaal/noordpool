@@ -4,27 +4,27 @@ use toasty::Embed;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Embed)]
 pub enum Formation {
     #[serde(rename = "4-4-2")]
-    #[column(variant = 1)]
+    #[column(variant = "4-4-2")]
     F442,
 
     #[serde(rename = "4-3-3")]
-    #[column(variant = 2)]
+    #[column(variant = "4-3-3")]
     F433,
 
     #[serde(rename = "4-2-3-1")]
-    #[column(variant = 3)]
+    #[column(variant = "4-2-3-1")]
     F4231,
 
     #[serde(rename = "3-5-2")]
-    #[column(variant = 4)]
+    #[column(variant = "3-5-2")]
     F352,
 
     #[serde(rename = "5-3-2")]
-    #[column(variant = 5)]
+    #[column(variant = "5-3-2")]
     F532,
 
     #[serde(rename = "4-1-4-1")]
-    #[column(variant = 6)]
+    #[column(variant = "4-1-4-1")]
     F4141,
 }
 
