@@ -18,6 +18,7 @@ pub async fn list(State(mut state): State<AppState>) -> Result<Json<Vec<User>>, 
         .order_by(User::fields().created_at().asc())
         .exec(&mut state.db)
         .await?;
+
     Ok(Json(users))
 }
 

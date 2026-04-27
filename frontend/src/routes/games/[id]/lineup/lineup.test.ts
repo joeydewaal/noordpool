@@ -22,7 +22,7 @@ const {
 vi.mock("$app/state", () => ({
   page: {
     params: { id: "game-1" },
-    url: { searchParams: new URLSearchParams("edit") },
+    url: { searchParams: new URLSearchParams("edit=&teamId=team-home") },
   },
 }));
 
@@ -80,7 +80,7 @@ describe("lineup — cache invalidation", () => {
     capturedOnSuccess.fn?.();
 
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["lineup", "game-1"],
+      queryKey: ["lineup", "game-1", "team-home"],
     });
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
       queryKey: ["games", "game-1", "players"],

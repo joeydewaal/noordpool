@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
 };
 use axum_security::rbac::requires_any;
 use jiff::Timestamp;
@@ -36,10 +36,16 @@ pub struct LineupSlotResponse {
 pub struct GameLineupResponse {
     pub id: Uuid,
     pub game_id: Uuid,
+    pub team_id: Uuid,
     pub formation: Formation,
-    pub published: bool,
     pub updated_at: Timestamp,
     pub slots: Vec<LineupSlotResponse>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LineupQuery {
+    pub team_id: Uuid,
 }
 
 #[derive(Deserialize)]
@@ -56,6 +62,7 @@ pub struct SlotRequest {
 pub struct SaveLineupRequest {
     pub formation: Formation,
     pub slots: Vec<SlotRequest>,
+    pub team_id: Uuid,
 }
 
 async fn build_response(lineup: GameLineup) -> Result<GameLineupResponse, AppError> {
@@ -88,8 +95,8 @@ async fn build_response(lineup: GameLineup) -> Result<GameLineupResponse, AppErr
     Ok(GameLineupResponse {
         id: lineup.id,
         game_id: lineup.game_id,
+        team_id: lineup.team_id,
         formation: lineup.formation,
-        published: lineup.published,
         updated_at: lineup.updated_at,
         slots: slot_responses,
     })
@@ -98,17 +105,21 @@ async fn build_response(lineup: GameLineup) -> Result<GameLineupResponse, AppErr
 pub async fn get_lineup(
     State(state): State<AppState>,
     Path(game_id): Path<Uuid>,
-) -> Result<Json<GameLineupResponse>, AppError> {
+    Query(query): Query<LineupQuery>,
+) -> Result<Json<Option<GameLineupResponse>>, AppError> {
     let mut db = state.db;
 
     let lineup = GameLineup::filter_by_game_id(game_id)
+        .filter(GameLineup::fields().team_id().eq(query.team_id))
         .include(GameLineup::fields().slots().player().user())
         .first()
         .exec(&mut db)
-        .await?
-        .ok_or_else(|| AppError::not_found("Geen opstelling gevonden"))?;
+        .await?;
 
-    Ok(Json(build_response(lineup).await?))
+    match lineup {
+        None => Ok(Json(None)),
+        Some(lineup) => Ok(Json(Some(build_response(lineup).await?))),
+    }
 }
 
 #[requires_any(Role::Admin, Role::Moderator)]
@@ -117,10 +128,11 @@ pub async fn save_lineup(
     Path(game_id): Path<Uuid>,
     Json(body): Json<SaveLineupRequest>,
 ) -> Result<Json<GameLineupResponse>, AppError> {
-    let mut db = state.db.clone();
+    let mut db = state.db;
     let mut tx = db.transaction().await?;
 
-    let existing = GameLineup::filter_by_game_id(game_id)
+    let existing = GameLineup::filter_by_team_id(body.team_id)
+        .filter(GameLineup::fields().game_id().eq(game_id))
         .first()
         .exec(&mut tx)
         .await?;
@@ -129,15 +141,14 @@ pub async fn save_lineup(
         existing
             .update()
             .formation(body.formation)
-            .published(true)
             .exec(&mut tx)
             .await?;
         existing
     } else {
         GameLineup::create()
             .game_id(game_id)
+            .team_id(body.team_id)
             .formation(body.formation)
-            .published(true)
             .exec(&mut tx)
             .await?
     };

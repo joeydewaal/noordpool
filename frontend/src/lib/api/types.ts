@@ -270,8 +270,8 @@ export interface LineupSlot {
 export interface GameLineup {
   id: string;
   gameId: string;
+  teamId: string;
   formation: Formation;
-  published: boolean;
   updatedAt: string;
   slots: LineupSlot[];
 }
@@ -285,4 +285,5 @@ export interface SaveLineupSlot {
 export interface SaveLineupRequest {
   formation: Formation;
   slots: SaveLineupSlot[];
+  teamId: string;
 }
