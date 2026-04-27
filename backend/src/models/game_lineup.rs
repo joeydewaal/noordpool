@@ -26,9 +26,6 @@ pub struct GameLineup {
 
     pub formation: Formation,
 
-    #[default(false)]
-    pub published: bool,
-
     #[auto]
     pub updated_at: Timestamp,
 

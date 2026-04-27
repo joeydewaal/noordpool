@@ -38,7 +38,6 @@ pub struct GameLineupResponse {
     pub game_id: Uuid,
     pub team_id: Uuid,
     pub formation: Formation,
-    pub published: bool,
     pub updated_at: Timestamp,
     pub slots: Vec<LineupSlotResponse>,
 }
@@ -46,7 +45,7 @@ pub struct GameLineupResponse {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LineupQuery {
-    pub team_id: Option<Uuid>,
+    pub team_id: Uuid,
 }
 
 #[derive(Deserialize)]
@@ -98,7 +97,6 @@ async fn build_response(lineup: GameLineup) -> Result<GameLineupResponse, AppErr
         game_id: lineup.game_id,
         team_id: lineup.team_id,
         formation: lineup.formation,
-        published: lineup.published,
         updated_at: lineup.updated_at,
         slots: slot_responses,
     })
@@ -111,14 +109,14 @@ pub async fn get_lineup(
 ) -> Result<Json<Option<GameLineupResponse>>, AppError> {
     let mut db = state.db;
 
-    let mut q = GameLineup::filter_by_game_id(game_id)
-        .include(GameLineup::fields().slots().player().user());
+    let lineup = GameLineup::filter_by_game_id(game_id)
+        .filter(GameLineup::fields().team_id().eq(query.team_id))
+        .include(GameLineup::fields().slots().player().user())
+        .first()
+        .exec(&mut db)
+        .await?;
 
-    if let Some(tid) = query.team_id {
-        q = q.filter(GameLineup::fields().team_id().eq(tid));
-    }
-
-    match q.first().exec(&mut db).await? {
+    match lineup {
         None => Ok(Json(None)),
         Some(lineup) => Ok(Json(Some(build_response(lineup).await?))),
     }
@@ -130,7 +128,7 @@ pub async fn save_lineup(
     Path(game_id): Path<Uuid>,
     Json(body): Json<SaveLineupRequest>,
 ) -> Result<Json<GameLineupResponse>, AppError> {
-    let mut db = state.db.clone();
+    let mut db = state.db;
     let mut tx = db.transaction().await?;
 
     let existing = GameLineup::filter_by_team_id(body.team_id)
@@ -143,7 +141,6 @@ pub async fn save_lineup(
         existing
             .update()
             .formation(body.formation)
-            .published(true)
             .exec(&mut tx)
             .await?;
         existing
@@ -152,7 +149,6 @@ pub async fn save_lineup(
             .game_id(game_id)
             .team_id(body.team_id)
             .formation(body.formation)
-            .published(true)
             .exec(&mut tx)
             .await?
     };

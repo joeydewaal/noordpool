@@ -348,7 +348,7 @@ pub async fn delete(
 }
 
 /// Returns active players eligible for match events.
-/// Each team is restricted to its lineup players when a published lineup exists.
+/// Each team is restricted to its lineup players when a lineup exists.
 pub async fn game_players(
     State(state): State<AppState>,
     Path(game_id): Path<Uuid>,
@@ -360,12 +360,10 @@ pub async fn game_players(
     let (home_lineup, away_lineup) = toasty::batch((
         GameLineup::filter_by_team_id(game.home_team_id)
             .filter(GameLineup::fields().game_id().eq(game_id))
-            .filter(GameLineup::fields().published().eq(true))
             .include(GameLineup::fields().slots().player().user())
             .first(),
         GameLineup::filter_by_team_id(game.away_team_id)
             .filter(GameLineup::fields().game_id().eq(game_id))
-            .filter(GameLineup::fields().published().eq(true))
             .include(GameLineup::fields().slots().player().user())
             .first(),
     ))

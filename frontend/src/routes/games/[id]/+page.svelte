@@ -114,14 +114,14 @@
 
   const homeLineupQuery = createQuery(() => ({
     queryKey: ["lineup", id, game?.homeTeamId],
-    queryFn: () => getLineup(id, game?.homeTeamId),
+    queryFn: () => getLineup(id, game!.homeTeamId),
     enabled: !!game?.homeTeamId,
     staleTime: 30_000,
   }));
 
   const awayLineupQuery = createQuery(() => ({
     queryKey: ["lineup", id, game?.awayTeamId],
-    queryFn: () => getLineup(id, game?.awayTeamId),
+    queryFn: () => getLineup(id, game!.awayTeamId),
     enabled: !!game?.awayTeamId,
     staleTime: 30_000,
   }));

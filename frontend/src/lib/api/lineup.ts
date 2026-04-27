@@ -3,11 +3,11 @@ import { api } from "./client";
 
 export async function getLineup(
   gameId: string,
-  teamId?: string,
+  teamId: string,
 ): Promise<GameLineup | null> {
-  const qs = teamId ? `?teamId=${teamId}` : "";
-  return (await api.get<GameLineup | null>(`/games/${gameId}/lineup${qs}`))
-    .data;
+  return (
+    await api.get<GameLineup | null>(`/games/${gameId}/lineup?teamId=${teamId}`)
+  ).data;
 }
 
 export async function saveLineup(

@@ -22,7 +22,7 @@
   const gameId = page.params.id!;
   const queryClient = useQueryClient();
   const canManage = $derived(auth.isAdmin || auth.isModerator);
-  const teamId = $derived(page.url.searchParams.get("teamId") ?? undefined);
+  const teamId = $derived(page.url.searchParams.get("teamId") ?? "");
 
   const gameQuery = createQuery(() => ({
     queryKey: ["games", gameId],
@@ -30,8 +30,9 @@
   }));
 
   const lineupQuery = createQuery(() => ({
-    queryKey: ["lineup", gameId, teamId ?? "home"],
+    queryKey: ["lineup", gameId, teamId],
     queryFn: () => getLineup(gameId, teamId),
+    enabled: !!teamId,
     staleTime: 30_000,
   }));
 
@@ -43,11 +44,11 @@
   }));
 
   const saveMutation = createMutation(() => ({
-    mutationFn: (data: Parameters<typeof saveLineup>[1]) =>
+    mutationFn: (data: Omit<Parameters<typeof saveLineup>[1], "teamId">) =>
       saveLineup(gameId, { ...data, teamId }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["lineup", gameId, teamId ?? "home"],
+        queryKey: ["lineup", gameId, teamId],
       });
       queryClient.invalidateQueries({ queryKey: ["games", gameId, "players"] });
       editMode = false;

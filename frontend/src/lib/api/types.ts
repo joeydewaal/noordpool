@@ -272,7 +272,6 @@ export interface GameLineup {
   gameId: string;
   teamId: string;
   formation: Formation;
-  published: boolean;
   updatedAt: string;
   slots: LineupSlot[];
 }
