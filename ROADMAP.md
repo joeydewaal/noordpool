@@ -389,6 +389,26 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
+## Phase 15: Push backend on rustls -- DONE
+
+> Replace `web-push`'s default `isahc` HTTP client with our own `reqwest` + rustls sender.
+
+### Backend
+- [x] `web-push` pinned to `default-features = false` so the bundled HTTP clients (`IsahcWebPushClient`, `HyperWebPushClient` via `hyper-tls`) don't get compiled in
+- [x] Add `reqwest = { default-features = false, features = ["rustls-tls", "http2"] }`
+- [x] `PushBackend::Live` carries a shared `reqwest::Client` configured for rustls
+- [x] New `send_message` helper translates `web_push::WebPushMessage` (endpoint + crypto headers + encrypted payload from `WebPushMessageBuilder`) into a `POST` over reqwest
+- [x] 404 / 410 / 401 / 403 still trigger pruning of expired subscriptions
+
+### Verification
+- [x] `cargo build` clean
+- [x] `cargo test` — all green
+- [x] `cargo clippy -- -D warnings` clean
+- [x] `cargo tree -i native-tls` reports nothing in the compile graph
+- [x] `cargo tree -i openssl` only reaches us via `web-push → ece` (intrinsic to Web Push's AES-GCM/HKDF — `libssl3` stays in the runtime image)
+
+---
+
 ## Data Model Summary
 
 ```

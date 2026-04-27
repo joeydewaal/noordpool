@@ -82,4 +82,4 @@ Deployed to **Fly.io** as a single persistent Axum binary.
 
 - Live match updates use a per-match **WebSocket** at `/api/games/:id/ws` — viewers receive `Snapshot` / `ScoreUpdate` / `EventAdded` / `EventDeleted` / `StatusChange` frames.
 - Mutations still go through the existing authenticated REST endpoints (e.g. `POST /api/games/:id/live/score`); the mutation handler publishes to the in-memory hub which fans out to connected sockets.
-- Push notifications use Web Push for OS-level alerts when the app is closed/backgrounded — WebSockets cover in-app live state, Web Push covers out-of-app delivery.
+- Push notifications use Web Push for OS-level alerts when the app is closed/backgrounded — WebSockets cover in-app live state, Web Push covers out-of-app delivery. The push backend uses `web-push` for VAPID + payload encryption (the `ece` crate pulls openssl — unavoidable for AES-GCM/HKDF) but ships the request via `reqwest` + rustls; no `isahc` / `curl-sys` / `native-tls` in the build graph.
