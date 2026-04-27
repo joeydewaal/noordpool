@@ -78,8 +78,12 @@ No banner comments. Do not use `// ----...----` or similar horizontal-rule separ
 
 ## Deployment
 
-Deployed to **Fly.io** as a single persistent Axum binary.
+Split deploy:
 
-- Live match updates use a per-match **WebSocket** at `/api/games/:id/ws` — viewers receive `Snapshot` / `ScoreUpdate` / `EventAdded` / `EventDeleted` / `StatusChange` frames.
-- Mutations still go through the existing authenticated REST endpoints (e.g. `POST /api/games/:id/live/score`); the mutation handler publishes to the in-memory hub which fans out to connected sockets.
-- Push notifications use Web Push for OS-level alerts when the app is closed/backgrounded — WebSockets cover in-app live state, Web Push covers out-of-app delivery.
+- **Backend** runs on **Fly.io** as a single persistent Axum binary (`Dockerfile` at repo root, `fly.toml`). Listens on `:3000`, exposes `/api/*`, `/avatars/*`, and `/health`. Live match updates use a per-match **WebSocket** at `/api/games/:id/ws` — viewers receive `Snapshot` / `ScoreUpdate` / `EventAdded` / `EventDeleted` / `StatusChange` frames. Mutations still go through the existing authenticated REST endpoints; the mutation handler publishes to the in-memory hub which fans out to connected sockets. Deploy with `fly deploy`.
+- **Frontend** is a static SvelteKit build (`adapter-static`, SPA fallback to `index.html`) deployed to **Cloudflare Pages**. No git integration / no auto-deploy — push to deploy via `cd frontend && npm run deploy` (wraps `wrangler pages deploy build --project-name noordpool`). Set `VITE_API_BASE_URL` in the CF Pages project env to the backend origin.
+- **Cross-origin**: backend serves `https://api.noordpool.joeydewaal.com`, frontend serves `https://noordpool.joeydewaal.com`. CORS origins come from the `ALLOWED_ORIGINS` env (comma-separated). JWT lives in `localStorage` and goes out as `Authorization: Bearer …` — no cross-site cookies. The OIDC builder enables `use_dev_cookies(true)` only when the `prod` cargo feature is off.
+- **Avatar URLs** are absolute (`PUBLIC_API_URL/avatars/<id>.webp`) when `PUBLIC_API_URL` is set, so the cross-origin frontend can render them.
+- **Push notifications** use Web Push (RFC 8030) for OS-level alerts when the app is closed/backgrounded — WebSockets cover in-app live state, Web Push covers out-of-app delivery.
+
+CI builds the Docker image (`docker-build` job) on every PR so a broken Dockerfile fails the check before deploy.

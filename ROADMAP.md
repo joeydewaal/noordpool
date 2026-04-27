@@ -389,6 +389,42 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
+## Phase 14: Deploy Foundation -- IN PROGRESS
+
+> Split deploy: backend on Fly.io, frontend on Cloudflare Pages, avatars on Cloudflare R2 (Phase 16). This phase lays the groundwork — the rustls/openssl cleanup and R2 follow in their own phases.
+
+### Backend
+- [x] Multi-stage `Dockerfile` at repo root (`rust:1.95-slim-bookworm` build, `debian:stable-slim` runtime, no frontend stage). `.dockerignore` excludes target/, node_modules/, .env, sqlite files
+- [x] `fly.toml` wired to Dockerfile; sets `DATABASE_URL=sqlite:///data/database.db`, `ALLOWED_ORIGINS`, `PUBLIC_API_URL`; adds `min_machines_running = 1` and `[[http_service.checks]]` against `/health`
+- [x] `GET /health` endpoint
+- [x] `Config::allowed_origins` (comma-separated env) drives `tower-http` `CorsLayer` instead of `CorsLayer::permissive()`
+- [x] `Config::public_api_url` makes avatar URLs absolute so the cross-origin frontend can render them
+- [x] OIDC `use_dev_cookies(true)` is gated to `!cfg!(feature = "prod")` instead of always-on
+
+### Frontend
+- [x] Switch `adapter-auto` → `adapter-static` with `fallback: index.html` (works because the app already runs `ssr = false`)
+- [x] `lib/api/client.ts` and `lib/live-match.svelte.ts` honour `VITE_API_BASE_URL` for HTTP and WebSocket
+- [x] `wrangler` dev dep + `npm run deploy` script (`vite build && wrangler pages deploy build --project-name noordpool`) — manual deploy, no git auto-deploy
+- [x] `frontend/.env.example` documents `VITE_API_BASE_URL`
+
+### CI / hygiene
+- [x] New CI job `docker-build` runs `docker buildx build --load .` so a broken Dockerfile fails the PR
+- [x] `.gitignore` covers `backend/.env(.*)`, `backend/target/`, sqlite db files, frontend `node_modules`/`build`/`.svelte-kit`/`dev-dist`
+- [x] `backend/.env.example` template
+
+### Operator steps (one-off, not code)
+- [ ] Create CF Pages project `noordpool` and set `VITE_API_BASE_URL` env
+- [ ] Create CF DNS records: `noordpool.joeydewaal.com` → CF Pages, `api.noordpool.joeydewaal.com` → Fly
+- [ ] Update `GOOGLE_REDIRECT_URL` in Google Cloud Console + Fly secrets to point at `https://api.noordpool.joeydewaal.com/api/auth/google/callback`
+- [ ] Set `FRONTEND_URL=https://noordpool.joeydewaal.com` as a Fly secret
+- [ ] Rotate the VAPID keys and any secrets that were briefly committed to a feature branch
+
+### Follow-up phases
+- Phase 15 — rustls cleanup: swap web-push's HTTP transport for reqwest + rustls (kills curl-sys / native-tls)
+- Phase 16 — R2 avatars: presigned uploads, drop `/avatars` ServeDir, drop `image` + `multipart`, drop AVATAR_DIR/volume usage for avatars
+
+---
+
 ## Data Model Summary
 
 ```

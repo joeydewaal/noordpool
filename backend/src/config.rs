@@ -6,6 +6,8 @@ pub struct Config {
     pub google_client_secret: Option<String>,
     pub google_redirect_url: Option<String>,
     pub frontend_url: Option<String>,
+    pub public_api_url: Option<String>,
+    pub allowed_origins: Vec<String>,
     pub vapid_public_key: Option<String>,
     pub vapid_private_key: Option<String>,
     pub vapid_subject: Option<String>,
@@ -27,6 +29,16 @@ impl Config {
             google_client_secret: std::env::var("GOOGLE_CLIENT_SECRET").ok(),
             google_redirect_url: std::env::var("GOOGLE_REDIRECT_URL").ok(),
             frontend_url: std::env::var("FRONTEND_URL").ok(),
+            public_api_url: std::env::var("PUBLIC_API_URL").ok(),
+            allowed_origins: std::env::var("ALLOWED_ORIGINS")
+                .ok()
+                .map(|s| {
+                    s.split(',')
+                        .map(|o| o.trim().to_string())
+                        .filter(|o| !o.is_empty())
+                        .collect()
+                })
+                .unwrap_or_default(),
             vapid_public_key: std::env::var("VAPID_PUBLIC_KEY").ok(),
             vapid_private_key: std::env::var("VAPID_PRIVATE_KEY").ok(),
             vapid_subject: std::env::var("VAPID_SUBJECT").ok(),

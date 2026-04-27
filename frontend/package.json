@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "deploy": "vite build && wrangler pages deploy build --project-name noordpool --commit-dirty=true",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -16,7 +17,7 @@
   "devDependencies": {
     "@skeletonlabs/skeleton": "^4.13.0",
     "@skeletonlabs/skeleton-svelte": "^4.13.0",
-    "@sveltejs/adapter-auto": "^7.0.0",
+    "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.50.2",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@testing-library/jest-dom": "^6.9.1",
@@ -30,7 +31,8 @@
     "svelte-check": "^4.4.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "wrangler": "^4.85.0"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",

@@ -38,7 +38,11 @@ pub async fn upload(
         .await
         .map_err(AppError::internal)??;
 
-    let url = format!("/avatars/{filename}?v={}", Timestamp::now().as_second());
+    let v = Timestamp::now().as_second();
+    let url = match state.public_api_url.as_deref() {
+        Some(base) => format!("{}/avatars/{filename}?v={v}", base.trim_end_matches('/')),
+        None => format!("/avatars/{filename}?v={v}"),
+    };
 
     User::update_by_id(user_id)
         .avatar_url(url)
