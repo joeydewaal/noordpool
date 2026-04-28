@@ -389,7 +389,7 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
-## Phase 14: Deploy Foundation -- IN PROGRESS
+## Phase 14: Deploy Foundation -- DONE
 
 > Split deploy: backend on Fly.io, frontend on Cloudflare Pages, avatars on Cloudflare R2 (Phase 16). This phase lays the groundwork — the rustls/openssl cleanup and R2 follow in their own phases.
 
@@ -419,9 +419,25 @@ A PWA for football teams where players can view upcoming matches, match results 
 - [ ] Set `FRONTEND_URL=https://noordpool.joeydewaal.com` as a Fly secret
 - [ ] Rotate the VAPID keys and any secrets that were briefly committed to a feature branch
 
-### Follow-up phases
-- Phase 15 — rustls cleanup: swap web-push's HTTP transport for reqwest + rustls (kills curl-sys / native-tls)
-- Phase 16 — R2 avatars: presigned uploads, drop `/avatars` ServeDir, drop `image` + `multipart`, drop AVATAR_DIR/volume usage for avatars
+---
+
+## Phase 15: Push backend on rustls -- DONE
+
+> Replace `web-push`'s default `isahc` HTTP client with our own `reqwest` + rustls sender.
+
+### Backend
+- [x] `web-push` pinned to `default-features = false` so the bundled HTTP clients (`IsahcWebPushClient`, `HyperWebPushClient` via `hyper-tls`) don't get compiled in
+- [x] Add `reqwest = { default-features = false, features = ["rustls-tls", "http2"] }`
+- [x] `PushBackend::Live` carries a shared `reqwest::Client` configured for rustls
+- [x] New `send_message` helper translates `web_push::WebPushMessage` (endpoint + crypto headers + encrypted payload from `WebPushMessageBuilder`) into a `POST` over reqwest
+- [x] 404 / 410 / 401 / 403 still trigger pruning of expired subscriptions
+
+### Verification
+- [x] `cargo build` clean
+- [x] `cargo test` — all green
+- [x] `cargo clippy -- -D warnings` clean
+- [x] `cargo tree -i native-tls` reports nothing in the compile graph
+- [x] `cargo tree -i openssl` only reaches us via `web-push → ece` (intrinsic to Web Push's AES-GCM/HKDF — `libssl3` stays in the runtime image)
 
 ---
 
