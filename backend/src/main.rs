@@ -58,16 +58,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             frontend_url,
         };
 
-        let mut oidc_builder = OidcContext::builder("google")
+        let oidc = OidcContext::builder("google")
             .client_id(client_id)
             .client_secret(client_secret)
             .redirect_url(redirect_url)
             .login_path("/api/auth/google/login")
-            .scopes(&["openid", "email", "profile"]);
-        if !cfg!(feature = "prod") {
-            oidc_builder = oidc_builder.use_dev_cookies(true);
-        }
-        let oidc = oidc_builder.build(handler);
+            .scopes(&["openid", "email", "profile"])
+            .use_dev_cookies(!cfg!(feature = "prod"))
+            .build(handler);
 
         tracing::info!("Google OIDC enabled");
         Some(oidc)
