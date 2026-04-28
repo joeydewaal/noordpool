@@ -113,7 +113,12 @@ impl TestApp {
             std::process::id(),
             TEST_DB_COUNTER.fetch_add(1, Ordering::Relaxed)
         ));
-        std::fs::create_dir_all(&avatar_dir).unwrap();
+        let r2 = noordpool_backend::r2::Backend::local(noordpool_backend::r2::LocalConfig {
+            dir: avatar_dir,
+            api_base: "http://localhost:3000".to_string(),
+            signing_key: "test-secret".to_string(),
+        })
+        .unwrap();
 
         let (push, notifications) = PushBackend::new_mock();
 
@@ -122,7 +127,7 @@ impl TestApp {
             jwt,
             google_oidc: None,
             live_hub: noordpool_backend::games::live_ws::LiveHub::new(),
-            avatar_dir: Arc::new(avatar_dir),
+            r2,
             push,
         };
         let router = routes::app(state.clone());

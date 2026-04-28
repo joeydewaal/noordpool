@@ -389,6 +389,42 @@ A PWA for football teams where players can view upcoming matches, match results 
 
 ---
 
+## Phase 16: R2 Avatars -- DONE
+
+> Move avatar storage off the Fly volume to Cloudflare R2 with presigned PUT URLs. Drop the `image` crate, multipart, and the `tower-http` `fs` feature. Mock R2 with a local-disk variant for dev / tests.
+
+### Backend
+- [x] New `r2::Backend` enum: `R2 { aws_sdk_s3::Client, bucket, public_url }` for prod, `Local { dir, api_base, signing_key }` for dev / tests
+- [x] `presign_put(key, content_type)` returns `{ upload_url, public_url }`. R2 variant uses `aws-sdk-s3` `PresigningConfig`. Local variant signs an HMAC-SHA256 token of `key|exp` with the JWT secret and points at our own internal upload route
+- [x] `delete(key)` is best-effort on both variants
+- [x] Drop `image` dep, drop `axum` `multipart` feature
+- [x] New endpoints:
+  - `POST /api/users/me/avatar/presign` — returns presigned URL + final public URL + key
+  - `POST /api/users/me/avatar { url }` — commits the URL to `users.avatar_url`
+  - `DELETE /api/users/me/avatar` — clears `avatar_url` and best-effort deletes the object
+- [x] Local mode adds `PUT /api/_avatars/upload/{*key}?exp=&sig=` (token-verified) and a `tower-http` `ServeDir` at `/avatars`. Both are only mounted when `r2::Backend::Local` is active
+- [x] `Config` reads `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_URL`. All five present → R2; otherwise Local with `AVATAR_DIR`
+- [x] `error::AppError::Image` variant removed (no more in-process image work)
+
+### Frontend
+- [x] `lib/api/users.ts` `uploadAvatar(file)` flow: canvas-resize to 256×256 WebP → fetch presigned URL → `PUT` directly → `POST` commit
+- [x] Existing callers unchanged — same `uploadAvatar(file)` / `deleteAvatar()` signatures
+
+### Operator (one-off)
+- [ ] Create CF R2 bucket `noordpool-avatars`, enable public access, copy the `pub-*.r2.dev` URL into `R2_PUBLIC_URL`
+- [ ] Create R2 API token (S3-compatible) with object read/write on the bucket
+- [ ] `fly secrets set R2_ACCOUNT_ID=… R2_ACCESS_KEY_ID=… R2_SECRET_ACCESS_KEY=… R2_PUBLIC_URL=https://pub-xxx.r2.dev`
+- [ ] Wipe stale avatar URLs: `UPDATE users SET avatar_url = NULL` (existing values point at `/avatars/<id>.webp` paths the new flow doesn't generate)
+
+### Verification
+- [x] `cargo build` clean
+- [x] `cargo test` — 8 backend tests pass
+- [x] `cargo clippy --all-targets -- -D warnings` clean
+- [x] `npx svelte-check` — 0 errors
+- [x] `npx vitest run` — 123 frontend tests pass
+
+---
+
 ## Data Model Summary
 
 ```

@@ -9,6 +9,7 @@ pub mod lineup;
 pub mod models;
 pub mod players;
 pub mod push;
+pub mod r2;
 pub mod routes;
 pub mod stats;
 pub mod teams;

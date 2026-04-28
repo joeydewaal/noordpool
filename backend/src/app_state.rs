@@ -1,5 +1,3 @@
-use std::{path::PathBuf, sync::Arc};
-
 use axum::extract::FromRef;
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use toasty::Db;
@@ -8,6 +6,7 @@ use crate::{
     auth::{claims::Claims, google::GoogleHandler},
     games::live_ws::LiveHub,
     push::PushBackend,
+    r2,
 };
 
 #[derive(Clone)]
@@ -16,7 +15,7 @@ pub struct AppState {
     pub jwt: JwtContext<Claims>,
     pub google_oidc: Option<OidcContext<GoogleHandler>>,
     pub live_hub: LiveHub,
-    pub avatar_dir: Arc<PathBuf>,
+    pub r2: r2::Backend,
     pub push: PushBackend,
 }
 

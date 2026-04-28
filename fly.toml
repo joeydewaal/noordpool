@@ -7,6 +7,11 @@ primary_region = "ams"
   PORT = "3000"
   RUST_LOG = "info"
   AVATAR_DIR = "/data/avatars"
+  PUBLIC_API_URL = "https://api.noordpool.joeydewaal.com"
+  R2_BUCKET = "noordpool-avatars"
+  # Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_PUBLIC_URL
+  # via `fly secrets set`. With them, avatars upload directly to R2;
+  # without them, the backend falls back to AVATAR_DIR on the volume.
 
 [[mounts]]
   source = "noordpool_data"

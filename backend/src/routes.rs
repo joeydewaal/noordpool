@@ -1,11 +1,16 @@
-use axum::Router;
+use axum::{Router, routing::get};
 use axum_security::oidc::OidcExt as _;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, services::ServeDir};
 
 use crate::{app_state::AppState, auth, events, games, lineup, players, push, stats, teams, users};
 
+async fn health() -> &'static str {
+    "ok"
+}
+
 pub fn app(state: AppState) -> Router {
     let mut app = Router::new()
+        .route("/health", get(health))
         .nest("/api/auth", auth::router())
         .nest("/api/players", players::router())
         .nest("/api/users", users::router())
@@ -21,9 +26,16 @@ pub fn app(state: AppState) -> Router {
         app = app.with_oidc(google_oidc);
     }
 
-    let avatars = ServeDir::new(state.avatar_dir.as_path());
-    app.nest_service("/avatars", avatars)
-        .layer(CorsLayer::permissive())
+    // In local-storage mode, serve uploaded avatars from disk and accept
+    // browser uploads at the signed internal route.
+    if let Some(local) = state.r2.local_config() {
+        let avatars = ServeDir::new(&local.dir);
+        app = app
+            .nest_service("/avatars", avatars)
+            .merge(users::avatar::local_upload_router());
+    }
+
+    app.layer(CorsLayer::permissive())
         .layer(CompressionLayer::new())
         .with_state(state)
 }

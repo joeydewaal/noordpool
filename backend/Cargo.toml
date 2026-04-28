@@ -8,11 +8,10 @@ prod = []
 
 [dependencies]
 dotenvy = "0.15.7"
-axum = { version = "0.8.8", features = ["tokio", "ws", "multipart"] }
+axum = { version = "0.8.8", features = ["tokio", "ws"] }
 tokio = { version = "1.50", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "fs", "compression-gzip"] }
-image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 toasty = { git = "https://github.com/tokio-rs/toasty.git", features = ["jiff", "sqlite", "serde"] }
 axum-security = { git = "https://github.com/joeydewaal/axum-security/", features = ["jwt", "rbac", "macros", "jiff", "oidc"] }
 serde = { version = "1", features = ["derive"] }
@@ -24,6 +23,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 csv = "1"
 web-push = "0.11"
+aws-sdk-s3 = { version = "1", default-features = false, features = ["behavior-version-latest", "rt-tokio", "rustls"] }
+hmac = "0.12"
+sha2 = "0.10"
+bytes = "1"
 
 [build-dependencies]
 csv = "1"

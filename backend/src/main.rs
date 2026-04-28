@@ -9,6 +9,7 @@ mod lineup;
 mod models;
 mod players;
 mod push;
+mod r2;
 mod routes;
 mod stats;
 mod teams;
@@ -19,6 +20,7 @@ use std::{path::PathBuf, sync::Arc};
 use app_state::AppState;
 use axum_security::{jwt::JwtContext, oidc::OidcContext};
 use config::Config;
+use r2::{Backend as R2Backend, LocalConfig};
 
 use crate::models::create_db;
 
@@ -64,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .redirect_url(redirect_url)
             .login_path("/api/auth/google/login")
             .scopes(&["openid", "email", "profile"])
-            .use_dev_cookies(true)
+            .use_dev_cookies(!cfg!(feature = "prod"))
             .build(handler);
 
         tracing::info!("Google OIDC enabled");
@@ -95,17 +97,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let avatar_dir =
-        PathBuf::from(std::env::var("AVATAR_DIR").unwrap_or_else(|_| "./avatar-data".into()));
-    std::fs::create_dir_all(&avatar_dir)?;
-    tracing::info!("avatar dir: {}", avatar_dir.display());
+    let r2 = match &config.r2 {
+        Some(r2_config) => {
+            tracing::info!("Avatar storage: Cloudflare R2 ({})", r2_config.bucket);
+            R2Backend::r2(r2_config)
+        }
+        None => {
+            let dir = PathBuf::from(&config.avatar_dir);
+            tracing::info!("Avatar storage: local dir ({})", dir.display());
+            R2Backend::local(LocalConfig {
+                dir,
+                api_base: config.api_base_url.clone(),
+                signing_key: config.jwt_secret.clone(),
+            })?
+        }
+    };
 
     let state = AppState {
         db,
         jwt,
         google_oidc,
         live_hub: games::live_ws::LiveHub::new(),
-        avatar_dir: Arc::new(avatar_dir),
+        r2,
         push,
     };
 
