@@ -58,14 +58,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             frontend_url,
         };
 
-        let oidc = OidcContext::builder("google")
+        let mut oidc_builder = OidcContext::builder("google")
             .client_id(client_id)
             .client_secret(client_secret)
             .redirect_url(redirect_url)
             .login_path("/api/auth/google/login")
-            .scopes(&["openid", "email", "profile"])
-            .use_dev_cookies(true)
-            .build(handler);
+            .scopes(&["openid", "email", "profile"]);
+        if !cfg!(feature = "prod") {
+            oidc_builder = oidc_builder.use_dev_cookies(true);
+        }
+        let oidc = oidc_builder.build(handler);
 
         tracing::info!("Google OIDC enabled");
         Some(oidc)
@@ -100,16 +102,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(&avatar_dir)?;
     tracing::info!("avatar dir: {}", avatar_dir.display());
 
+    let allowed_origins = config.allowed_origins.clone();
+
     let state = AppState {
         db,
         jwt,
         google_oidc,
         live_hub: games::live_ws::LiveHub::new(),
         avatar_dir: Arc::new(avatar_dir),
+        public_api_url: config.public_api_url.clone().map(Arc::new),
         push,
     };
 
-    let app = routes::app(state);
+    let app = routes::app(state, allowed_origins);
 
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", config.port)).await?;
     tracing::info!("listening on {}", listener.local_addr()?);
