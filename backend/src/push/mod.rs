@@ -26,8 +26,7 @@ use serde_json::json;
 use toasty::Db;
 use uuid::Uuid;
 use web_push::{
-    ContentEncoding, IsahcWebPushClient, SubscriptionInfo, VapidSignatureBuilder, WebPushClient,
-    WebPushError, WebPushMessageBuilder,
+    ContentEncoding, SubscriptionInfo, VapidSignatureBuilder, WebPushMessage, WebPushMessageBuilder,
 };
 
 use crate::{
@@ -75,8 +74,12 @@ pub enum Notification {
 
 #[derive(Clone)]
 pub enum PushBackend {
-    /// Sends real Web Push messages. Owns all the state it needs.
-    Isahc { db: Db, vapid: Arc<VapidConfig> },
+    /// Sends real Web Push messages over HTTP/2 with rustls.
+    Live {
+        db: Db,
+        vapid: Arc<VapidConfig>,
+        http: reqwest::Client,
+    },
     /// Captures notifications in memory for testing.
     Mock(Arc<Mutex<Vec<Notification>>>),
     /// No-op — VAPID not configured.
@@ -84,8 +87,12 @@ pub enum PushBackend {
 }
 
 impl PushBackend {
-    pub fn new_isahc(db: Db, vapid: Arc<VapidConfig>) -> Self {
-        PushBackend::Isahc { db, vapid }
+    pub fn new_live(db: Db, vapid: Arc<VapidConfig>) -> Self {
+        let http = reqwest::Client::builder()
+            .use_rustls_tls()
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+        PushBackend::Live { db, vapid, http }
     }
 
     pub fn new_mock() -> (Self, Arc<Mutex<Vec<Notification>>>) {
@@ -96,15 +103,15 @@ impl PushBackend {
     /// Returns the VAPID public key if this backend is configured.
     pub fn vapid_public_key(&self) -> Option<&str> {
         match self {
-            PushBackend::Isahc { vapid, .. } => Some(&vapid.public_key),
+            PushBackend::Live { vapid, .. } => Some(&vapid.public_key),
             _ => None,
         }
     }
 
     pub async fn notify(&self, notification: Notification) {
         match self {
-            PushBackend::Isahc { db, vapid } => {
-                send_real(notification, db, vapid).await;
+            PushBackend::Live { db, vapid, http } => {
+                send_real(notification, db, vapid, http).await;
             }
             PushBackend::Mock(store) => {
                 store.lock().unwrap().push(notification);
@@ -134,7 +141,12 @@ impl PushBackend {
     }
 }
 
-async fn send_real(notification: Notification, db: &Db, vapid: &VapidConfig) {
+async fn send_real(
+    notification: Notification,
+    db: &Db,
+    vapid: &VapidConfig,
+    http: &reqwest::Client,
+) {
     let mut db = db.clone();
 
     let notify_goal_only = matches!(notification, Notification::Goal { .. });
@@ -189,14 +201,6 @@ async fn send_real(notification: Notification, db: &Db, vapid: &VapidConfig) {
             .into_bytes(),
     };
 
-    let client = match IsahcWebPushClient::new() {
-        Ok(c) => c,
-        Err(err) => {
-            tracing::error!(error = %err, "push: failed to build web push client");
-            return;
-        }
-    };
-
     let mut to_delete: Vec<Uuid> = Vec::new();
 
     for sub in &subs {
@@ -227,17 +231,13 @@ async fn send_real(notification: Notification, db: &Db, vapid: &VapidConfig) {
             }
         };
 
-        match client.send(message).await {
-            Ok(()) => {
-                tracing::debug!(sub_id = %sub.id, "push: sent");
-            }
-            Err(WebPushError::EndpointNotValid(_))
-            | Err(WebPushError::EndpointNotFound(_))
-            | Err(WebPushError::Unauthorized(_)) => {
+        match send_message(http, &message).await {
+            SendOutcome::Ok => tracing::debug!(sub_id = %sub.id, "push: sent"),
+            SendOutcome::Expired => {
                 tracing::info!(sub_id = %sub.id, "push: pruning expired endpoint");
                 to_delete.push(sub.id);
             }
-            Err(err) => {
+            SendOutcome::Failed(err) => {
                 tracing::warn!(error = %err, sub_id = %sub.id, "push: send failed");
             }
         }
@@ -249,6 +249,74 @@ async fn send_real(notification: Notification, db: &Db, vapid: &VapidConfig) {
         {
             tracing::warn!(error = %err, sub_id = %id, "push: prune delete failed");
         }
+    }
+}
+
+enum SendOutcome {
+    Ok,
+    Expired,
+    Failed(String),
+}
+
+/// POST a `WebPushMessage` to its subscription endpoint over HTTP/2 + rustls.
+/// Endpoint, headers and encrypted body all come from the web-push builder.
+async fn send_message(http: &reqwest::Client, message: &WebPushMessage) -> SendOutcome {
+    let mut req = http
+        .post(message.endpoint.to_string())
+        .header("TTL", message.ttl.to_string());
+
+    if let Some(topic) = &message.topic {
+        req = req.header("Topic", topic);
+    }
+    if let Some(urgency) = &message.urgency {
+        req = req.header("Urgency", urgency_str(urgency));
+    }
+
+    if let Some(payload) = &message.payload {
+        for (name, value) in &payload.crypto_headers {
+            req = req.header(*name, value);
+        }
+        req = req
+            .header("Content-Type", "application/octet-stream")
+            .header("Content-Encoding", encoding_str(&payload.content_encoding))
+            .body(payload.content.clone());
+    } else {
+        req = req.header("Content-Length", "0");
+    }
+
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(err) => return SendOutcome::Failed(err.to_string()),
+    };
+    let status = resp.status();
+    if status.is_success() {
+        return SendOutcome::Ok;
+    }
+    // 404 / 410 mean the subscription is gone; 401 / 403 mean we're unauthorized
+    // for it (often = stale endpoint after key rotation). Prune in either case.
+    if status == reqwest::StatusCode::NOT_FOUND
+        || status == reqwest::StatusCode::GONE
+        || status == reqwest::StatusCode::UNAUTHORIZED
+        || status == reqwest::StatusCode::FORBIDDEN
+    {
+        return SendOutcome::Expired;
+    }
+    SendOutcome::Failed(format!("HTTP {status}"))
+}
+
+fn urgency_str(u: &web_push::Urgency) -> &'static str {
+    match u {
+        web_push::Urgency::VeryLow => "very-low",
+        web_push::Urgency::Low => "low",
+        web_push::Urgency::Normal => "normal",
+        web_push::Urgency::High => "high",
+    }
+}
+
+fn encoding_str(e: &ContentEncoding) -> &'static str {
+    match e {
+        ContentEncoding::Aes128Gcm => "aes128gcm",
+        ContentEncoding::AesGcm => "aesgcm",
     }
 }
 

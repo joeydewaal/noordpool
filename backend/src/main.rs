@@ -82,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ) {
         (Some(public_key), Some(private_key), Some(subject)) => {
             tracing::info!("Web Push enabled (VAPID configured)");
-            push::PushBackend::new_isahc(
+            push::PushBackend::new_live(
                 db.clone(),
                 Arc::new(push::VapidConfig {
                     public_key,
