@@ -3,7 +3,7 @@ mod common;
 use insta::{Settings, assert_json_snapshot};
 use serde_json::json;
 
-use crate::common::TestApp;
+use crate::common::{TestApp, future_date_time};
 
 fn redact_settings() -> Settings {
     let mut settings = Settings::clone_current();
@@ -52,7 +52,7 @@ async fn create_game(app: &mut TestApp, token: &str) -> (String, String) {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
     let body = res.json_value().await;

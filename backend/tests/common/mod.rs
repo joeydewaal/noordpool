@@ -267,3 +267,15 @@ impl TestApp {
         self.state.jwt.encode_token(&claims).unwrap()
     }
 }
+
+/// A `dateTime` fixture safely in the future, so the game derives as
+/// `"scheduled"`. Relative to now so the fixture never expires.
+pub fn future_date_time() -> String {
+    (Timestamp::now() + 720.hours()).to_string()
+}
+
+/// A `dateTime` fixture safely in the past — beyond `MATCH_DURATION_MINUTES`,
+/// so the game derives as `"finished"` rather than `"live"`.
+pub fn past_date_time() -> String {
+    (Timestamp::now() - 720.hours()).to_string()
+}
