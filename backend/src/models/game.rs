@@ -1,6 +1,6 @@
 use jiff::{Span, Timestamp};
 use serde::Serialize;
-use toasty::{BelongsTo, HasMany};
+use toasty::Deferred;
 use uuid::Uuid;
 
 use super::{EventType, GameEvent};
@@ -37,15 +37,15 @@ pub struct Game {
     pub home_team_id: Uuid,
 
     #[belongs_to(key = home_team_id, references = id)]
-    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub home_team: BelongsTo<Team>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub home_team: Deferred<Team>,
 
     #[index]
     pub away_team_id: Uuid,
 
     #[belongs_to(key = away_team_id, references = id)]
-    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub away_team: BelongsTo<Team>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub away_team: Deferred<Team>,
 
     pub location: String,
 
@@ -73,8 +73,8 @@ pub struct Game {
     pub created_at: Timestamp,
 
     #[has_many]
-    #[serde(skip_serializing_if = "HasMany::is_unloaded")]
-    pub events: HasMany<GameEvent>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub events: Deferred<Vec<GameEvent>>,
 }
 
 impl Game {

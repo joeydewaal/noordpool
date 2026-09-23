@@ -14,7 +14,7 @@ expression: body
       },
       "cumulativeAssists": 1,
       "cumulativeGoals": 2,
-      "dateTime": "2024-01-15T18:00:00Z",
+      "dateTime": "[dateTime]",
       "gameId": "[uuid]",
       "goals": 2,
       "homeTeam": {
@@ -32,7 +32,7 @@ expression: body
         "id": "[uuid]",
         "name": "FC Rival"
       },
-      "dateTime": "2024-01-15T18:00:00Z",
+      "dateTime": "[dateTime]",
       "gameId": "[uuid]",
       "homeScore": 4,
       "homeTeam": {

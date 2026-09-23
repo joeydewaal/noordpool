@@ -1,6 +1,6 @@
 mod common;
 
-use common::TestApp;
+use common::{TestApp, future_date_time, past_date_time};
 use insta::{Settings, assert_json_snapshot};
 use serde_json::json;
 
@@ -41,7 +41,7 @@ async fn recent_games_score_computed_from_events() {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Veld",
-            "dateTime": "2024-03-01T15:00:00Z"
+            "dateTime": past_date_time()
         }))
         .await;
     let game_id = game_res.json_value().await["id"]
@@ -140,7 +140,7 @@ async fn create_game_requires_auth() {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
     assert_eq!(res.status(), 401);
@@ -160,7 +160,7 @@ async fn create_game_forbidden_for_player_role() {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
     assert_eq!(res.status(), 403);
@@ -179,7 +179,7 @@ async fn create_and_get_game() {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
     assert_eq!(res.status(), 200);
@@ -212,7 +212,7 @@ async fn update_game() {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
     let created = res.json_value().await;
@@ -254,7 +254,7 @@ async fn upcoming_and_recent() {
             "homeTeamId": home_id,
             "awayTeamId": future_id,
             "location": "Home Stadium",
-            "dateTime": "2027-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
 
@@ -265,7 +265,7 @@ async fn upcoming_and_recent() {
             "homeTeamId": past_id,
             "awayTeamId": home_id,
             "location": "Away Stadium",
-            "dateTime": "2024-01-10T15:00:00Z"
+            "dateTime": past_date_time()
         }))
         .await;
 
@@ -314,7 +314,7 @@ async fn delete_game() {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
     let created = res.json_value().await;
@@ -347,7 +347,7 @@ async fn delete_match_forbidden_for_moderator() {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2026-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
     let created = res.json_value().await;

@@ -1,6 +1,6 @@
 mod common;
 
-use common::TestApp;
+use common::{TestApp, future_date_time, past_date_time};
 use insta::{Settings, assert_json_snapshot};
 use serde_json::json;
 
@@ -60,7 +60,7 @@ async fn create_game_and_complete(
             "homeTeamId": home_team_id,
             "awayTeamId": away_team_id,
             "location": "Stadium",
-            "dateTime": "2024-01-15T18:00:00Z"
+            "dateTime": past_date_time()
         }))
         .await;
     let body = res.json_value().await;
@@ -219,6 +219,8 @@ async fn player_stats_with_events() {
             ".gameTimeline[].gameId" => "[uuid]",
             ".gameTimeline[].homeTeam.id" => "[uuid]",
             ".gameTimeline[].awayTeam.id" => "[uuid]",
+            ".gameTimeline[].dateTime" => "[dateTime]",
+            ".goalMatches[].dateTime" => "[dateTime]",
         });
     });
 }
@@ -241,7 +243,7 @@ async fn stats_ignore_scheduled_game_events() {
             "homeTeamId": home_id,
             "awayTeamId": away_id,
             "location": "Stadium",
-            "dateTime": "2027-06-15T18:00:00Z"
+            "dateTime": future_date_time()
         }))
         .await;
     let body = res.json_value().await;

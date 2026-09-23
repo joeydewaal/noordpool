@@ -1,6 +1,6 @@
 use jiff::Timestamp;
 use serde::Serialize;
-use toasty::{BelongsTo, HasMany, HasOne, schema::Model};
+use toasty::{Deferred, schema::Model, stmt::List};
 use uuid::Uuid;
 
 use crate::models::{GameEvent, Position, User, team::Team};
@@ -31,23 +31,23 @@ pub struct Player {
     pub team_id: Uuid,
 
     #[belongs_to(key = team_id, references = id)]
-    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub team: BelongsTo<Team>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub team: Deferred<Team>,
 
     #[has_many]
-    #[serde(skip_serializing_if = "HasMany::is_unloaded")]
-    pub game_events: HasMany<GameEvent>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub game_events: Deferred<Vec<GameEvent>>,
 
     #[has_one]
-    #[serde(skip_serializing_if = "HasOne::is_unloaded")]
-    pub user: HasOne<Option<User>>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub user: Deferred<Option<User>>,
 
     #[default(Timestamp::now())]
     pub created_at: Timestamp,
 }
 
 impl Player {
-    pub fn all_active() -> <Player as Model>::Query {
+    pub fn all_active() -> <Player as Model>::Query<List<Player>> {
         Player::all().filter(Player::fields().active().eq(true))
     }
 }

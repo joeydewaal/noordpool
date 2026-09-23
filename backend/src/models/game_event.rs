@@ -1,5 +1,5 @@
 use serde::Serialize;
-use toasty::BelongsTo;
+use toasty::Deferred;
 use uuid::Uuid;
 
 use crate::models::Player;
@@ -17,17 +17,17 @@ pub struct GameEvent {
     #[serde(skip)]
     pub game_id: Uuid,
 
-    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
     #[belongs_to(key = game_id, references = id)]
-    pub game: BelongsTo<Game>,
+    pub game: Deferred<Game>,
 
     #[index]
     #[serde(skip)]
     pub player_id: Option<Uuid>,
 
     #[belongs_to(key = player_id, references = id)]
-    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub player: BelongsTo<Option<Player>>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub player: Deferred<Option<Player>>,
 
     /// Snapshot of the scoring team at the time the event was recorded.
     /// For anonymous events (player_id = None) this is set directly from the request.

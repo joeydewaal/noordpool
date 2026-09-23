@@ -1,6 +1,6 @@
 use jiff::Timestamp;
 use serde::Serialize;
-use toasty::{BelongsTo, HasMany};
+use toasty::Deferred;
 use uuid::Uuid;
 
 use super::{Formation, Game, game_lineup_slot::GameLineupSlot};
@@ -18,7 +18,7 @@ pub struct GameLineup {
 
     #[belongs_to(key = game_id, references = id)]
     #[serde(skip)]
-    pub game: BelongsTo<Game>,
+    pub game: Deferred<Game>,
 
     #[index]
     #[serde(skip)]
@@ -31,5 +31,5 @@ pub struct GameLineup {
 
     #[has_many]
     #[serde(skip)]
-    pub slots: HasMany<GameLineupSlot>,
+    pub slots: Deferred<Vec<GameLineupSlot>>,
 }

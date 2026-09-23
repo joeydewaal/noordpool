@@ -1,6 +1,6 @@
 use jiff::Timestamp;
 use serde::Serialize;
-use toasty::BelongsTo;
+use toasty::Deferred;
 use uuid::Uuid;
 
 use crate::models::{Player, Role};
@@ -24,7 +24,7 @@ pub struct User {
     pub player_id: Option<Uuid>,
 
     #[belongs_to(key = player_id, references = id)]
-    pub player: BelongsTo<Option<Player>>,
+    pub player: Deferred<Option<Player>>,
 
     pub avatar_url: Option<String>,
 
@@ -66,8 +66,8 @@ pub struct UserSer<'a> {
     pub last_name: &'a str,
     pub avatar_url: &'a Option<String>,
     pub player_id: &'a Option<Uuid>,
-    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub player: &'a BelongsTo<Option<Player>>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub player: &'a Deferred<Option<Player>>,
     pub is_admin: bool,
     pub is_moderator: bool,
     pub created_at: Timestamp,

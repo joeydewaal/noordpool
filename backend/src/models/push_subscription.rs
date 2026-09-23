@@ -1,6 +1,6 @@
 use jiff::Timestamp;
 use serde::Serialize;
-use toasty::BelongsTo;
+use toasty::Deferred;
 use uuid::Uuid;
 
 use crate::models::User;
@@ -19,8 +19,8 @@ pub struct PushSubscription {
     pub user_id: Uuid,
 
     #[belongs_to(key = user_id, references = id)]
-    #[serde(skip_serializing_if = "BelongsTo::is_unloaded")]
-    pub user: BelongsTo<User>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub user: Deferred<User>,
 
     #[unique]
     pub endpoint: String,
