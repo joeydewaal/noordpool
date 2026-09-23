@@ -1,5 +1,5 @@
 use serde::Serialize;
-use toasty::HasMany;
+use toasty::Deferred;
 use uuid::Uuid;
 
 use crate::models::Player;
@@ -15,6 +15,6 @@ pub struct Team {
     pub name: String,
 
     #[has_many]
-    #[serde(skip_serializing_if = "HasMany::is_unloaded")]
-    pub players: HasMany<Player>,
+    #[serde(skip_serializing_if = "Deferred::is_unloaded")]
+    pub players: Deferred<Vec<Player>>,
 }

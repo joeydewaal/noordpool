@@ -1,5 +1,5 @@
 use serde::Serialize;
-use toasty::BelongsTo;
+use toasty::Deferred;
 use uuid::Uuid;
 
 use crate::models::Player;
@@ -19,7 +19,7 @@ pub struct GameLineupSlot {
 
     #[belongs_to(key = lineup_id, references = id)]
     #[serde(skip)]
-    pub game_lineup: BelongsTo<GameLineup>,
+    pub game_lineup: Deferred<GameLineup>,
 
     #[index]
     #[serde(skip)]
@@ -27,7 +27,7 @@ pub struct GameLineupSlot {
 
     #[belongs_to(key = player_id, references = id)]
     #[serde(skip)]
-    pub player: BelongsTo<Player>,
+    pub player: Deferred<Player>,
 
     /// 0–10 = starting XI slot index (per formation definition), 11–17 = bench.
     pub slot: i32,
